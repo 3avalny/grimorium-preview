@@ -492,8 +492,13 @@ footer{
   .record{min-height:auto;display:block;padding:46px 0 62px;--disc-height:auto}
   .record-side-label{display:none}
   .record-head{width:328px;max-width:100%;margin:0 auto 24px}
-  .record-title-slot{font-size:clamp(34px,10vw,50px);letter-spacing:.09em}
-  .record-tail-window{width:13.5ch}
+  .record-title-slot{
+    width:100%;justify-content:center;text-align:center;
+    font-size:clamp(34px,10vw,50px);letter-spacing:.09em
+  }
+  .record-title-slot .record-prefix,
+  .record-title-slot .record-tail-window{display:none}
+  .record-title-slot::after{content:attr(data-mobile-title);white-space:nowrap}
   .discography-grid{display:flex;flex-direction:column;gap:22px}
   .album-tabs{
     order:0;width:328px;max-width:100%;height:auto;margin-inline:auto;
@@ -503,7 +508,8 @@ footer{
   .album-tab{width:48px;height:48px;flex:0 0 48px}
   .disc-content-window{height:auto;overflow:visible}
   .disc-content-panel{
-    position:static;display:none;flex-direction:column;gap:18px;width:100%
+    position:static;display:none;flex-direction:column;align-items:center;
+    gap:18px;width:100%;margin-inline:auto
   }
   .disc-content-panel.current,
   .disc-content-panel.incoming,
@@ -521,7 +527,7 @@ footer{
     order:3;width:100%;height:auto;flex-direction:row;
     justify-content:center;gap:14px;margin-top:2px
   }
-  .stream-col{order:4;width:100%;height:152px}
+  .stream-col{order:4;width:100%;height:152px;align-self:stretch}
   .player,.player iframe{width:100%;height:152px;min-height:152px}
   .album-credits{grid-template-columns:1fr;gap:8px;min-height:0;margin-top:10px}
   .credits-text-window{min-height:0;overflow:visible}
@@ -574,7 +580,7 @@ footer{
   <div class="record-side-label">Discography</div>
   <div class="shell">
     <div class="record-head">
-      <h2 class="record-title-slot" id="recordTitle" aria-label="Renaissance">
+      <h2 class="record-title-slot" id="recordTitle" aria-label="Renaissance" data-mobile-title="RENAISSANCE">
         <span class="record-prefix">RE</span>
         <span class="record-tail-window" id="recordTailWindow">
           <span class="record-tail-piece current">NAISSANCE</span>
@@ -725,6 +731,7 @@ function setStaticTail(text){
 function animateTitle(a,direction,token){
   const nextTail=tailFor(a.title);
   recordTitle.setAttribute("aria-label",a.title);
+  recordTitle.dataset.mobileTitle=a.title.toUpperCase();
 
   if(!direction){
     setStaticTail(nextTail);
