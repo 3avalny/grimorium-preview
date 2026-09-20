@@ -427,6 +427,21 @@ footer{
   font-size:8px;letter-spacing:.17em;text-transform:uppercase;color:#5f6568
 }
 
+@media(min-width:721px){
+  .record,
+  .bio{
+    height:100vh;
+    min-height:100vh;
+    background:
+      linear-gradient(180deg,rgba(7,9,11,.48),rgba(7,9,11,.30) 48%,rgba(7,9,11,.58)),
+      url("assets/bio-background.webp") center center/cover no-repeat fixed;
+    background-attachment:fixed,fixed
+  }
+  .record{
+    overflow:hidden
+  }
+}
+
 @media(max-width:1180px){
   .bio{min-height:720px}
   .bio-figure{height:82%;width:33vw}
