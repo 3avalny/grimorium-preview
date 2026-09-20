@@ -351,8 +351,8 @@ nav a:hover{color:#fff}
 .bio-figure-right{right:max(18px,calc((100vw - var(--shell))/2 - 40px))}
 .bio-figure img{
   width:100%;height:100%;object-fit:contain;object-position:center bottom;
-  filter:saturate(.78) contrast(1.05) brightness(.88);
-  opacity:.94
+  filter:none;
+  opacity:1
 }
 .bio-copy{
   position:relative;z-index:4;width:min(500px,38vw);
@@ -440,7 +440,7 @@ footer{
 @media(max-width:900px){
   .bio{min-height:760px}
   .bio-side-label{left:26px;font-size:12px}
-  .bio-figure{height:69%;width:42vw;opacity:.88}
+  .bio-figure{height:69%;width:42vw;opacity:1}
   .bio-figure-left{left:-4vw}
   .bio-figure-right{right:-4vw}
   .bio-copy{width:min(510px,58vw);padding-inline:18px}
@@ -465,7 +465,7 @@ footer{
   .bio-copy:before{inset:-45px -25px;background:radial-gradient(ellipse at center,rgba(7,9,11,.9),rgba(7,9,11,.35) 58%,transparent 78%)}
   .bio h2{font-size:clamp(40px,11vw,56px);letter-spacing:.055em}
   .bio p{font-size:16px;line-height:1.55}
-  .bio-figure{bottom:-2px;height:415px;width:58vw;opacity:.94}
+  .bio-figure{bottom:-2px;height:415px;width:58vw;opacity:1}
   .bio-figure-left{left:-9vw}
   .bio-figure-right{right:-9vw}
   .bio-figure img{object-position:center bottom}
@@ -536,7 +536,7 @@ footer{
 <body>
 <header>
   <a class="brand" href="#top" aria-label="Grimorium Verum home"><img src="assets/grimorium-logo.png" alt="Grimorium Verum"></a>
-  <nav><a href="#music">Music</a><a href="#bio">Bio</a></nav>
+  <nav><a href="#music">Music</a><a href="#biography">Biography</a></nav>
 </header>
 
 <main id="top">
@@ -586,10 +586,10 @@ footer{
 </section>
 
 
-<section class="bio" id="bio">
-  <div class="bio-side-label">Bio</div>
+<section class="bio" id="biography">
+  <div class="bio-side-label">Biography</div>
   <div class="bio-figure bio-figure-left" aria-hidden="true">
-    <img src="assets/bio-left.webp" alt="">
+    <img src="assets/bio-left.png" alt="">
   </div>
   <div class="bio-copy">
     <div class="bio-eyebrow">Est. 1996 · Syktyvkar</div>
@@ -599,7 +599,7 @@ footer{
     <p>At the heart of the catalogue are the voice and lyrics of Roma Diamond and the music of Andrey Zavalny. In 2026, Grimorium Verum opens a new chapter with <em>Renaissance</em>.</p>
   </div>
   <div class="bio-figure bio-figure-right" aria-hidden="true">
-    <img src="assets/bio-right.webp" alt="">
+    <img src="assets/bio-right.png" alt="">
   </div>
 </section>
 
