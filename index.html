@@ -177,10 +177,27 @@ nav a:hover{color:#fff}
     minmax(300px,1fr)
     48px;
   gap:clamp(18px,2vw,30px);
-  align-items:start;
-  transition:transform .42s cubic-bezier(.22,.78,.2,1),opacity .42s ease;
+  align-items:start
+}
+
+.cascade-stage{
+  transform:translateY(0);opacity:1;
+  transition:
+    transform .42s cubic-bezier(.22,.78,.2,1) var(--cascade-delay,0ms),
+    opacity .42s ease var(--cascade-delay,0ms);
   will-change:transform,opacity
 }
+.stage-track{--cascade-delay:0ms}
+.stage-cover,.stage-year{--cascade-delay:90ms}
+.stage-stream{--cascade-delay:180ms}
+.stage-platforms{--cascade-delay:270ms}
+
+.disc-content-panel.incoming.down .cascade-stage{transform:translateY(-108%);opacity:.12}
+.disc-content-panel.incoming.up .cascade-stage{transform:translateY(108%);opacity:.12}
+.disc-content-panel.outgoing .cascade-stage{transform:translateY(0);opacity:1}
+.disc-content-panel.outgoing.down.go .cascade-stage{transform:translateY(108%);opacity:.08}
+.disc-content-panel.outgoing.up.go .cascade-stage{transform:translateY(-108%);opacity:.08}
+.disc-content-panel.incoming.go .cascade-stage{transform:translateY(0);opacity:1}
 
 .track-col{height:var(--disc-height);min-width:0}
 .panel-tracklist{height:100%;overflow:hidden}
@@ -250,19 +267,12 @@ nav a:hover{color:#fff}
 .platform img{width:20px;height:20px;object-fit:contain;opacity:.86}
 .platform:hover img{opacity:1}
 
-.disc-content-panel.current,
 .credits-panel.current{transform:translateY(0);opacity:1}
-.disc-content-panel.incoming.down,
 .credits-panel.incoming.down{transform:translateY(-108%);opacity:.12}
-.disc-content-panel.incoming.up,
 .credits-panel.incoming.up{transform:translateY(108%);opacity:.12}
-.disc-content-panel.outgoing,
 .credits-panel.outgoing{transform:translateY(0);opacity:1}
-.disc-content-panel.outgoing.down.go,
 .credits-panel.outgoing.down.go{transform:translateY(108%);opacity:.08}
-.disc-content-panel.outgoing.up.go,
 .credits-panel.outgoing.up.go{transform:translateY(-108%);opacity:.08}
-.disc-content-panel.incoming.go,
 .credits-panel.incoming.go{transform:translateY(0);opacity:1}
 
 .album-credits{
@@ -282,7 +292,9 @@ nav a:hover{color:#fff}
   position:absolute;left:0;top:0;width:100%;
   font-family:var(--serif);font-size:13px;
   line-height:1.55;letter-spacing:.025em;color:#8f918d;
-  transition:transform .42s cubic-bezier(.22,.78,.2,1),opacity .42s ease;
+  transition:
+    transform .42s cubic-bezier(.22,.78,.2,1) 360ms,
+    opacity .42s ease 360ms;
   will-change:transform,opacity;
   -webkit-user-select:text!important;user-select:text!important
 }
@@ -369,8 +381,11 @@ footer{
   .album-tab{width:56px;height:56px;flex:0 0 56px}
   .disc-content-window{height:auto;overflow:visible}
   .disc-content-panel{
-    position:static;display:flex;flex-direction:column;gap:22px;
-    transform:none!important;opacity:1!important
+    position:static;display:flex;flex-direction:column;gap:22px
+  }
+  .cascade-stage{
+    transform:none!important;opacity:1!important;
+    transition:none!important
   }
   .track-col{order:2;height:auto}
   .panel-tracklist{height:auto;overflow:visible}
@@ -420,10 +435,10 @@ footer{
       <div class="hero-sub">New album — 2026</div>
       <div class="services" aria-label="Listen on streaming platforms">
         <a href="https://open.spotify.com/artist/65nL8HSKtOigMf9h8d4rUK" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify">
-          <img src="https://cdn.simpleicons.org/spotify/d8d8d2" alt="">
+          <img src="assets/spotify-mono.svg" alt="">
         </a>
         <a class="apple" href="https://music.apple.com/us/search?term=Grimorium%20Verum" target="_blank" rel="noopener" aria-label="Apple Music" title="Apple Music">
-          <img src="https://cdn.simpleicons.org/applemusic/d8d8d2" alt="">
+          <img src="assets/apple-music-mono.svg" alt="">
         </a>
         <a class="yandex" href="https://music.yandex.ru/search?text=Grimorium%20Verum" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music">
           <img src="assets/yandex-music-mono.svg" alt="">
@@ -549,6 +564,7 @@ const discContentWindow=document.getElementById("discContentWindow");
 const creditsTextWindow=document.getElementById("creditsTextWindow");
 
 const SWAP_MS=420;
+const CASCADE_MAX_MS=360;
 let activeAlbumIndex=-1;
 let animToken=0;
 
@@ -605,7 +621,7 @@ function animateTitle(a,direction,token){
   window.setTimeout(()=>{
     if(token!==animToken)return;
     setStaticTail(nextTail);
-  },SWAP_MS+30);
+  },SWAP_MS+CASCADE_MAX_MS+40);
 }
 
 function currentDiscHeight(){
@@ -632,29 +648,29 @@ function makeDiscPanel(a){
   const yandexSearch="https://music.yandex.ru/search?text="+query(a)+"&type=albums";
 
   panel.innerHTML=`
-    <div class="track-col">
+    <div class="track-col cascade-stage stage-track">
       <div class="panel-tracklist">
         ${a.tracks.map((t,i)=>`<div class="track"><span>${String(i+1).padStart(2,"0")}</span><span>${t}</span></div>`).join("")}
       </div>
     </div>
 
-    <div class="cover-col">
+    <div class="cover-col cascade-stage stage-cover">
       <div class="cover-wrap"><img class="cover" src="${a.cover}" alt="${a.title} album cover"></div>
     </div>
 
-    <div class="album-year-wrap">
+    <div class="album-year-wrap cascade-stage stage-year">
       <div class="album-year">${a.year}</div>
     </div>
 
-    <div class="stream-col">
+    <div class="stream-col cascade-stage stage-stream">
       <div class="player">
         <iframe src="${a.spotifyEmbed}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="${a.title} — Spotify player"></iframe>
       </div>
     </div>
 
-    <div class="platforms" aria-label="Streaming platforms">
-      <a class="platform" href="${spotifySearch}" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify"><img src="https://cdn.simpleicons.org/spotify/d8d8d2" alt=""></a>
-      <a class="platform" href="${appleSearch}" target="_blank" rel="noopener" aria-label="Apple Music" title="Apple Music"><img src="https://cdn.simpleicons.org/applemusic/d8d8d2" alt=""></a>
+    <div class="platforms cascade-stage stage-platforms" aria-label="Streaming platforms">
+      <a class="platform" href="${spotifySearch}" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify"><img src="assets/spotify-mono.svg" alt=""></a>
+      <a class="platform" href="${appleSearch}" target="_blank" rel="noopener" aria-label="Apple Music" title="Apple Music"><img src="assets/apple-music-mono.svg" alt=""></a>
       <a class="platform" href="${yandexSearch}" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music"><img src="assets/yandex-music-mono.svg" alt=""></a>
     </div>`;
 
@@ -712,7 +728,7 @@ function animateWindow(windowEl,newPanel,direction,token){
   window.setTimeout(()=>{
     if(token!==animToken)return;
     setStaticPanel(windowEl,newPanel);
-  },SWAP_MS+30);
+  },SWAP_MS+CASCADE_MAX_MS+40);
 }
 
 function selectAlbum(id){
