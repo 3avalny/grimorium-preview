@@ -362,7 +362,7 @@ nav a:hover{color:#fff}
   opacity:1
 }
 .bio-copy{
-  position:relative;z-index:4;width:min(610px,43vw);
+  position:relative;z-index:4;width:min(760px,56vw);
   padding:56px 22px;text-align:center;
   -webkit-user-select:none;user-select:none
 }
@@ -429,7 +429,7 @@ footer{
 @media(max-width:1180px){
   .bio{min-height:720px}
   .bio-figure{height:82%;width:33vw}
-  .bio-copy{width:min(560px,49vw)}
+  .bio-copy{width:min(700px,62vw)}
   .record{
     --disc-height:357px;
     --album-size:52px;
@@ -451,7 +451,7 @@ footer{
   .bio-figure{height:69%;width:40vw;opacity:1}
   .bio-figure-left{left:-6vw}
   .bio-figure-right{right:-6vw}
-  .bio-copy{width:min(560px,62vw);padding-inline:18px}
+  .bio-copy{width:min(680px,72vw);padding-inline:18px}
   header{height:76px;padding-inline:24px}.brand img{width:180px}nav{display:none}
   .hero{height:100vh;min-height:100vh}.hero-copy{width:86vw}
   .hero h1{font-size:clamp(48px,11vw,90px)}
@@ -469,7 +469,7 @@ footer{
     background:linear-gradient(0deg,#07090b 0%,transparent 27%,transparent 76%,rgba(7,9,11,.12) 100%)
   }
   .bio-side-label{display:none}
-  .bio-copy{width:100%;max-width:560px;margin:0 auto;padding:0 0 430px}
+  .bio-copy{width:100%;max-width:680px;margin:0 auto;padding:0 0 430px}
   .bio-copy:before{inset:-45px -25px;background:radial-gradient(ellipse at center,rgba(7,9,11,.9),rgba(7,9,11,.35) 58%,transparent 78%)}
   .bio h2{font-size:clamp(40px,11vw,56px);letter-spacing:.055em}
   .bio p{font-size:16px;line-height:1.55}
@@ -520,12 +520,15 @@ footer{
   }
   .track span:first-child{font-size:8px!important}
   .track span:last-child{white-space:normal;overflow:visible;text-overflow:clip}
-  .cover-col{order:1;width:min(100%,430px);height:auto;align-self:center;aspect-ratio:1}
+  .cover-col{order:1;width:min(100%,430px);height:auto;align-self:center;aspect-ratio:1;margin-inline:auto}
   .cover-wrap{height:100%}
   .album-year-wrap{order:1;height:auto;margin-top:-14px;align-self:center}
   .album-year{transform:none;font-size:16px;letter-spacing:.28em}
   .stream-col{order:3;width:100%;height:390px}
   .player,.player iframe{height:390px;min-height:390px}
+  .disc-content-panel[data-album-id="retaliation"] .stream-col{height:152px}
+  .disc-content-panel[data-album-id="retaliation"] .player,
+  .disc-content-panel[data-album-id="retaliation"] .player iframe{height:152px;min-height:152px}
   .platforms{order:4;width:100%;height:auto;flex-direction:row;justify-content:center}
   .album-credits{grid-template-columns:1fr;gap:8px;min-height:0;margin-top:10px}
   .credits-text-window{min-height:0;overflow:visible}
@@ -539,6 +542,9 @@ footer{
   .hero-sub{font-size:13px}
   .album-tab{width:52px;height:52px;flex-basis:52px}
   .stream-col,.player,.player iframe{height:360px;min-height:360px}
+  .disc-content-panel[data-album-id="retaliation"] .stream-col,
+  .disc-content-panel[data-album-id="retaliation"] .player,
+  .disc-content-panel[data-album-id="retaliation"] .player iframe{height:152px;min-height:152px}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 @supports(height:100dvh){.hero{height:100dvh;min-height:100dvh}}
@@ -683,7 +689,7 @@ const ALBUMS=[
   {
     id:"retaliation",title:"Retaliation",year:"2008",
     cover:"https://www.metal-archives.com/images/3/8/6/2/386271.jpg",
-    spotifyEmbed:"https://open.spotify.com/embed/album/03bFhnT6mvOsg6cpey99Hq?utm_source=generator&si=6dc0e0e5ea2e47ef",
+    spotifyEmbed:"https://open.spotify.com/embed/album/03bFhnT6mvOsg6cpey99Hq?utm_source=generator&si=7a38e103f9404a1b",
     tracks:["Intro - Undercover guest","Sacrifice","Funeral","God of nothing","Homohereticus","Last night of vampire","A time to kill","Curse of voodoo","Gollywog","Egypt","Twisted human form","Digging grave","...from the grave","Painted black","Outro"],
     creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, bass, keyboards, drums. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>, <strong>Yura Linber</strong>, <strong>John Money</strong>.",
     creditsProduction:"Recorded at Dead Witch Studio. Co-produced by Yura Linber."
