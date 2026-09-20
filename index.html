@@ -529,9 +529,7 @@ footer{
   }
   .bio:before{
     content:"";position:absolute;z-index:1;inset:0;pointer-events:none;
-    background:
-      radial-gradient(ellipse at 50% 34%,rgba(7,9,11,.12) 0%,rgba(7,9,11,.28) 58%,rgba(7,9,11,.48) 100%),
-      linear-gradient(180deg,rgba(4,6,8,.22),rgba(4,6,8,.34) 58%,rgba(4,6,8,.58))
+    background:rgba(4,6,8,.52)
   }
   .bio:after{
     content:"";position:absolute;z-index:2;inset:0;pointer-events:none;
@@ -568,14 +566,14 @@ footer{
   }
   .mobile-bio-copy .rule{margin:18px 0 24px}
   .mobile-bio-figure{
-    position:absolute;z-index:1;bottom:-10px;
-    width:61vw;height:540px;display:flex;align-items:flex-end;
+    position:absolute;z-index:1;top:66px;bottom:auto;
+    width:61vw;height:clamp(370px,108vw,540px);display:flex;align-items:flex-start;
     pointer-events:none;
     -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 56%,rgba(0,0,0,.96) 62%,rgba(0,0,0,.72) 72%,rgba(0,0,0,.32) 82%,transparent 90%,transparent 100%);
     mask-image:linear-gradient(to bottom,#000 0%,#000 56%,rgba(0,0,0,.96) 62%,rgba(0,0,0,.72) 72%,rgba(0,0,0,.32) 82%,transparent 90%,transparent 100%)
   }
   .mobile-bio-figure img{
-    width:100%;height:100%;object-fit:contain;object-position:center bottom;
+    width:100%;height:100%;object-fit:contain;object-position:center top;
     filter:
       drop-shadow(0 22px 48px rgba(0,0,0,.96))
       drop-shadow(0 6px 18px rgba(0,0,0,.94))
@@ -584,7 +582,7 @@ footer{
   .mobile-bio-andrey .mobile-bio-copy{
     margin-left:43%;padding-right:14px;text-align:left
   }
-  .mobile-bio-diamond .mobile-bio-figure{right:-12vw}
+  .mobile-bio-diamond .mobile-bio-figure{top:88px;right:-12vw}
   .mobile-bio-diamond .mobile-bio-copy{
     width:58%;margin-right:42%;padding:88px 0 0 18px;text-align:left
   }
