@@ -59,19 +59,23 @@ nav a:hover{color:#fff}
 }
 .hero-inner{position:relative;z-index:3;height:100%;display:flex;align-items:center;padding:124px var(--pad) 72px}
 .hero-copy{width:min(730px,67vw);margin-top:70px;min-width:0}
-.hero-side{display:flex;gap:16px;align-items:flex-start;margin-bottom:48px}
-.hero-side .vline{width:1px;height:65px;background:rgba(255,255,255,.34)}
-.hero-side span{font-family:var(--serif);font-size:12px;line-height:1.5;letter-spacing:.22em;text-transform:uppercase;color:#b8b8b1}
 .hero h1{
   margin:0;font-family:var(--serif);font-weight:400;
   font-size:clamp(50px,8.2vw,120px);line-height:.82;letter-spacing:.075em;text-transform:uppercase;
   text-shadow:0 6px 40px rgba(0,0,0,.85);white-space:nowrap
 }
 .hero-sub{margin-top:24px;font-family:var(--serif);font-size:clamp(16px,1.7vw,27px);letter-spacing:.2em;text-transform:uppercase;color:#d0cec7}
-.listen{margin-top:44px;display:flex;align-items:center;gap:16px;font-family:var(--serif);font-size:15px;letter-spacing:.2em;text-transform:uppercase}
-.listen:before{content:"";width:108px;height:1px;background:#c2c2bc}
-.services{display:flex;gap:22px;margin-top:15px;font-family:var(--serif);font-size:14px;color:#a5a69f}
-.services a:hover{color:#fff}
+.services{
+  display:flex;align-items:center;gap:14px;margin-top:38px
+}
+.services a{
+  width:42px;height:42px;display:grid;place-items:center;
+  border-radius:50%;transition:transform .18s ease,filter .18s ease
+}
+.services a:hover{transform:translateY(-2px);filter:brightness(1.12)}
+.services img{display:block;width:34px;height:34px;object-fit:contain}
+.services .apple img{width:36px;height:36px}
+.services .yandex img{width:38px;height:38px}
 
 .record{
   position:relative;padding:72px 0 92px;background:
@@ -248,12 +252,18 @@ footer{
   <div class="hero-art"></div>
   <div class="hero-inner">
     <div class="hero-copy">
-      <div class="hero-side"><div class="vline"></div><span>Death knows<br>no doctrine</span></div>
       <h1>Renaissance</h1>
       <div class="hero-sub">New album — 2026</div>
-      <div class="listen">Listen</div>
-      <div class="services">
-        <a href="#music">Spotify</a><a href="#music">Apple Music</a><a href="#music">Яндекс Музыка</a>
+      <div class="services" aria-label="Listen on streaming platforms">
+        <a href="https://open.spotify.com/artist/65nL8HSKtOigMf9h8d4rUK" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify">
+          <img src="https://cdn.simpleicons.org/spotify/1DB954" alt="">
+        </a>
+        <a class="apple" href="https://music.apple.com/us/search?term=Grimorium%20Verum" target="_blank" rel="noopener" aria-label="Apple Music" title="Apple Music">
+          <img src="https://cdn.simpleicons.org/applemusic/FA243C" alt="">
+        </a>
+        <a class="yandex" href="https://music.yandex.ru/search?text=Grimorium%20Verum" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music">
+          <img src="assets/yandex-music.png" alt="">
+        </a>
       </div>
     </div>
   </div>
