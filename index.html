@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07090b">
 <title>Grimorium Verum — Official</title>
+<link rel="preconnect" href="https://open.spotify.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
@@ -185,8 +186,13 @@ nav a:hover{color:#fff}
     minmax(260px,1fr)
     48px;
   gap:18px;
-  align-items:start
+  align-items:start;
+  visibility:hidden;pointer-events:none
 }
+.disc-content-panel.current,
+.disc-content-panel.incoming,
+.disc-content-panel.outgoing{visibility:visible}
+.disc-content-panel.current{pointer-events:auto}
 
 .cascade-stage{
   transform:translateY(0);opacity:1;
@@ -495,8 +501,11 @@ footer{
   .album-tab{width:56px;height:56px;flex:0 0 56px}
   .disc-content-window{height:auto;overflow:visible}
   .disc-content-panel{
-    position:static;display:flex;flex-direction:column;gap:22px
+    position:static;display:none;flex-direction:column;gap:22px
   }
+  .disc-content-panel.current,
+  .disc-content-panel.incoming,
+  .disc-content-panel.outgoing{display:flex}
   .cascade-stage{
     transform:none!important;opacity:1!important;
     transition:none!important
@@ -762,6 +771,7 @@ function trackFontFor(count){
 function makeDiscPanel(a){
   const panel=document.createElement("div");
   panel.className="disc-content-panel";
+  panel.dataset.albumId=a.id;
   const font=trackFontFor(a.tracks.length);
   panel.style.setProperty("--track-count",a.tracks.length);
   panel.style.setProperty("--track-font",font.toFixed(2)+"px");
@@ -788,7 +798,7 @@ function makeDiscPanel(a){
 
     <div class="stream-col cascade-stage stage-stream">
       <div class="player">
-        <iframe src="${a.spotifyEmbed}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="${a.title} — Spotify player"></iframe>
+        <iframe src="${a.spotifyEmbed}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="eager" title="${a.title} — Spotify player"></iframe>
       </div>
     </div>
 
@@ -805,6 +815,45 @@ function makeDiscPanel(a){
   });
 
   return panel;
+}
+
+function renderDiscPanels(){
+  discContentWindow.innerHTML="";
+  ALBUMS.forEach(a=>discContentWindow.appendChild(makeDiscPanel(a)));
+}
+
+function discPanelFor(id){
+  return discContentWindow.querySelector(`.disc-content-panel[data-album-id="${id}"]`);
+}
+
+function resetDiscPanelState(panel){
+  panel.classList.remove("current","incoming","outgoing","up","down","go");
+}
+
+function animateDiscWindow(newPanel,oldPanel,direction,token){
+  const mobile=window.matchMedia("(max-width:720px)").matches;
+
+  discContentWindow.querySelectorAll(".disc-content-panel").forEach(resetDiscPanelState);
+
+  if(!direction || mobile || !oldPanel){
+    newPanel.classList.add("current");
+    return;
+  }
+
+  oldPanel.classList.add("outgoing",direction);
+  newPanel.classList.add("incoming",direction);
+
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    oldPanel.classList.add("go");
+    newPanel.classList.add("go");
+  }));
+
+  window.setTimeout(()=>{
+    if(token!==animToken)return;
+    resetDiscPanelState(oldPanel);
+    resetDiscPanelState(newPanel);
+    newPanel.classList.add("current");
+  },SWAP_MS+CASCADE_MAX_MS+40);
 }
 
 function makeCreditsPanel(a){
@@ -862,19 +911,23 @@ function selectAlbum(id){
   const a=ALBUMS[nextIndex];if(!a)return;
   if(nextIndex===activeAlbumIndex)return;
 
-  const direction=activeAlbumIndex<0?null:(nextIndex>activeAlbumIndex?"down":"up");
+  const previousIndex=activeAlbumIndex;
+  const direction=previousIndex<0?null:(nextIndex>previousIndex?"down":"up");
   const token=++animToken;
+  const oldPanel=previousIndex<0?null:discPanelFor(ALBUMS[previousIndex].id);
+  const newPanel=discPanelFor(a.id);
 
   tabs.querySelectorAll(".album-tab").forEach(b=>b.classList.toggle("active",b.dataset.id===id));
 
   animateTitle(a,direction,token);
-  animateWindow(discContentWindow,makeDiscPanel(a),direction,token);
+  animateDiscWindow(newPanel,oldPanel,direction,token);
   animateWindow(creditsTextWindow,makeCreditsPanel(a),direction,token);
 
   activeAlbumIndex=nextIndex;
 }
 
 renderTabs();
+renderDiscPanels();
 selectAlbum("renaissance");
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{
