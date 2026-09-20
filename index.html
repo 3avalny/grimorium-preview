@@ -49,7 +49,7 @@ nav a:hover{color:#fff}
   background:
     linear-gradient(90deg,rgba(4,6,7,.77) 0%,rgba(4,6,7,.48) 27%,rgba(4,6,7,.13) 58%,rgba(4,6,7,.12) 77%,rgba(4,6,7,.34) 100%),
     linear-gradient(0deg,#07090b 0%,rgba(7,9,11,.25) 17%,transparent 38%),
-    url("assets/renaissance-cover.jpg") center 30%/cover no-repeat;
+    url("assets/renaissance-hero-16x9.jpg") center center/cover no-repeat;
   filter:saturate(.82) contrast(1.04) brightness(.9);
   transform:scale(1.01)
 }
@@ -78,74 +78,141 @@ nav a:hover{color:#fff}
 .services .yandex img{width:38px;height:38px}
 
 .record{
-  position:relative;padding:72px 0 92px;background:
-  radial-gradient(circle at 84% 30%,rgba(25,31,35,.25),transparent 28%),
-  linear-gradient(180deg,#080b0d,#07090b);
+  --disc-height:427px;
+  --album-size:62px;
+  --album-gap:11px;
+  position:relative;padding:66px 0 88px;
+  background:
+    radial-gradient(circle at 80% 26%,rgba(27,34,38,.22),transparent 30%),
+    linear-gradient(180deg,#080b0d,#07090b);
   border-top:1px solid rgba(255,255,255,.05)
 }
-.record:before{
-  content:"";position:absolute;right:0;top:0;bottom:0;width:24%;
-  background:url("https://grimorium-verum.ru/images/page2-img4.jpg") center/cover no-repeat;
-  filter:grayscale(1) brightness(.19) contrast(1.1);opacity:.46;
-  mask-image:linear-gradient(90deg,transparent,#000 55%);-webkit-mask-image:linear-gradient(90deg,transparent,#000 55%)
+.record-side-label{
+  position:absolute;z-index:3;left:17px;top:50%;
+  transform:translate(-50%,-50%) rotate(-90deg);
+  transform-origin:center;white-space:nowrap;
+  font-family:var(--sans);font-size:10px;font-weight:500;
+  letter-spacing:.34em;text-transform:uppercase;color:#62686b
 }
-.record-head{position:relative;z-index:2;margin-bottom:38px}
-.record-head h2{
-  font-family:var(--serif);font-weight:400;font-size:clamp(38px,4.8vw,62px);
-  letter-spacing:.16em;line-height:.95;margin:0;text-transform:uppercase
+.record-head{position:relative;z-index:2;margin-bottom:30px}
+.record-title-slot{
+  display:flex;align-items:baseline;margin:0;
+  font-family:var(--serif);font-weight:400;
+  font-size:clamp(40px,5vw,66px);line-height:.9;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--ink);
+  white-space:nowrap
 }
+.record-prefix{flex:0 0 auto}
+.record-tail-window{
+  position:relative;display:inline-block;overflow:hidden;
+  height:.92em;width:11.3ch;vertical-align:bottom
+}
+.record-tail-piece{
+  position:absolute;left:0;top:0;white-space:nowrap;
+  transition:transform .42s cubic-bezier(.22,.78,.2,1),opacity .42s ease;
+  will-change:transform,opacity
+}
+.record-tail-piece.current{transform:translateY(0);opacity:1}
+.record-tail-piece.incoming.down{transform:translateY(-115%);opacity:.12}
+.record-tail-piece.incoming.up{transform:translateY(115%);opacity:.12}
+.record-tail-piece.outgoing{transform:translateY(0);opacity:1}
+.record-tail-piece.outgoing.down.go{transform:translateY(115%);opacity:.08}
+.record-tail-piece.outgoing.up.go{transform:translateY(-115%);opacity:.08}
+.record-tail-piece.incoming.go{transform:translateY(0);opacity:1}
+
 .discography-grid{
   position:relative;z-index:2;display:grid;min-width:0;
-  grid-template-columns:72px minmax(250px,292px) minmax(300px,380px) minmax(360px,1fr) 52px;
-  gap:clamp(20px,2.5vw,38px);align-items:stretch;
-  height:520px
+  grid-template-columns:
+    var(--album-size)
+    minmax(250px,292px)
+    var(--disc-height)
+    34px
+    minmax(300px,1fr)
+    48px;
+  gap:clamp(18px,2vw,30px);
+  align-items:start
 }
 .album-tabs{
-  display:flex;flex-direction:column;justify-content:center;gap:11px;
-  min-width:0;align-self:stretch
+  height:var(--disc-height);display:flex;flex-direction:column;
+  justify-content:flex-start;gap:var(--album-gap);min-width:0
 }
 .album-tab{
-  position:relative;flex:0 0 auto;width:62px;height:62px;padding:0;
-  border:1px solid transparent;background:#101214;opacity:.38;cursor:pointer;
-  transition:opacity .2s ease,border-color .2s ease;overflow:hidden
+  position:relative;flex:0 0 var(--album-size);width:var(--album-size);height:var(--album-size);
+  padding:0;border:1px solid transparent;background:#101214;opacity:.38;
+  cursor:pointer;transition:opacity .2s ease,border-color .2s ease;overflow:hidden
 }
 .tab-fallback{
-  position:absolute;inset:0;display:grid;place-items:center;font-family:var(--serif);
-  font-size:13px;letter-spacing:.08em;color:#777;z-index:0
+  position:absolute;inset:0;display:grid;place-items:center;
+  font-family:var(--serif);font-size:13px;letter-spacing:.08em;color:#777;z-index:0
 }
-.album-tab img{width:100%;height:100%;object-fit:cover;filter:saturate(.52);position:relative;z-index:1}
+.album-tab img{
+  width:100%;height:100%;object-fit:cover;filter:saturate(.52);
+  position:relative;z-index:1
+}
 .album-tab:hover{opacity:.78}
 .album-tab.active{opacity:1;border-color:#b5b6b1}
-.track-col,.cover-col,.stream-col{min-width:0;height:100%}
-.track-col{display:flex;flex-direction:column;justify-content:flex-start}
-#tracklist{min-height:0;overflow:hidden}
-.cover-col{display:flex;flex-direction:column;justify-content:center}
-.track-col h3{
-  font-family:var(--serif);font-size:clamp(23px,2vw,31px);font-weight:400;
-  letter-spacing:clamp(.065em,.14vw,.12em);line-height:1;margin:0 0 17px;
-  text-transform:uppercase;white-space:nowrap
+
+.track-col{height:var(--disc-height);min-width:0}
+#tracklist{height:100%;overflow:hidden}
+.track{
+  height:calc(var(--disc-height) / 15);
+  display:grid;grid-template-columns:26px minmax(0,1fr);gap:9px;
+  align-items:center;padding:0;
+  font-family:var(--serif);font-size:13px;line-height:1;
+  letter-spacing:.025em;color:#aaa9a4
 }
-.track-col .rule{margin-bottom:15px}
-.track{display:grid;grid-template-columns:25px minmax(0,1fr);gap:9px;padding:4px 0;font-family:var(--serif);font-size:13.5px;line-height:1.25;letter-spacing:.035em;color:#aaa9a4}
-.track span:first-child{font-family:var(--sans);font-size:9px;color:#686d70;padding-top:2px}
-.track span:last-child{min-width:0;overflow-wrap:break-word;word-break:normal}
-.cover-wrap{border:1px solid rgba(220,222,217,.36);padding:9px;background:#090b0d;width:100%;max-width:380px;margin-inline:auto}
-.cover{width:100%;aspect-ratio:1;object-fit:cover;filter:saturate(.65) contrast(1.03)}
+.track span:first-child{
+  font-family:var(--sans);font-size:8px;color:#666b6e
+}
+.track span:last-child{
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+
+.cover-col{
+  width:var(--disc-height);height:var(--disc-height);min-width:0
+}
+.cover-wrap{
+  width:100%;height:100%;border:1px solid rgba(220,222,217,.36);
+  padding:0;background:#090b0d;overflow:hidden
+}
+.cover{
+  width:100%;height:100%;object-fit:cover;
+  filter:saturate(.66) contrast(1.03)
+}
 .cover-fallback{
-  aspect-ratio:1;display:flex;align-items:flex-end;padding:25px;
-  background:radial-gradient(circle at 55% 30%,rgba(114,26,30,.32),transparent 28%),linear-gradient(145deg,#121619,#050607);
-  font-family:var(--serif);font-size:clamp(24px,3vw,38px);line-height:1;white-space:nowrap;letter-spacing:.08em
+  width:100%;height:100%;display:flex;align-items:flex-end;padding:25px;
+  background:
+    radial-gradient(circle at 55% 30%,rgba(114,26,30,.32),transparent 28%),
+    linear-gradient(145deg,#121619,#050607);
+  font-family:var(--serif);font-size:clamp(24px,3vw,38px);
+  line-height:1;white-space:nowrap;letter-spacing:.08em
 }
-.album-name{text-align:center;margin-top:14px;font-family:var(--serif);font-size:16px;letter-spacing:.25em;text-transform:uppercase}
-.stream-col{display:flex;flex-direction:column;justify-content:stretch}
+
+.album-year-wrap{
+  height:var(--disc-height);display:flex;align-items:center;justify-content:center;
+  overflow:visible
+}
+.album-year{
+  transform:rotate(-90deg);transform-origin:center;white-space:nowrap;
+  font-family:var(--serif);font-size:15px;letter-spacing:.38em;
+  color:#8b8d89
+}
+
+.stream-col{
+  min-width:0;height:var(--disc-height);
+  display:flex;flex-direction:column;justify-content:stretch
+}
 .player{
   width:100%;height:100%;min-height:0;border:1px solid var(--line);
   border-radius:10px;overflow:hidden;background:#111
 }
-.player iframe{display:block;width:100%;height:100%;min-height:100%;border:0;background:#111}
+.player iframe{
+  display:block;width:100%;height:100%;min-height:100%;
+  border:0;background:#111
+}
 .platforms{
-  display:flex;flex-direction:column;justify-content:center;align-items:center;
-  gap:10px;margin:0;height:100%
+  height:var(--disc-height);display:flex;flex-direction:column;
+  justify-content:center;align-items:center;gap:10px;margin:0
 }
 .platform{
   position:relative;width:44px;height:44px;border:1px solid var(--line);
@@ -154,6 +221,8 @@ nav a:hover{color:#fff}
 }
 .platform:hover{border-color:#777d7f;background:#14181b}
 .platform img{width:20px;height:20px;object-fit:contain;opacity:.86}
+.platform:hover img{opacity:1}
+
 .album-credits{
   position:relative;z-index:2;margin-top:30px;padding-top:20px;
   border-top:1px solid rgba(255,255,255,.08);
@@ -169,8 +238,6 @@ nav a:hover{color:#fff}
   line-height:1.65;letter-spacing:.025em;color:#8f918d
 }
 .album-credits.is-empty{opacity:.45}
-
-.platform:hover img{opacity:1}
 
 .bottom{display:block;background:#080a0c;border-top:1px solid var(--line)}
 .live,.contact{position:relative;width:100%;padding:58px var(--pad)}
@@ -202,57 +269,82 @@ footer{
   border-top:1px solid var(--line);font-size:8px;letter-spacing:.17em;text-transform:uppercase;color:#5f6568
 }
 
-@media(max-width:1120px){
+@media(max-width:1180px){
+  .record{
+    --disc-height:357px;
+    --album-size:52px;
+    --album-gap:9px
+  }
   .discography-grid{
-    grid-template-columns:62px minmax(210px,255px) minmax(260px,320px) minmax(300px,1fr) 48px;
-    gap:18px;height:500px
+    grid-template-columns:
+      var(--album-size)
+      minmax(210px,245px)
+      var(--disc-height)
+      30px;
+    gap:18px
+  }
+  .stream-col{grid-column:2/5;height:380px}
+  .platforms{
+    grid-column:1;grid-row:2;height:380px
   }
 }
 @media(max-width:900px){
   header{height:76px;padding-inline:24px}.brand img{width:180px}nav{display:none}
   .hero{height:100vh;min-height:100vh}.hero-copy{width:86vw}
   .hero h1{font-size:clamp(48px,11vw,90px)}
-  .discography-grid{
-    grid-template-columns:62px minmax(220px,1fr) minmax(280px,1.15fr);
-    gap:22px;height:auto;align-items:start
-  }
-  .album-tabs{grid-row:1;grid-column:1;min-height:430px}
-  .track-col{grid-row:1;grid-column:2;min-height:430px}
-  .cover-col{grid-row:1;grid-column:3;min-height:430px}
-  .stream-col{grid-row:2;grid-column:2/4;height:380px}
-  .platforms{grid-row:2;grid-column:1;height:380px}
+  .record-side-label{left:10px}
 }
 @media(max-width:720px){
   :root{--pad:18px}
-  header{padding-inline:18px;height:72px;grid-template-columns:1fr}.brand img{width:155px;max-width:55vw}
-  .hero{min-height:640px}.hero-art{background-position:center 30%;filter:saturate(.84) contrast(1.03) brightness(.86)}
-  .hero-inner{align-items:flex-end;padding:96px 18px 68px}.hero-copy{width:100%;margin:0}
-  .hero-side{margin-bottom:30px}.hero-side span{font-size:10px}.hero-side .vline{height:54px}
+  header{padding-inline:18px;height:72px;grid-template-columns:1fr}
+  .brand img{width:155px;max-width:55vw}
+  .hero{min-height:100vh}
+  .hero-art{background-position:center center;filter:saturate(.9) contrast(1.03) brightness(.9)}
+  .hero-inner{align-items:flex-end;padding:96px 18px 68px}
+  .hero-copy{width:100%;margin:0}
   .hero h1{font-size:clamp(37px,11.3vw,68px);letter-spacing:.038em;white-space:nowrap}
   .hero-sub{font-size:14px;line-height:1.35;letter-spacing:.13em}
-  .listen{margin-top:32px}.listen:before{width:62px}.services{gap:14px;flex-wrap:wrap;font-size:13px}
-  .record{padding:48px 0 66px}.record-head{margin-bottom:24px}.record-head h2{font-size:clamp(35px,11vw,50px);letter-spacing:.12em}
-  .discography-grid{display:flex;flex-direction:column;align-items:stretch;gap:25px;height:auto}
-  .album-tabs{order:0;flex-direction:row;justify-content:flex-start;overflow-x:auto;align-self:auto;padding:4px 2px 8px;scrollbar-width:none}
+  .services{gap:14px}
+
+  .record{padding:46px 0 62px;--disc-height:auto}
+  .record-side-label{display:none}
+  .record-head{margin-bottom:24px}
+  .record-title-slot{font-size:clamp(34px,10vw,50px);letter-spacing:.09em}
+  .record-tail-window{width:10.8ch}
+  .discography-grid{display:flex;flex-direction:column;gap:22px}
+  .album-tabs{
+    order:0;height:auto;flex-direction:row;justify-content:flex-start;
+    overflow-x:auto;padding:3px 2px 8px;scrollbar-width:none
+  }
   .album-tabs::-webkit-scrollbar{display:none}
-  .album-tab{width:58px;height:58px;flex:0 0 58px}
-  .cover-col{order:1;width:min(100%,420px);align-self:center}
-  .track-col{order:2;width:100%}
-  .stream-col{order:3;width:100%}
-  .platforms{order:4;width:100%}
-  .track-col h3{font-size:clamp(23px,7vw,29px)}
-  .track{font-size:13px;grid-template-columns:23px minmax(0,1fr)}
+  .album-tab{width:56px;height:56px;flex:0 0 56px}
+  .track-col{order:2;height:auto}
+  #tracklist{height:auto;overflow:visible}
+  .track{
+    height:auto;min-height:27px;font-size:13px;
+    grid-template-columns:24px minmax(0,1fr)
+  }
+  .track span:last-child{white-space:normal;overflow:visible;text-overflow:clip}
+  .cover-col{order:1;width:min(100%,430px);height:auto;align-self:center;aspect-ratio:1}
+  .cover-wrap{height:100%}
+  .album-year-wrap{order:1;height:auto;margin-top:-14px;align-self:center}
+  .album-year{transform:none;font-size:14px;letter-spacing:.28em}
+  .stream-col{order:3;width:100%;height:390px}
   .player,.player iframe{height:390px;min-height:390px}
-  .platforms{height:auto;flex-direction:row;justify-content:center}
+  .platforms{
+    order:4;width:100%;height:auto;flex-direction:row;justify-content:center
+  }
   .album-credits{grid-template-columns:1fr;gap:8px;min-height:0;margin-top:10px}
-  .live,.contact{padding:46px 18px}.contact-row{display:block}.email-text{display:inline-block;margin-top:20px;white-space:normal}
+  .live,.contact{padding:46px 18px}
+  .contact-row{display:block}
+  .email-text{display:inline-block;margin-top:20px;white-space:normal}
   footer{flex-direction:column;padding-inline:18px}
 }
 @media(max-width:420px){
   .hero h1{font-size:clamp(34px,10.4vw,46px)}
   .hero-sub{font-size:13px}
-  .album-tab{width:54px;height:54px;flex-basis:54px}
-  .player,.player iframe{height:360px;min-height:360px}
+  .album-tab{width:52px;height:52px;flex-basis:52px}
+  .stream-col,.player,.player iframe{height:360px;min-height:360px}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 @supports(height:100dvh){.hero{height:100dvh;min-height:100dvh}}
@@ -273,13 +365,13 @@ footer{
       <div class="hero-sub">New album — 2026</div>
       <div class="services" aria-label="Listen on streaming platforms">
         <a href="https://open.spotify.com/artist/65nL8HSKtOigMf9h8d4rUK" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify">
-          <img src="https://cdn.simpleicons.org/spotify/1DB954" alt="">
+          <img src="https://cdn.simpleicons.org/spotify/d8d8d2" alt="">
         </a>
         <a class="apple" href="https://music.apple.com/us/search?term=Grimorium%20Verum" target="_blank" rel="noopener" aria-label="Apple Music" title="Apple Music">
-          <img src="https://cdn.simpleicons.org/applemusic/FA243C" alt="">
+          <img src="https://cdn.simpleicons.org/applemusic/d8d8d2" alt="">
         </a>
         <a class="yandex" href="https://music.yandex.ru/search?text=Grimorium%20Verum" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music">
-          <img src="assets/yandex-music.png" alt="">
+          <img src="assets/yandex-music-mono.svg" alt="">
         </a>
       </div>
     </div>
@@ -287,20 +379,30 @@ footer{
 </section>
 
 <section class="record" id="music">
+  <div class="record-side-label">Discography</div>
   <div class="shell">
-    <div class="record-head"><h2>Discography</h2></div>
+    <div class="record-head">
+      <h2 class="record-title-slot" id="recordTitle" aria-label="Renaissance">
+        <span class="record-prefix">RE</span>
+        <span class="record-tail-window" id="recordTailWindow">
+          <span class="record-tail-piece current">NAISSANCE</span>
+        </span>
+      </h2>
+    </div>
+
     <div class="discography-grid">
       <div class="album-tabs" id="albumTabs" aria-label="Albums"></div>
 
       <div class="track-col">
-        <h3 id="recordTitle">REALL</h3>
-        <div class="rule"></div>
         <div id="tracklist"></div>
       </div>
 
       <div class="cover-col">
         <div class="cover-wrap" id="coverWrap"></div>
-        <div class="album-name" id="albumName"></div>
+      </div>
+
+      <div class="album-year-wrap">
+        <div class="album-year" id="albumYear">2026</div>
       </div>
 
       <div class="stream-col">
@@ -310,13 +412,14 @@ footer{
       <div class="platforms" aria-label="Streaming platforms">
         <a class="platform" id="spotifyLink" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify"><img src="https://cdn.simpleicons.org/spotify/d8d8d2" alt=""></a>
         <a class="platform" id="appleLink" target="_blank" rel="noopener" aria-label="Apple Music" title="Apple Music"><img src="https://cdn.simpleicons.org/applemusic/d8d8d2" alt=""></a>
-        <a class="platform" id="yandexLink" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music"><img src="assets/yandex-music.png" alt=""></a>
+        <a class="platform" id="yandexLink" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music"><img src="assets/yandex-music-mono.svg" alt=""></a>
       </div>
     </div>
-      <div class="album-credits" id="albumCredits">
-        <div class="album-credits-label">Credits</div>
-        <div class="album-credits-text" id="albumCreditsText"></div>
-      </div>
+
+    <div class="album-credits" id="albumCredits">
+      <div class="album-credits-label">Credits</div>
+      <div class="album-credits-text" id="albumCreditsText"></div>
+    </div>
   </div>
 </section>
 
@@ -401,9 +504,10 @@ const ALBUMS=[
 
 const tabs=document.getElementById("albumTabs");
 const recordTitle=document.getElementById("recordTitle");
+const recordTailWindow=document.getElementById("recordTailWindow");
+const albumYear=document.getElementById("albumYear");
 const tracklist=document.getElementById("tracklist");
 const coverWrap=document.getElementById("coverWrap");
-const albumName=document.getElementById("albumName");
 const spotifyLink=document.getElementById("spotifyLink");
 const appleLink=document.getElementById("appleLink");
 const yandexLink=document.getElementById("yandexLink");
@@ -422,17 +526,73 @@ function renderTabs(){
   tabs.querySelectorAll(".album-tab").forEach(b=>b.addEventListener("click",()=>selectAlbum(b.dataset.id)));
 }
 
+let activeAlbumIndex=-1;
+let titleAnimToken=0;
+
+function tailFor(title){
+  return title.toUpperCase().startsWith("RE")?title.toUpperCase().slice(2):title.toUpperCase();
+}
+
+function setStaticTail(text){
+  recordTailWindow.innerHTML="";
+  const span=document.createElement("span");
+  span.className="record-tail-piece current";
+  span.textContent=text;
+  recordTailWindow.appendChild(span);
+}
+
+function animateTitle(nextIndex,a){
+  const nextTail=tailFor(a.title);
+  recordTitle.setAttribute("aria-label",a.title);
+
+  if(activeAlbumIndex<0 || nextIndex===activeAlbumIndex){
+    setStaticTail(nextTail);
+    activeAlbumIndex=nextIndex;
+    return;
+  }
+
+  const direction=nextIndex>activeAlbumIndex?"down":"up";
+  const oldText=recordTailWindow.textContent.trim();
+  recordTailWindow.innerHTML="";
+
+  const oldSpan=document.createElement("span");
+  oldSpan.className=`record-tail-piece outgoing ${direction}`;
+  oldSpan.textContent=oldText;
+
+  const newSpan=document.createElement("span");
+  newSpan.className=`record-tail-piece incoming ${direction}`;
+  newSpan.textContent=nextTail;
+
+  recordTailWindow.append(oldSpan,newSpan);
+  const token=++titleAnimToken;
+
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    oldSpan.classList.add("go");
+    newSpan.classList.add("go");
+  }));
+
+  window.setTimeout(()=>{
+    if(token!==titleAnimToken)return;
+    setStaticTail(nextTail);
+  },450);
+
+  activeAlbumIndex=nextIndex;
+}
+
 function selectAlbum(id){
-  const a=ALBUMS.find(x=>x.id===id);if(!a)return;
+  const nextIndex=ALBUMS.findIndex(x=>x.id===id);
+  const a=ALBUMS[nextIndex];if(!a)return;
+
   tabs.querySelectorAll(".album-tab").forEach(b=>b.classList.toggle("active",b.dataset.id===id));
-  recordTitle.textContent=a.title;
+  animateTitle(nextIndex,a);
+
   tracklist.innerHTML=a.tracks.map((t,i)=>`<div class="track"><span>${String(i+1).padStart(2,"0")}</span><span>${t}</span></div>`).join("");
 
   coverWrap.innerHTML=`<img class="cover" src="${a.cover}" alt="${a.title} album cover">`;
   const selectedCover=coverWrap.querySelector("img");
   selectedCover.addEventListener("error",()=>{coverWrap.innerHTML=`<div class="cover-fallback">${a.title}</div>`;});
 
-  albumName.textContent=a.status?`${a.title} · ${a.year} · ${a.status}`:`${a.title} · ${a.year}`;
+  albumYear.textContent=a.year;
   albumCreditsText.textContent=a.credits||"Credits will be announced.";
   albumCredits.classList.toggle("is-empty",!a.credits);
 
