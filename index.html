@@ -171,12 +171,12 @@ nav a:hover{color:#fff}
 .disc-content-panel{
   position:absolute;inset:0;display:grid;min-width:0;
   grid-template-columns:
-    minmax(250px,292px)
+    minmax(240px,270px)
     var(--disc-height)
-    34px
-    minmax(300px,1fr)
+    28px
+    minmax(260px,1fr)
     48px;
-  gap:clamp(18px,2vw,30px);
+  gap:18px;
   align-items:start
 }
 
@@ -212,7 +212,7 @@ nav a:hover{color:#fff}
   font-family:var(--sans);font-size:var(--track-num-font);color:#666b6e
 }
 .track span:last-child{
-  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+  min-width:0;white-space:nowrap;overflow:visible;text-overflow:clip
 }
 
 .cover-col{width:var(--disc-height);height:var(--disc-height);min-width:0}
@@ -264,7 +264,7 @@ nav a:hover{color:#fff}
   transition:opacity .18s ease,transform .18s ease
 }
 .platform:hover{background:transparent;opacity:.72;transform:scale(1.06)}
-.platform img{width:20px;height:20px;object-fit:contain;opacity:.86}
+.platform img{display:block;width:24px;height:24px;object-fit:contain;opacity:1}
 .platform:hover img{opacity:1}
 
 .credits-panel.current{transform:translateY(0);opacity:1}
@@ -286,19 +286,25 @@ nav a:hover{color:#fff}
   text-transform:uppercase;color:#62686b;padding-top:3px
 }
 .credits-text-window{
-  position:relative;min-height:88px;overflow:hidden
+  position:relative;min-height:104px;overflow:hidden;
+  -webkit-user-select:text!important;user-select:text!important
 }
 .credits-panel{
   position:absolute;left:0;top:0;width:100%;
-  font-family:var(--serif);font-size:13px;
-  line-height:1.55;letter-spacing:.025em;color:#8f918d;
+  font-family:var(--serif);font-size:15px;
+  line-height:1.5;letter-spacing:.02em;color:#999b96;
   transition:
     transform .42s cubic-bezier(.22,.78,.2,1) 360ms,
     opacity .42s ease 360ms;
   will-change:transform,opacity;
   -webkit-user-select:text!important;user-select:text!important
 }
-.credits-panel::selection{background:#dddcd5;color:#07090b}
+.credits-panel,
+.credits-panel *{
+  -webkit-user-select:text!important;user-select:text!important
+}
+.credits-panel::selection,
+.credits-panel *::selection{background:#dddcd5;color:#07090b}
 .credit-production{
   display:block;margin-top:7px;color:#747a7d
 }
@@ -341,9 +347,9 @@ footer{
   }
   .disc-content-window{height:755px}
   .disc-content-panel{
-    grid-template-columns:minmax(210px,245px) var(--disc-height) 30px;
+    grid-template-columns:minmax(205px,235px) var(--disc-height) 48px;
     grid-template-rows:var(--disc-height) 380px;
-    gap:18px
+    gap:16px
   }
   .stream-col{grid-column:1/3;grid-row:2;height:380px}
   .platforms{grid-column:3;grid-row:2;height:380px}
@@ -632,7 +638,28 @@ function currentDiscHeight(){
 
 function trackFontFor(count){
   const row=currentDiscHeight()/Math.max(1,count);
-  return Math.max(12.5,Math.min(18,row*.48));
+  return Math.max(12.25,Math.min(18,row*.48));
+}
+
+function fitTrackTypography(panel){
+  const trackCol=panel.querySelector(".track-col");
+  const rows=[...panel.querySelectorAll(".track")];
+  if(!trackCol||!rows.length)return;
+
+  const numberCol=28;
+  const gap=9;
+  const available=Math.max(80,trackCol.clientWidth-numberCol-gap-2);
+  let size=parseFloat(getComputedStyle(rows[0]).fontSize)||13;
+
+  const labels=rows.map(r=>r.lastElementChild);
+  for(let pass=0;pass<12;pass++){
+    labels.forEach(el=>el.style.fontSize=size+"px");
+    const widest=Math.max(...labels.map(el=>el.scrollWidth));
+    if(widest<=available)break;
+    size=Math.max(10.5,size*.94);
+  }
+
+  labels.forEach(el=>el.style.fontSize=size.toFixed(2)+"px");
 }
 
 function makeDiscPanel(a){
@@ -704,6 +731,9 @@ function setStaticPanel(windowEl,panel){
   windowEl.innerHTML="";
   panel.classList.add("current");
   windowEl.appendChild(panel);
+  if(windowEl===discContentWindow){
+    requestAnimationFrame(()=>fitTrackTypography(panel));
+  }
 }
 
 function animateWindow(windowEl,newPanel,direction,token){
@@ -719,8 +749,10 @@ function animateWindow(windowEl,newPanel,direction,token){
   oldPanel.classList.add("outgoing",direction);
   newPanel.classList.add("incoming",direction);
   windowEl.appendChild(newPanel);
+  if(windowEl===discContentWindow)fitTrackTypography(newPanel);
 
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(windowEl===discContentWindow)fitTrackTypography(newPanel);
     oldPanel.classList.add("go");
     newPanel.classList.add("go");
   }));
