@@ -3,71 +3,142 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#050607">
+<meta name="theme-color" content="#06090b">
 <title>Grimorium Verum — Official</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#050607;--panel:#0b0d0f;--ink:#e9edf0;--muted:#858d92;--line:rgba(225,232,236,.13);--ice:#aebbc3;--red:#7c1519;--serif:"Cormorant Garamond",Georgia,serif;--sans:"Manrope",Arial,sans-serif;--pad:clamp(18px,4vw,54px)}
-*{box-sizing:border-box}html{scroll-behavior:smooth;background:var(--bg)}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)}a{color:inherit;text-decoration:none}button{font:inherit;color:inherit}img{display:block;max-width:100%}::selection{background:#d9e0e4;color:#050607}
-.shell{width:min(1180px,100%);margin:auto;padding:0 var(--pad)}
-header{position:fixed;z-index:50;top:0;left:0;right:0;height:56px;display:flex;justify-content:center;align-items:center;gap:28px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(5,6,7,.78);backdrop-filter:blur(14px)}
-header a{font-size:9px;letter-spacing:.17em;text-transform:uppercase;color:#9ba1a5}header a:hover{color:#fff}
-.hero{min-height:58svh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 38%,rgba(55,75,86,.2),transparent 28%),linear-gradient(#050607,#07090b)}
-.hero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,#050607 100%);pointer-events:none}
-.hero-inner{position:relative;z-index:2;width:min(1080px,92vw);padding:92px 0 52px;text-align:center}
-.hero-logo{width:100%;height:auto;mix-blend-mode:screen;filter:drop-shadow(0 18px 36px rgba(0,0,0,.65));opacity:.96}
-.hero-meta{margin-top:8px;font-family:var(--serif);font-style:italic;font-size:20px;color:#99a1a6}
-.music{padding:74px 0 90px;border-top:1px solid var(--line)}
-.music-head{display:flex;justify-content:space-between;gap:30px;align-items:end;margin-bottom:28px}
-.music-head h1{font-family:var(--serif);font-size:clamp(42px,5.4vw,70px);font-weight:400;letter-spacing:-.04em;line-height:.9;margin:0}
-.music-head p{max-width:470px;margin:0;font-size:12px;line-height:1.6;color:#7c8388}
-.album-strip{display:flex;gap:10px;overflow-x:auto;padding:5px 3px 16px;scrollbar-width:thin;scrollbar-color:#444 transparent}
-.album-thumb{flex:0 0 72px;width:72px;aspect-ratio:1;padding:0;border:0;background:#111;cursor:pointer;opacity:.42;outline:1px solid transparent;outline-offset:3px;transition:.18s;overflow:hidden}
-.album-thumb img{width:100%;height:100%;object-fit:cover;filter:saturate(.72)}.album-thumb.fallback{border:1px solid var(--line);font-family:var(--serif);font-size:12px;color:#6e7478}.album-thumb:hover{opacity:.8}.album-thumb.active{opacity:1;outline-color:rgba(225,232,236,.55);transform:translateY(-2px)}
-.stage{display:grid;grid-template-columns:300px minmax(0,1fr);gap:38px;border-top:1px solid var(--line);padding-top:30px}
-.cover{aspect-ratio:1;background:#0d0f11;box-shadow:0 22px 45px rgba(0,0,0,.4);transition:.18s}.cover.fade{opacity:.15;transform:scale(.985)}.cover img{width:100%;height:100%;object-fit:cover}.cover-fallback{height:100%;display:flex;align-items:flex-end;padding:22px;background:radial-gradient(circle at 62% 32%,rgba(96,20,23,.38),transparent 30%),linear-gradient(145deg,#151719,#060708);border:1px solid var(--line)}.cover-fallback span{font-family:var(--serif);font-size:48px;line-height:.77}
-.cover-meta{display:flex;justify-content:space-between;align-items:start;margin-top:12px}.cover-meta strong{font-family:var(--serif);font-size:27px;font-weight:400}.cover-meta span{font-size:9px;letter-spacing:.14em;color:#6f777c;padding-top:6px}
-.album-head{display:flex;justify-content:space-between;align-items:end;gap:20px;padding-bottom:14px;border-bottom:1px solid var(--line)}
-.album-head h2{font-family:var(--serif);font-size:clamp(40px,5vw,62px);font-weight:400;line-height:.85;letter-spacing:-.04em;margin:0}.album-head span{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#6f777c}
-.platforms{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 6px}
-.platform{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:#adb5ba;background:#090b0d;transition:.16s}
-.platform:hover{border-color:rgba(225,232,236,.38);background:#111519;color:#fff}.platform b{font-size:12px;font-weight:500}.platform.spotify:hover{border-color:#1ed760;color:#c8f6d6}.platform.apple:hover{border-color:#f5f5f7}.platform.yandex:hover{border-color:#ffcc00;color:#ffe78a}
-.tracklist{margin-top:6px}.track{display:grid;grid-template-columns:34px 1fr;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)}.track .n{font-size:8px;letter-spacing:.12em;color:#596166;padding-top:4px}.track .t{font-family:var(--serif);font-size:16px;line-height:1.2;color:#cbd1d5}
-.credits{margin-top:14px;font-size:10px;line-height:1.6;color:#676f74}
-.player{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}.player-label{display:flex;justify-content:space-between;gap:20px;margin-bottom:9px;font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:#777f84}.player iframe{display:block;width:100%;height:152px;border:0;border-radius:10px;background:#111}
-.next{padding:54px 0 70px;border-top:1px solid var(--line);background:radial-gradient(circle at 50% 50%,rgba(69,18,22,.12),transparent 30%),#060708}.next-grid{display:grid;grid-template-columns:.6fr 1.4fr;gap:40px;align-items:start}.next .label{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#6d757a}.next h2{font-family:var(--serif);font-size:clamp(46px,6vw,74px);font-weight:400;line-height:.85;letter-spacing:-.04em;margin:0 0 12px}.next p{max-width:650px;margin:0;font-family:var(--serif);font-size:21px;line-height:1.25;color:#9ba2a6}
-footer{padding:22px var(--pad);border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:#555d62}
-@media(max-width:760px){.hero{min-height:48svh}.hero-inner{padding-top:82px}.music{padding-top:58px}.music-head{display:block}.music-head p{margin-top:14px}.stage{grid-template-columns:1fr;gap:24px}.cover-col{max-width:360px}.next-grid{grid-template-columns:1fr}footer{flex-direction:column}}
+:root{
+ --bg:#07090b;--bg2:#0a0d10;--ink:#dddcd5;--soft:#9a9b96;--dim:#6e7376;
+ --line:rgba(223,224,218,.13);--red:#8b1e23;--serif:"Cormorant Garamond",Georgia,serif;
+ --sans:"Manrope",Arial,sans-serif;--pad:clamp(22px,5vw,66px)
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth;background:var(--bg)}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);overflow-x:hidden}
+a{color:inherit;text-decoration:none}button{font:inherit;color:inherit}img{display:block;max-width:100%}
+::selection{background:#dddcd5;color:#07090b}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:100;opacity:.04;mix-blend-mode:screen;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.86' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E")}
+.shell{width:min(1280px,100%);margin:auto;padding:0 var(--pad)}
+.kicker{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--dim)}
+.rule{width:56px;height:1px;background:var(--red)}
+header{position:absolute;z-index:20;top:0;left:0;right:0;height:88px;display:grid;grid-template-columns:260px 1fr 260px;align-items:center;padding:0 var(--pad);border-bottom:1px solid rgba(255,255,255,.04)}
+.brand img{width:220px;max-height:72px;object-fit:contain;object-position:left center;mix-blend-mode:screen;filter:grayscale(1) contrast(1.05) brightness(1.08)}
+nav{justify-self:center;display:flex;gap:34px}nav a,.lang{font-family:var(--serif);font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:#b5b5af}nav a:hover,.lang:hover{color:#fff}.lang{justify-self:end}
+.hero{min-height:760px;height:100svh;max-height:980px;position:relative;overflow:hidden;background:#07090b}
+.hero-art{position:absolute;inset:0;background:
+ linear-gradient(90deg,rgba(5,7,8,.97) 0%,rgba(5,7,8,.78) 30%,rgba(5,7,8,.2) 62%,rgba(5,7,8,.4) 100%),
+ linear-gradient(0deg,#07090b 0%,transparent 22%),
+ url("https://grimorium-verum.ru/images/page2-img6.jpg") center right/cover no-repeat;
+ filter:saturate(.35) contrast(1.1) brightness(.72);transform:scale(1.04)}
+.hero:after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 70% 45%,transparent 0 32%,rgba(0,0,0,.28) 64%,rgba(0,0,0,.64) 100%);pointer-events:none}
+.hero-inner{position:relative;z-index:3;height:100%;display:flex;align-items:center;padding:120px var(--pad) 70px}
+.hero-copy{width:min(720px,70vw);margin-top:60px}
+.hero-side{display:flex;gap:16px;align-items:flex-start;margin-bottom:56px}.hero-side .vline{width:1px;height:72px;background:rgba(255,255,255,.35)}.hero-side span{font-family:var(--serif);font-size:12px;line-height:1.45;letter-spacing:.22em;text-transform:uppercase;color:#b8b8b1}
+.hero h1{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(72px,10vw,142px);line-height:.78;letter-spacing:.08em;text-transform:uppercase;text-shadow:0 6px 40px #000}
+.hero-sub{margin-top:24px;font-family:var(--serif);font-size:clamp(20px,2.3vw,30px);letter-spacing:.26em;text-transform:uppercase;color:#c8c6bf}
+.listen{margin-top:48px;display:flex;align-items:center;gap:16px;font-family:var(--serif);font-size:16px;letter-spacing:.2em;text-transform:uppercase}.listen:before{content:"";width:118px;height:1px;background:#c2c2bc}.services{display:flex;gap:24px;margin-top:16px;font-family:var(--serif);font-size:14px;color:#999a95}.services a:hover{color:#fff}
+.quote-side{position:absolute;right:var(--pad);top:26%;z-index:3;width:140px;font-family:var(--serif);font-size:12px;line-height:1.4;letter-spacing:.18em;text-transform:uppercase;color:#a4a5a0}
+.record{position:relative;padding:54px 0 78px;background:linear-gradient(180deg,#080b0d,#07090b);border-top:1px solid rgba(255,255,255,.04)}
+.record:before{content:"";position:absolute;right:0;top:0;bottom:0;width:28%;background:url("https://grimorium-verum.ru/images/page2-img4.jpg") center/cover no-repeat;filter:grayscale(1) brightness(.24) contrast(1.15);opacity:.65;mask-image:linear-gradient(90deg,transparent,#000 45%);-webkit-mask-image:linear-gradient(90deg,transparent,#000 45%)}
+.record-head{display:flex;justify-content:space-between;align-items:end;gap:30px;margin-bottom:26px}.record-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(38px,5vw,62px);letter-spacing:.16em;line-height:.95;margin:0;text-transform:uppercase}.record-head p{max-width:490px;margin:0;font-family:var(--serif);font-size:18px;line-height:1.35;color:#8f918e}
+.album-tabs{display:flex;gap:10px;overflow-x:auto;padding:7px 4px 20px;position:relative;z-index:2}.album-tab{flex:0 0 68px;width:68px;aspect-ratio:1;padding:0;border:1px solid transparent;background:#111;opacity:.38;cursor:pointer;transition:.2s;overflow:hidden}.album-tab img{width:100%;height:100%;object-fit:cover;filter:saturate(.4)}.album-tab:hover{opacity:.78}.album-tab.active{opacity:1;border-color:#aeb0ac;transform:translateY(-3px)}.album-tab.fallback{font-family:var(--serif);font-size:11px;color:#777}
+.record-grid{position:relative;z-index:2;display:grid;grid-template-columns:240px minmax(320px,430px) minmax(300px,1fr);gap:clamp(30px,5vw,66px);align-items:start;padding-top:8px}
+.track-col h3{font-family:var(--serif);font-size:31px;font-weight:400;letter-spacing:.14em;line-height:1;margin:0 0 20px;text-transform:uppercase}.track-col .rule{margin-bottom:18px}.track{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:5px 0;font-family:var(--serif);font-size:14px;letter-spacing:.05em;color:#a7a8a4}.track span:first-child{font-size:11px;color:#6d7274}.cover-wrap{border:1px solid rgba(220,222,217,.4);padding:9px;background:#090b0d}.cover{width:100%;aspect-ratio:1;object-fit:cover;filter:saturate(.5) contrast(1.04)}.cover-fallback{aspect-ratio:1;display:flex;align-items:flex-end;padding:26px;background:radial-gradient(circle at 55% 30%,rgba(114,26,30,.32),transparent 28%),linear-gradient(145deg,#121619,#050607);font-family:var(--serif);font-size:48px;line-height:.8}
+.album-name{text-align:center;margin-top:16px;font-family:var(--serif);font-size:18px;letter-spacing:.28em;text-transform:uppercase}
+.stream-col{padding-top:20px}.stream-col blockquote{margin:0 0 30px;font-family:var(--serif);font-style:italic;font-size:clamp(24px,2.6vw,36px);line-height:1.18;color:#b5b4ae;max-width:360px}.platforms{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}.platform{border:1px solid var(--line);padding:9px 12px;font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:#afb2ae;background:rgba(7,9,11,.6)}.platform:hover{background:#e4e3dc;color:#090b0d}.player iframe{display:block;width:100%;height:152px;border:0;border-radius:8px;background:#111}.credits{margin-top:14px;font-size:10px;line-height:1.6;color:#696f72}
+.band{position:relative;min-height:440px;padding:72px 0;background:
+ linear-gradient(90deg,rgba(6,8,10,.08),rgba(6,8,10,.35) 52%,rgba(6,8,10,.92) 72%),
+ url("https://grimorium-verum.ru/images/page2-img5.jpg") left center/cover no-repeat;
+ filter:saturate(.45)}
+.band .shell{display:flex;justify-content:flex-end}.band-copy{width:min(510px,50vw);position:relative;z-index:2}.band h2,.live h2,.contact h2{font-family:var(--serif);font-size:38px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;margin:0}.band .rule,.live .rule,.contact .rule{margin:12px 0 20px}.band p{font-family:var(--serif);font-size:19px;line-height:1.5;color:#b5b5af}.facts{display:grid;grid-template-columns:110px 1fr;gap:9px 18px;margin-top:24px}.facts b{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#6f7477}.facts span{font-family:var(--serif);font-size:16px;color:#bbbcb8}
+.bottom{display:grid;grid-template-columns:1.2fr .8fr;background:#080a0c;border-top:1px solid var(--line)}.live,.contact{min-height:260px;padding:48px var(--pad);position:relative}.live{background:
+ linear-gradient(90deg,rgba(6,8,10,.95),rgba(6,8,10,.65)),
+ url("https://grimorium-verum.ru/images/page2-img1.jpg") center/cover no-repeat;border-right:1px solid var(--line)}.live p,.contact p{font-family:var(--serif);font-size:16px;color:#999b97}.contact a.cta{display:inline-flex;align-items:center;gap:20px;margin-top:22px;font-family:var(--serif);font-size:14px;letter-spacing:.18em;text-transform:uppercase}.contact a.cta:after{content:"";width:70px;height:1px;background:#b5b5af}
+footer{padding:20px var(--pad);display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--line);font-size:8px;letter-spacing:.17em;text-transform:uppercase;color:#5f6568}
+@media(max-width:900px){header{grid-template-columns:1fr auto;height:72px}.brand img{width:180px}nav{display:none}.hero{height:auto;min-height:720px}.hero-copy{width:88vw}.quote-side{display:none}.record-grid{grid-template-columns:1fr 1.2fr}.stream-col{grid-column:1/-1}.band-copy{width:60vw}.bottom{grid-template-columns:1fr}.live{border-right:0;border-bottom:1px solid var(--line)}}
+@media(max-width:650px){:root{--pad:20px}.hero{min-height:650px}.hero-inner{padding-top:95px}.hero h1{font-size:17vw}.hero-sub{font-size:16px;letter-spacing:.18em}.services{gap:14px;flex-wrap:wrap}.record-head{display:block}.record-head p{margin-top:15px}.record-grid{grid-template-columns:1fr}.track-col{order:2}.cover-col{order:1;max-width:410px}.stream-col{order:3}.band{background-position:35% center}.band .shell{justify-content:flex-start}.band-copy{width:100%;background:rgba(6,8,10,.72);padding:24px}.bottom{display:block}footer{flex-direction:column}}
 </style>
 </head>
 <body>
-<header><a href="#music">Music</a><a href="#next">Renaissance</a><a href="mailto:contact@grimorium-verum.ru">Contact</a></header>
-<main>
-<section class="hero"><div class="hero-inner"><img class="hero-logo" src="data:image/jpeg;base64,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
-" alt="Grimorium Verum"><div class="hero-meta">Renaissance · 2026</div></div></section>
-<section class="music" id="music"><div class="shell">
-<div class="music-head"><h1>Discography</h1><p>Choose an album. The cover, track list and listening links change in place. Spotify playback stays embedded on the page.</p></div>
-<div class="album-strip" id="albumStrip"></div>
-<div class="stage">
-<div class="cover-col"><div class="cover" id="cover"></div><div class="cover-meta"><strong id="coverTitle"></strong><span id="coverYear"></span></div></div>
-<div class="info">
-<div class="album-head"><h2 id="albumTitle"></h2><span id="trackCount"></span></div>
-<div class="platforms">
-<a class="platform spotify" id="spotifyLink" target="_blank" rel="noopener"><b>●</b> Spotify ↗</a>
-<a class="platform apple" id="appleLink" target="_blank" rel="noopener"><b>♪</b> Apple Music ↗</a>
-<a class="platform yandex" id="yandexLink" target="_blank" rel="noopener"><b>Я</b> Яндекс Музыка ↗</a>
-</div>
-<div class="tracklist" id="tracklist"></div>
-<div class="credits" id="credits"></div>
-<div class="player"><div class="player-label"><span>Spotify player</span><span>Play on this page</span></div><iframe id="spotifyPlayer" src="https://open.spotify.com/embed/artist/65nL8HSKtOigMf9h8d4rUK?utm_source=generator&theme=0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Grimorium Verum on Spotify"></iframe></div>
-</div>
-</div>
-</div></section>
-<section class="next" id="next"><div class="shell next-grid"><div class="label">New album · 2026</div><div><h2>Renaissance</h2><p>Coming soon.</p></div></div></section>
+<header>
+  <a class="brand" href="#top"><img src="assets/grimorium-logo.jpg" alt="Grimorium Verum"></a>
+  <nav><a href="#music">Music</a><a href="#band">Band</a><a href="#live">Live</a><a href="#contact">Contact</a></nav>
+  <a class="lang" href="#music">EN ↓</a>
+</header>
+<main id="top">
+<section class="hero">
+  <div class="hero-art"></div>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-side"><div class="vline"></div><span>Death knows<br>no doctrine</span></div>
+      <h1>Renaissance</h1>
+      <div class="hero-sub">New album — 2026</div>
+      <div class="listen">Listen</div>
+      <div class="services">
+        <a href="#music">Spotify</a><a href="#music">Apple Music</a><a href="#music">Яндекс Музыка</a>
+      </div>
+    </div>
+  </div>
+  <div class="quote-side">In shadows<br>we preserve<br>what was<br>true</div>
+</section>
+
+<section class="record" id="music">
+  <div class="shell">
+    <div class="record-head">
+      <h2>The Records</h2>
+      <p>Choose a record. Artwork, track list and listening controls change in place.</p>
+    </div>
+    <div class="album-tabs" id="albumTabs"></div>
+    <div class="record-grid">
+      <div class="track-col">
+        <h3 id="recordTitle">REALL</h3>
+        <div class="rule"></div>
+        <div id="tracklist"></div>
+      </div>
+      <div class="cover-col">
+        <div class="cover-wrap" id="coverWrap"></div>
+        <div class="album-name" id="albumName"></div>
+      </div>
+      <div class="stream-col">
+        <blockquote>“A return to what decays, a devotion to what remains.”</blockquote>
+        <div class="platforms">
+          <a class="platform" id="spotifyLink" target="_blank" rel="noopener">Spotify ↗</a>
+          <a class="platform" id="appleLink" target="_blank" rel="noopener">Apple Music ↗</a>
+          <a class="platform" id="yandexLink" target="_blank" rel="noopener">Яндекс Музыка ↗</a>
+        </div>
+        <div class="player">
+          <iframe src="https://open.spotify.com/embed/artist/65nL8HSKtOigMf9h8d4rUK?utm_source=generator&theme=0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Grimorium Verum Spotify player"></iframe>
+        </div>
+        <div class="credits" id="credits"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="band">
+  <div class="shell">
+    <div class="band-copy">
+      <h2>Band</h2><div class="rule"></div>
+      <p>Symphonic black metal from Syktyvkar. Grimorium Verum has built its catalogue around orchestration, darkness and theatrical atmosphere since the 1990s.</p>
+      <div class="facts"><b>Origin</b><span>Syktyvkar, Komi Republic</span><b>Founded</b><span>1996</span><b>Genre</b><span>Symphonic black metal</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="bottom">
+  <div class="live" id="live">
+    <h2>Live</h2><div class="rule"></div>
+    <p>No upcoming dates currently listed.</p>
+  </div>
+  <div class="contact" id="contact">
+    <h2>Contact</h2><div class="rule"></div>
+    <p>Booking · Press · General</p>
+    <a class="cta" href="mailto:contact@grimorium-verum.ru">Get in touch</a>
+  </div>
+</section>
 </main>
-<footer><span>Grimorium Verum · Syktyvkar</span><span>© 2026</span></footer>
+<footer><span>© 2026 Grimorium Verum</span><span>Syktyvkar · Russia</span></footer>
+
 <script>
 const ALBUMS=[
 {id:"reall",title:"REALL",year:"2022",cover:"https://grimorium-verum.ru/images/page2-img6.jpg",tracks:["Through the labyrinth of times","The black church of eternity","The lamp of destiny","Hourglass","Last ritual","In the catacombs","Burn Gypsy burn","Brocken hourglass","It's time....padre","A slave of the lamp","REALL"],credits:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio."},
@@ -76,12 +147,12 @@ const ALBUMS=[
 {id:"reborn",title:"Reborn",year:"2011",cover:"https://grimorium-verum.ru/images/page2-img1.jpg",tracks:["Among ancient walls","Wolf bite","Witch","Torture","Unfetter","White spirit of the dark side","Fall into oblivion","Immortal soul"],credits:"Recorded at Dead Witch Studio."},
 {id:"retaliation",title:"Retaliation",year:"2008",cover:"",tracks:["Intro - Undercover guest","Sacrifice","Funeral","God of nothing","Homohereticus","Last night of vampire","A time to kill","Curse of voodoo","Gollywog","Egypt","Twisted human form","Digging grave","...from the grave","Painted black","Outro"],credits:"Recorded at Dead Witch Studio."}
 ];
-const strip=document.getElementById("albumStrip"),cover=document.getElementById("cover"),coverTitle=document.getElementById("coverTitle"),coverYear=document.getElementById("coverYear"),albumTitle=document.getElementById("albumTitle"),trackCount=document.getElementById("trackCount"),tracklist=document.getElementById("tracklist"),credits=document.getElementById("credits"),spotifyLink=document.getElementById("spotifyLink"),appleLink=document.getElementById("appleLink"),yandexLink=document.getElementById("yandexLink");
-function q(a){return encodeURIComponent("Grimorium Verum "+a.title)}
-function renderStrip(){strip.innerHTML=ALBUMS.map(function(a,i){return '<button class="album-thumb '+(i===0?'active ':'')+(a.cover?'':'fallback')+'" data-id="'+a.id+'" aria-label="Select '+a.title+'">'+(a.cover?'<img src="'+a.cover+'" alt="'+a.title+'">':'GV')+'</button>'}).join("");strip.querySelectorAll(".album-thumb").forEach(function(btn){btn.addEventListener("click",function(){selectAlbum(btn.dataset.id)})})}
-function selectAlbum(id){const a=ALBUMS.find(function(x){return x.id===id});if(!a)return;strip.querySelectorAll(".album-thumb").forEach(function(btn){btn.classList.toggle("active",btn.dataset.id===id)});cover.classList.add("fade");setTimeout(function(){cover.innerHTML=a.cover?'<img src="'+a.cover+'" alt="'+a.title+' album cover">':'<div class="cover-fallback"><span>Retali<br>ation</span></div>';cover.classList.remove("fade")},120);coverTitle.textContent=a.title;coverYear.textContent=a.year;albumTitle.textContent=a.title;trackCount.textContent=a.year+" · "+a.tracks.length+" tracks";tracklist.innerHTML=a.tracks.map(function(t,i){return '<div class="track"><span class="n">'+String(i+1).padStart(2,"0")+'</span><span class="t">'+t+'</span></div>'}).join("");credits.textContent=a.credits;spotifyLink.href="https://open.spotify.com/search/"+q(a);appleLink.href="https://music.apple.com/us/search?term="+q(a);yandexLink.href="https://music.yandex.ru/search?text="+q(a)+"&type=albums"}
-renderStrip();selectAlbum("reall");
-document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(e){const el=document.querySelector(a.getAttribute("href"));if(el){e.preventDefault();el.scrollIntoView({behavior:"smooth"})}})});
+const tabs=document.getElementById("albumTabs"),recordTitle=document.getElementById("recordTitle"),tracklist=document.getElementById("tracklist"),coverWrap=document.getElementById("coverWrap"),albumName=document.getElementById("albumName"),credits=document.getElementById("credits"),spotifyLink=document.getElementById("spotifyLink"),appleLink=document.getElementById("appleLink"),yandexLink=document.getElementById("yandexLink");
+function query(a){return encodeURIComponent("Grimorium Verum "+a.title)}
+function renderTabs(){tabs.innerHTML=ALBUMS.map((a,i)=>'<button class="album-tab '+(i===0?'active ':'')+(a.cover?'':'fallback')+'" data-id="'+a.id+'">'+(a.cover?'<img src="'+a.cover+'" alt="'+a.title+'">':'GV')+'</button>').join("");tabs.querySelectorAll(".album-tab").forEach(b=>b.addEventListener("click",()=>selectAlbum(b.dataset.id)))}
+function selectAlbum(id){const a=ALBUMS.find(x=>x.id===id);if(!a)return;tabs.querySelectorAll(".album-tab").forEach(b=>b.classList.toggle("active",b.dataset.id===id));recordTitle.textContent=a.title;tracklist.innerHTML=a.tracks.map((t,i)=>'<div class="track"><span>'+String(i+1).padStart(2,"0")+'</span><span>'+t+'</span></div>').join("");coverWrap.innerHTML=a.cover?'<img class="cover" src="'+a.cover+'" alt="'+a.title+' album cover">':'<div class="cover-fallback">Retali<br>ation</div>';albumName.textContent=a.title+" · "+a.year;credits.textContent=a.credits;spotifyLink.href="https://open.spotify.com/search/"+query(a);appleLink.href="https://music.apple.com/us/search?term="+query(a);yandexLink.href="https://music.yandex.ru/search?text="+query(a)+"&type=albums"}
+renderTabs();selectAlbum("reall");
+document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{const el=document.querySelector(a.getAttribute("href"));if(el){e.preventDefault();el.scrollIntoView({behavior:"smooth"})}}));
 </script>
 </body>
 </html>
