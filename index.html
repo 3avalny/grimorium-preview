@@ -351,20 +351,20 @@ nav a:hover{color:#fff}
   letter-spacing:.30em;text-transform:uppercase;color:#73787b
 }
 .bio-figure{
-  position:absolute;z-index:1;bottom:-2px;height:91%;width:31vw;
+  position:absolute;z-index:1;bottom:-2px;height:91%;width:30vw;
   display:flex;align-items:flex-end;pointer-events:none
 }
-.bio-figure-left{left:max(22px,calc((100vw - var(--shell))/2 - 40px))}
-.bio-figure-right{right:max(18px,calc((100vw - var(--shell))/2 - 40px))}
+.bio-figure-left{left:max(-18px,calc((100vw - var(--shell))/2 - 110px))}
+.bio-figure-right{right:max(-18px,calc((100vw - var(--shell))/2 - 110px))}
 .bio-figure img{
   width:100%;height:100%;object-fit:contain;object-position:center bottom;
   filter:none;
   opacity:1
 }
 .bio-copy{
-  position:relative;z-index:4;width:min(500px,38vw);
-  padding:56px 26px;text-align:center;
-  -webkit-user-select:text!important;user-select:text!important
+  position:relative;z-index:4;width:min(610px,43vw);
+  padding:56px 22px;text-align:center;
+  -webkit-user-select:none;user-select:none
 }
 .bio-copy:before{
   content:"";position:absolute;z-index:-1;inset:-70px -95px;
@@ -372,7 +372,7 @@ nav a:hover{color:#fff}
   pointer-events:none
 }
 .bio-eyebrow{
-  margin-bottom:20px;font-family:var(--sans);font-size:9px;
+  margin-bottom:0;font-family:var(--sans);font-size:9px;
   letter-spacing:.27em;text-transform:uppercase;color:#72777a
 }
 .bio h2{
@@ -380,15 +380,14 @@ nav a:hover{color:#fff}
   font-size:clamp(44px,5vw,70px);line-height:1.08;
   letter-spacing:.075em;text-transform:uppercase;color:var(--ink)
 }
-.bio .rule{margin:24px auto 28px}
+.bio .rule{margin:20px auto 28px}
 .bio p{
   margin:0 0 18px;font-family:var(--serif);
-  font-size:clamp(16px,1.3vw,20px);line-height:1.58;
-  letter-spacing:.015em;color:#aaa9a4
+  font-size:clamp(16px,1.18vw,19px);line-height:1.56;
+  letter-spacing:.012em;color:#aaa9a4
 }
 .bio p:last-child{margin-bottom:0}
-.bio-copy,.bio-copy *{-webkit-user-select:text!important;user-select:text!important}
-.bio-copy::selection,.bio-copy *::selection{background:#dddcd5;color:#07090b}
+.bio-copy,.bio-copy *{-webkit-user-select:none!important;user-select:none!important}
 
 .bottom{display:block;background:#07090b;border-top:0}
 .live{display:none!important}
@@ -428,8 +427,8 @@ footer{
 
 @media(max-width:1180px){
   .bio{min-height:720px}
-  .bio-figure{height:82%;width:35vw}
-  .bio-copy{width:min(470px,43vw)}
+  .bio-figure{height:82%;width:33vw}
+  .bio-copy{width:min(560px,49vw)}
   .record{
     --disc-height:357px;
     --album-size:52px;
@@ -448,10 +447,10 @@ footer{
 @media(max-width:900px){
   .bio{min-height:760px}
   .bio-side-label{left:26px;font-size:12px}
-  .bio-figure{height:69%;width:42vw;opacity:1}
-  .bio-figure-left{left:-4vw}
-  .bio-figure-right{right:-4vw}
-  .bio-copy{width:min(510px,58vw);padding-inline:18px}
+  .bio-figure{height:69%;width:40vw;opacity:1}
+  .bio-figure-left{left:-6vw}
+  .bio-figure-right{right:-6vw}
+  .bio-copy{width:min(560px,62vw);padding-inline:18px}
   header{height:76px;padding-inline:24px}.brand img{width:180px}nav{display:none}
   .hero{height:100vh;min-height:100vh}.hero-copy{width:86vw}
   .hero h1{font-size:clamp(48px,11vw,90px)}
@@ -603,11 +602,11 @@ footer{
     <img src="assets/bio-left.png" alt="">
   </div>
   <div class="bio-copy">
-    <div class="bio-eyebrow">Est. 1996 · Syktyvkar</div>
-    <h2>Grimorium Verum</h2>
+    <div class="bio-eyebrow">1996 · Syktyvkar, Komi Republic</div>
     <div class="rule"></div>
-    <p>Grimorium Verum is a symphonic black metal band formed in Syktyvkar in 1996. Across decades of releases, the band has shaped a dark, theatrical sound built around heavy guitars, keyboards and ritual atmosphere.</p>
-    <p>At the heart of the catalogue are the voice and lyrics of Roma Diamond and the music of Andrey Zavalny. In 2026, Grimorium Verum opens a new chapter with <em>Renaissance</em>.</p>
+    <p>Formed in Syktyvkar at the end of 1996, the band quickly stood apart on the local scene through drum machine, sharp guitars and growled vocals. After an active run of shows from 1997 to 1999, the first period came to an end in 2001.</p>
+    <p>In 2005, Roma Diamond’s solo material included songs connected to the band, and renewed work with Andrey Zavalny helped bring the project back in 2006. Samples and orchestral layers became increasingly important to the sound, while <em>Retaliation</em> (2008) and <em>Reborn</em> (2011) established the direction of the later catalogue.</p>
+    <p><em>Relict</em> (2015), <em>Revenant</em> (2018) and <em>REALL</em> (2022) continued that evolution. Across these releases, Diamond has carried the vocals and lyrics, while Zavalny has driven the music, guitars, keyboards, arrangements and production. <em>Renaissance</em> follows in 2026.</p>
   </div>
   <div class="bio-figure bio-figure-right" aria-hidden="true">
     <img src="assets/bio-diamond.png" alt="">
