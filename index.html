@@ -499,17 +499,23 @@ footer{
   .record-title-slot .record-prefix,
   .record-title-slot .record-tail-window{display:none}
   .record-title-slot::after{content:attr(data-mobile-title);white-space:nowrap}
-  .discography-grid{display:flex;flex-direction:column;gap:22px}
+  .discography-grid{
+    display:flex;flex-direction:column;align-items:stretch;
+    gap:22px;width:100%;min-width:0
+  }
   .album-tabs{
     order:0;width:328px;max-width:100%;height:auto;margin-inline:auto;
     flex-direction:row;justify-content:center;gap:8px;
     overflow:visible;padding:3px 0 8px
   }
   .album-tab{width:48px;height:48px;flex:0 0 48px}
-  .disc-content-window{height:auto;overflow:visible}
+  .disc-content-window{
+    width:100%;max-width:none;min-width:0;height:auto;
+    overflow:visible;align-self:stretch
+  }
   .disc-content-panel{
     position:static;display:none;flex-direction:column;align-items:center;
-    gap:18px;width:100%;margin-inline:auto
+    gap:18px;width:100%;max-width:none;min-width:0;margin:0
   }
   .disc-content-panel.current,
   .disc-content-panel.incoming,
@@ -527,7 +533,10 @@ footer{
     order:3;width:100%;height:auto;flex-direction:row;
     justify-content:center;gap:14px;margin-top:2px
   }
-  .stream-col{order:4;width:100%;height:152px;align-self:stretch}
+  .stream-col{
+    order:4;width:100%;max-width:none;min-width:0;
+    height:152px;align-self:stretch
+  }
   .player,.player iframe{width:100%;height:152px;min-height:152px}
   .album-credits{grid-template-columns:1fr;gap:8px;min-height:0;margin-top:10px}
   .credits-text-window{min-height:0;overflow:visible}
