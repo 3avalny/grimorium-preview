@@ -28,10 +28,6 @@ img{
   -webkit-user-select:none;user-select:none;
   -webkit-user-drag:none;user-drag:none
 }
-.album-credits-text{
-  -webkit-user-select:text!important;user-select:text!important
-}
-.album-credits-text::selection{background:#dddcd5;color:#07090b}
 ::selection{background:transparent;color:inherit}
 body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:100;opacity:.028;mix-blend-mode:screen;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.86' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E")}
 .shell{width:min(var(--shell),100%);margin:auto;padding-inline:var(--pad)}
@@ -145,13 +141,7 @@ nav a:hover{color:#fff}
 
 .discography-grid{
   position:relative;z-index:2;display:grid;min-width:0;
-  grid-template-columns:
-    var(--album-size)
-    minmax(250px,292px)
-    var(--disc-height)
-    34px
-    minmax(300px,1fr)
-    48px;
+  grid-template-columns:var(--album-size) minmax(0,1fr);
   gap:clamp(18px,2vw,30px);
   align-items:start
 }
@@ -175,25 +165,40 @@ nav a:hover{color:#fff}
 .album-tab:hover{opacity:.78}
 .album-tab.active{opacity:1;border-color:#b5b6b1}
 
+.disc-content-window{
+  position:relative;height:var(--disc-height);min-width:0;overflow:hidden
+}
+.disc-content-panel{
+  position:absolute;inset:0;display:grid;min-width:0;
+  grid-template-columns:
+    minmax(250px,292px)
+    var(--disc-height)
+    34px
+    minmax(300px,1fr)
+    48px;
+  gap:clamp(18px,2vw,30px);
+  align-items:start;
+  transition:transform .42s cubic-bezier(.22,.78,.2,1),opacity .42s ease;
+  will-change:transform,opacity
+}
+
 .track-col{height:var(--disc-height);min-width:0}
-#tracklist{height:100%;overflow:hidden}
+.panel-tracklist{height:100%;overflow:hidden}
 .track{
-  height:calc(var(--disc-height) / 15);
-  display:grid;grid-template-columns:26px minmax(0,1fr);gap:9px;
+  height:calc(var(--disc-height) / var(--track-count));
+  display:grid;grid-template-columns:28px minmax(0,1fr);gap:9px;
   align-items:center;padding:0;
-  font-family:var(--serif);font-size:13px;line-height:1;
+  font-family:var(--serif);font-size:var(--track-font);line-height:1;
   letter-spacing:.025em;color:#aaa9a4
 }
 .track span:first-child{
-  font-family:var(--sans);font-size:8px;color:#666b6e
+  font-family:var(--sans);font-size:var(--track-num-font);color:#666b6e
 }
 .track span:last-child{
   min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 
-.cover-col{
-  width:var(--disc-height);height:var(--disc-height);min-width:0
-}
+.cover-col{width:var(--disc-height);height:var(--disc-height);min-width:0}
 .cover-wrap{
   width:100%;height:100%;border:1px solid rgba(220,222,217,.36);
   padding:0;background:#090b0d;overflow:hidden
@@ -217,8 +222,7 @@ nav a:hover{color:#fff}
 }
 .album-year{
   transform:rotate(-90deg);transform-origin:center;white-space:nowrap;
-  font-family:var(--serif);font-size:15px;letter-spacing:.38em;
-  color:#8b8d89
+  font-family:var(--serif);font-size:15px;letter-spacing:.38em;color:#8b8d89
 }
 
 .stream-col{
@@ -246,6 +250,21 @@ nav a:hover{color:#fff}
 .platform img{width:20px;height:20px;object-fit:contain;opacity:.86}
 .platform:hover img{opacity:1}
 
+.disc-content-panel.current,
+.credits-panel.current{transform:translateY(0);opacity:1}
+.disc-content-panel.incoming.down,
+.credits-panel.incoming.down{transform:translateY(-108%);opacity:.12}
+.disc-content-panel.incoming.up,
+.credits-panel.incoming.up{transform:translateY(108%);opacity:.12}
+.disc-content-panel.outgoing,
+.credits-panel.outgoing{transform:translateY(0);opacity:1}
+.disc-content-panel.outgoing.down.go,
+.credits-panel.outgoing.down.go{transform:translateY(108%);opacity:.08}
+.disc-content-panel.outgoing.up.go,
+.credits-panel.outgoing.up.go{transform:translateY(-108%);opacity:.08}
+.disc-content-panel.incoming.go,
+.credits-panel.incoming.go{transform:translateY(0);opacity:1}
+
 .album-credits{
   position:relative;z-index:2;margin-top:30px;padding-top:20px;
   border-top:1px solid rgba(255,255,255,.08);
@@ -256,11 +275,21 @@ nav a:hover{color:#fff}
   font-family:var(--sans);font-size:9px;letter-spacing:.22em;
   text-transform:uppercase;color:#62686b;padding-top:3px
 }
-.album-credits-text{
-  max-width:1080px;font-family:var(--serif);font-size:13px;
-  line-height:1.65;letter-spacing:.025em;color:#8f918d
+.credits-text-window{
+  position:relative;min-height:88px;overflow:hidden
 }
-.album-credits.is-empty{opacity:.45}
+.credits-panel{
+  position:absolute;left:0;top:0;width:100%;
+  font-family:var(--serif);font-size:13px;
+  line-height:1.55;letter-spacing:.025em;color:#8f918d;
+  transition:transform .42s cubic-bezier(.22,.78,.2,1),opacity .42s ease;
+  will-change:transform,opacity;
+  -webkit-user-select:text!important;user-select:text!important
+}
+.credits-panel::selection{background:#dddcd5;color:#07090b}
+.credit-production{
+  display:block;margin-top:7px;color:#747a7d
+}
 
 .bottom{display:block;background:#080a0c;border-top:1px solid var(--line)}
 .live,.contact{position:relative;width:100%;padding:58px var(--pad)}
@@ -298,18 +327,15 @@ footer{
     --album-size:52px;
     --album-gap:9px
   }
-  .discography-grid{
-    grid-template-columns:
-      var(--album-size)
-      minmax(210px,245px)
-      var(--disc-height)
-      30px;
+  .disc-content-window{height:755px}
+  .disc-content-panel{
+    grid-template-columns:minmax(210px,245px) var(--disc-height) 30px;
+    grid-template-rows:var(--disc-height) 380px;
     gap:18px
   }
-  .stream-col{grid-column:2/5;height:380px}
-  .platforms{
-    grid-column:1;grid-row:2;height:380px
-  }
+  .stream-col{grid-column:1/3;grid-row:2;height:380px}
+  .platforms{grid-column:3;grid-row:2;height:380px}
+  .credits-text-window{min-height:108px}
 }
 @media(max-width:900px){
   header{height:76px;padding-inline:24px}.brand img{width:180px}nav{display:none}
@@ -341,12 +367,18 @@ footer{
   }
   .album-tabs::-webkit-scrollbar{display:none}
   .album-tab{width:56px;height:56px;flex:0 0 56px}
+  .disc-content-window{height:auto;overflow:visible}
+  .disc-content-panel{
+    position:static;display:flex;flex-direction:column;gap:22px;
+    transform:none!important;opacity:1!important
+  }
   .track-col{order:2;height:auto}
-  #tracklist{height:auto;overflow:visible}
+  .panel-tracklist{height:auto;overflow:visible}
   .track{
-    height:auto;min-height:27px;font-size:13px;
+    height:auto;min-height:28px;font-size:13px!important;
     grid-template-columns:24px minmax(0,1fr)
   }
+  .track span:first-child{font-size:8px!important}
   .track span:last-child{white-space:normal;overflow:visible;text-overflow:clip}
   .cover-col{order:1;width:min(100%,430px);height:auto;align-self:center;aspect-ratio:1}
   .cover-wrap{height:100%}
@@ -354,10 +386,10 @@ footer{
   .album-year{transform:none;font-size:14px;letter-spacing:.28em}
   .stream-col{order:3;width:100%;height:390px}
   .player,.player iframe{height:390px;min-height:390px}
-  .platforms{
-    order:4;width:100%;height:auto;flex-direction:row;justify-content:center
-  }
+  .platforms{order:4;width:100%;height:auto;flex-direction:row;justify-content:center}
   .album-credits{grid-template-columns:1fr;gap:8px;min-height:0;margin-top:10px}
+  .credits-text-window{min-height:0;overflow:visible}
+  .credits-panel{position:static;transform:none!important;opacity:1!important}
   .live,.contact{padding:46px 18px}
   .contact-row{display:block}
   .email-text{display:inline-block;margin-top:20px;white-space:normal}
@@ -415,33 +447,12 @@ footer{
 
     <div class="discography-grid">
       <div class="album-tabs" id="albumTabs" aria-label="Albums"></div>
-
-      <div class="track-col">
-        <div id="tracklist"></div>
-      </div>
-
-      <div class="cover-col">
-        <div class="cover-wrap" id="coverWrap"></div>
-      </div>
-
-      <div class="album-year-wrap">
-        <div class="album-year" id="albumYear">2026</div>
-      </div>
-
-      <div class="stream-col">
-        <div class="player" id="spotifyPlayer"></div>
-      </div>
-
-      <div class="platforms" aria-label="Streaming platforms">
-        <a class="platform" id="spotifyLink" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify"><img src="https://cdn.simpleicons.org/spotify/d8d8d2" alt=""></a>
-        <a class="platform" id="appleLink" target="_blank" rel="noopener" aria-label="Apple Music" title="Apple Music"><img src="https://cdn.simpleicons.org/applemusic/d8d8d2" alt=""></a>
-        <a class="platform" id="yandexLink" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music"><img src="assets/yandex-music-mono.svg" alt=""></a>
-      </div>
+      <div class="disc-content-window" id="discContentWindow"></div>
     </div>
 
     <div class="album-credits" id="albumCredits">
       <div class="album-credits-label">Credits</div>
-      <div class="album-credits-text" id="albumCreditsText"></div>
+      <div class="credits-text-window" id="creditsTextWindow"></div>
     </div>
   </div>
 </section>
@@ -485,58 +496,61 @@ const ALBUMS=[
     id:"renaissance",title:"Renaissance",year:"2026",status:"Coming soon",
     cover:"assets/renaissance-cover.jpg",
     spotifyEmbed:ARTIST_EMBED,
-    tracks:["...","...","...","...","...","...","...","...","...","..."],
-    credits:""
+    tracks:["Coming soon","Скоро","Demnächst","Bientôt","Prossimamente","Próximamente","Em breve","Wkrótce","Tulossa pian","近日公開"],
+    creditsPeople:"Credits will be announced.",
+    creditsProduction:""
   },
   {
     id:"reall",title:"REALL",year:"2022",
     cover:"https://grimorium-verum.ru/images/page2-img6.jpg",
     spotifyEmbed:ARTIST_EMBED,
     tracks:["Through the labyrinth of times","The black church of eternity","The lamp of destiny","Hourglass","Last ritual","In the catacombs","Burn Gypsy burn","Brocken hourglass","It's time....padre","A slave of the lamp","REALL"],
-    credits:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio. Roma Diamond - vocals, Zavalnyy Andrey - guitars, keyboards, Klimychev Nikita - bass, Ponomarev Ilya - drums, Molodetskov Vitaliy - solo guitar, Zavalnaya Uliana - back vocal. Lyrics by Roma Diamond, all music by Zavalnyy Andrey."
+    creditsPeople:"Roma Diamond - vocals, Zavalnyy Andrey - guitars, keyboards, Klimychev Nikita - bass, Ponomarev Ilya - drums, Molodetskov Vitaliy - solo guitar, Zavalnaya Uliana - back vocal. Lyrics by Roma Diamond, all music by Zavalnyy Andrey.",
+    creditsProduction:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio."
   },
   {
     id:"revenant",title:"Revenant",year:"2018",
     cover:"https://grimorium-verum.ru/images/page2-img5.jpg",
     spotifyEmbed:ARTIST_EMBED,
     tracks:["The born son of the devil","The kingdom of the pain","The march of the northern kings","Blind faith in nothing","The light of dark father","Revenant","The circus of the dark illusion","Sacred temple of blood","The great serpentine saint","The resurrected on the devil’s hands"],
-    credits:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio. Roma Diamond - vocals, Zavalnyy Andrey - guitars, bass, keyboards, Ivan N. - drums, Molodetskov Vitaliy - solo guitar, Zavalnaya Uliana - back vocal, Zavalnyy Efim - Back vocal & piano. Lyrics by Roma Diamond, all music by Zavalnyy Andrey."
+    creditsPeople:"Roma Diamond - vocals, Zavalnyy Andrey - guitars, bass, keyboards, Ivan N. - drums, Molodetskov Vitaliy - solo guitar, Zavalnaya Uliana - back vocal, Zavalnyy Efim - Back vocal & piano. Lyrics by Roma Diamond, all music by Zavalnyy Andrey.",
+    creditsProduction:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio."
   },
   {
     id:"relict",title:"Relict",year:"2015",
     cover:"https://grimorium-verum.ru/images/page2-img4.jpg",
     spotifyEmbed:"https://open.spotify.com/embed/track/6vY6dF2S1GYmiHFS7SsLJr?utm_source=generator&theme=0",
     tracks:["Relict","Rising morning star","At the gates of darkness","Black tears monastery","Night burning icons","The vision in solar eclipse","Pilgrimage to satan","In satan we trust","The truth forgotten in time","Odium"],
-    credits:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed at Dead Witch Studio. Roma Diamond - vocals, Zavalnyy Andrey - guitars, bass, keyboards, Ponomarev Ilya - drums, Drugov Dmitriy - solo guitar, Zavalnaya Uliana - back vocal, Zavalnyy Efim - Back vocal & piano, Matviychuk Vladimir - Piano. Lyrics by Roma Diamond, all music by Zavalnyy Andrey."
+    creditsPeople:"Roma Diamond - vocals, Zavalnyy Andrey - guitars, bass, keyboards, Ponomarev Ilya - drums, Drugov Dmitriy - solo guitar, Zavalnaya Uliana - back vocal, Zavalnyy Efim - Back vocal & piano, Matviychuk Vladimir - Piano. Lyrics by Roma Diamond, all music by Zavalnyy Andrey.",
+    creditsProduction:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed at Dead Witch Studio."
   },
   {
     id:"reborn",title:"Reborn",year:"2011",
     cover:"https://grimorium-verum.ru/images/page2-img1.jpg",
     spotifyEmbed:ARTIST_EMBED,
     tracks:["Among ancient walls","Wolf bite","Witch","Torture","Unfetter","White spirit of the dark side","Fall into oblivion","Immortal soul"],
-    credits:"Recorded at Dead Witch Studio. Roma Diamond - vocals, Zavalnyy A. - guitars, bass, keyboards, Zuban - drums, Esev Michael - solo guitar, Lodygina Alena - back vocal, Zavalnyy E. - Back vocal, orchestration arranged. Lyrics by Roma Diamond, all music by Zavalnyy Andrey."
+    creditsPeople:"Roma Diamond - vocals, Zavalnyy A. - guitars, bass, keyboards, Zuban - drums, Esev Michael - solo guitar, Lodygina Alena - back vocal, Zavalnyy E. - Back vocal, orchestration arranged. Lyrics by Roma Diamond, all music by Zavalnyy Andrey.",
+    creditsProduction:"Recorded at Dead Witch Studio."
   },
   {
     id:"retaliation",title:"Retaliation",year:"2008",
     cover:"https://www.metal-archives.com/images/3/8/6/2/386271.jpg",
     spotifyEmbed:ARTIST_EMBED,
     tracks:["Intro - Undercover guest","Sacrifice","Funeral","God of nothing","Homohereticus","Last night of vampire","A time to kill","Curse of voodoo","Gollywog","Egypt","Twisted human form","Digging grave","...from the grave","Painted black","Outro"],
-    credits:"Recorded at Dead Witch Studio. Roma Diamond - vocals, Zavalnyy A. - guitars, bass, keyboards, drums. Co-produced by Yura Linber. Lyrics by Roma Diamond, all music by Zavalnyy Andrey, Yura Linber, John Money."
+    creditsPeople:"Roma Diamond - vocals, Zavalnyy A. - guitars, bass, keyboards, drums. Lyrics by Roma Diamond, all music by Zavalnyy Andrey, Yura Linber, John Money.",
+    creditsProduction:"Recorded at Dead Witch Studio. Co-produced by Yura Linber."
   }
 ];
 
 const tabs=document.getElementById("albumTabs");
 const recordTitle=document.getElementById("recordTitle");
 const recordTailWindow=document.getElementById("recordTailWindow");
-const albumYear=document.getElementById("albumYear");
-const tracklist=document.getElementById("tracklist");
-const coverWrap=document.getElementById("coverWrap");
-const spotifyLink=document.getElementById("spotifyLink");
-const appleLink=document.getElementById("appleLink");
-const yandexLink=document.getElementById("yandexLink");
-const spotifyPlayer=document.getElementById("spotifyPlayer");
-const albumCredits=document.getElementById("albumCredits");
-const albumCreditsText=document.getElementById("albumCreditsText");
+const discContentWindow=document.getElementById("discContentWindow");
+const creditsTextWindow=document.getElementById("creditsTextWindow");
+
+const SWAP_MS=420;
+let activeAlbumIndex=-1;
+let animToken=0;
 
 function query(a){return encodeURIComponent("Grimorium Verum "+a.title)}
 
@@ -548,9 +562,6 @@ function renderTabs(){
     </button>`).join("");
   tabs.querySelectorAll(".album-tab").forEach(b=>b.addEventListener("click",()=>selectAlbum(b.dataset.id)));
 }
-
-let activeAlbumIndex=-1;
-let titleAnimToken=0;
 
 function tailFor(title){
   return title.toUpperCase().startsWith("RE")?title.toUpperCase().slice(2):title.toUpperCase();
@@ -564,17 +575,15 @@ function setStaticTail(text){
   recordTailWindow.appendChild(span);
 }
 
-function animateTitle(nextIndex,a){
+function animateTitle(a,direction,token){
   const nextTail=tailFor(a.title);
   recordTitle.setAttribute("aria-label",a.title);
 
-  if(activeAlbumIndex<0 || nextIndex===activeAlbumIndex){
+  if(!direction){
     setStaticTail(nextTail);
-    activeAlbumIndex=nextIndex;
     return;
   }
 
-  const direction=nextIndex>activeAlbumIndex?"down":"up";
   const oldText=recordTailWindow.textContent.trim();
   recordTailWindow.innerHTML="";
 
@@ -587,7 +596,6 @@ function animateTitle(nextIndex,a){
   newSpan.textContent=nextTail;
 
   recordTailWindow.append(oldSpan,newSpan);
-  const token=++titleAnimToken;
 
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     oldSpan.classList.add("go");
@@ -595,40 +603,133 @@ function animateTitle(nextIndex,a){
   }));
 
   window.setTimeout(()=>{
-    if(token!==titleAnimToken)return;
+    if(token!==animToken)return;
     setStaticTail(nextTail);
-  },450);
+  },SWAP_MS+30);
+}
 
-  activeAlbumIndex=nextIndex;
+function currentDiscHeight(){
+  const raw=getComputedStyle(document.querySelector(".record")).getPropertyValue("--disc-height");
+  const n=parseFloat(raw);
+  return Number.isFinite(n)?n:427;
+}
+
+function trackFontFor(count){
+  const row=currentDiscHeight()/Math.max(1,count);
+  return Math.max(12.5,Math.min(18,row*.48));
+}
+
+function makeDiscPanel(a){
+  const panel=document.createElement("div");
+  panel.className="disc-content-panel";
+  const font=trackFontFor(a.tracks.length);
+  panel.style.setProperty("--track-count",a.tracks.length);
+  panel.style.setProperty("--track-font",font.toFixed(2)+"px");
+  panel.style.setProperty("--track-num-font",Math.max(7.5,font*.58).toFixed(2)+"px");
+
+  const spotifySearch="https://open.spotify.com/search/"+query(a);
+  const appleSearch="https://music.apple.com/us/search?term="+query(a);
+  const yandexSearch="https://music.yandex.ru/search?text="+query(a)+"&type=albums";
+
+  panel.innerHTML=`
+    <div class="track-col">
+      <div class="panel-tracklist">
+        ${a.tracks.map((t,i)=>`<div class="track"><span>${String(i+1).padStart(2,"0")}</span><span>${t}</span></div>`).join("")}
+      </div>
+    </div>
+
+    <div class="cover-col">
+      <div class="cover-wrap"><img class="cover" src="${a.cover}" alt="${a.title} album cover"></div>
+    </div>
+
+    <div class="album-year-wrap">
+      <div class="album-year">${a.year}</div>
+    </div>
+
+    <div class="stream-col">
+      <div class="player">
+        <iframe src="${a.spotifyEmbed}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="${a.title} — Spotify player"></iframe>
+      </div>
+    </div>
+
+    <div class="platforms" aria-label="Streaming platforms">
+      <a class="platform" href="${spotifySearch}" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify"><img src="https://cdn.simpleicons.org/spotify/d8d8d2" alt=""></a>
+      <a class="platform" href="${appleSearch}" target="_blank" rel="noopener" aria-label="Apple Music" title="Apple Music"><img src="https://cdn.simpleicons.org/applemusic/d8d8d2" alt=""></a>
+      <a class="platform" href="${yandexSearch}" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music"><img src="assets/yandex-music-mono.svg" alt=""></a>
+    </div>`;
+
+  const cover=panel.querySelector(".cover");
+  cover.addEventListener("error",()=>{
+    const wrap=cover.closest(".cover-wrap");
+    wrap.innerHTML=`<div class="cover-fallback">${a.title}</div>`;
+  });
+
+  return panel;
+}
+
+function makeCreditsPanel(a){
+  const panel=document.createElement("div");
+  panel.className="credits-panel";
+  const people=document.createElement("span");
+  people.className="credit-people";
+  people.textContent=a.creditsPeople||"Credits will be announced.";
+  panel.appendChild(people);
+
+  if(a.creditsProduction){
+    const production=document.createElement("span");
+    production.className="credit-production";
+    production.textContent=a.creditsProduction;
+    panel.appendChild(production);
+  }
+  return panel;
+}
+
+function setStaticPanel(windowEl,panel){
+  windowEl.innerHTML="";
+  panel.classList.add("current");
+  windowEl.appendChild(panel);
+}
+
+function animateWindow(windowEl,newPanel,direction,token){
+  const mobile=window.matchMedia("(max-width:720px)").matches;
+  const oldPanel=windowEl.querySelector(".current");
+
+  if(!direction || mobile || !oldPanel){
+    setStaticPanel(windowEl,newPanel);
+    return;
+  }
+
+  oldPanel.classList.remove("current");
+  oldPanel.classList.add("outgoing",direction);
+  newPanel.classList.add("incoming",direction);
+  windowEl.appendChild(newPanel);
+
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    oldPanel.classList.add("go");
+    newPanel.classList.add("go");
+  }));
+
+  window.setTimeout(()=>{
+    if(token!==animToken)return;
+    setStaticPanel(windowEl,newPanel);
+  },SWAP_MS+30);
 }
 
 function selectAlbum(id){
   const nextIndex=ALBUMS.findIndex(x=>x.id===id);
   const a=ALBUMS[nextIndex];if(!a)return;
+  if(nextIndex===activeAlbumIndex)return;
+
+  const direction=activeAlbumIndex<0?null:(nextIndex>activeAlbumIndex?"down":"up");
+  const token=++animToken;
 
   tabs.querySelectorAll(".album-tab").forEach(b=>b.classList.toggle("active",b.dataset.id===id));
-  animateTitle(nextIndex,a);
 
-  tracklist.innerHTML=a.tracks.map((t,i)=>`<div class="track"><span>${String(i+1).padStart(2,"0")}</span><span>${t}</span></div>`).join("");
+  animateTitle(a,direction,token);
+  animateWindow(discContentWindow,makeDiscPanel(a),direction,token);
+  animateWindow(creditsTextWindow,makeCreditsPanel(a),direction,token);
 
-  coverWrap.innerHTML=`<img class="cover" src="${a.cover}" alt="${a.title} album cover">`;
-  const selectedCover=coverWrap.querySelector("img");
-  selectedCover.addEventListener("error",()=>{coverWrap.innerHTML=`<div class="cover-fallback">${a.title}</div>`;});
-
-  albumYear.textContent=a.year;
-  albumCreditsText.textContent=a.credits||"Credits will be announced.";
-  albumCredits.classList.toggle("is-empty",!a.credits);
-
-  const spotifySearch="https://open.spotify.com/search/"+query(a);
-  spotifyLink.href=spotifySearch;
-  appleLink.href="https://music.apple.com/us/search?term="+query(a);
-  yandexLink.href="https://music.yandex.ru/search?text="+query(a)+"&type=albums";
-
-  spotifyPlayer.innerHTML=`<iframe
-    src="${a.spotifyEmbed}"
-    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-    loading="lazy"
-    title="${a.title} — Spotify player"></iframe>`;
+  activeAlbumIndex=nextIndex;
 }
 
 renderTabs();
