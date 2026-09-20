@@ -96,19 +96,21 @@ nav a:hover{color:#fff}
 }
 .record-head{position:relative;z-index:2;margin-bottom:30px}
 .record-title-slot{
-  display:flex;align-items:baseline;margin:0;
+  display:flex;align-items:flex-start;margin:0;
   font-family:var(--serif);font-weight:400;
-  font-size:clamp(40px,5vw,66px);line-height:.9;
+  font-size:clamp(40px,5vw,66px);line-height:1;
   letter-spacing:.13em;text-transform:uppercase;color:var(--ink);
   white-space:nowrap
 }
-.record-prefix{flex:0 0 auto}
+.record-prefix{
+  flex:0 0 auto;display:block;line-height:1
+}
 .record-tail-window{
-  position:relative;display:inline-block;overflow:hidden;
-  height:.92em;width:11.3ch;vertical-align:bottom
+  position:relative;display:block;overflow:hidden;
+  height:1em;width:14ch;line-height:1
 }
 .record-tail-piece{
-  position:absolute;left:0;top:0;white-space:nowrap;
+  position:absolute;left:0;top:0;white-space:nowrap;line-height:1;
   transition:transform .42s cubic-bezier(.22,.78,.2,1),opacity .42s ease;
   will-change:transform,opacity
 }
@@ -310,7 +312,7 @@ footer{
   .record-side-label{display:none}
   .record-head{margin-bottom:24px}
   .record-title-slot{font-size:clamp(34px,10vw,50px);letter-spacing:.09em}
-  .record-tail-window{width:10.8ch}
+  .record-tail-window{width:13.5ch}
   .discography-grid{display:flex;flex-direction:column;gap:22px}
   .album-tabs{
     order:0;height:auto;flex-direction:row;justify-content:flex-start;
