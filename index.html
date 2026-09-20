@@ -212,7 +212,8 @@ nav a:hover{color:#fff}
   font-family:var(--sans);font-size:var(--track-num-font);color:#666b6e
 }
 .track span:last-child{
-  min-width:0;white-space:nowrap;overflow:visible;text-overflow:clip
+  min-width:0;white-space:normal;overflow:hidden;text-overflow:clip;
+  line-height:1.05;max-height:2.1em
 }
 
 .cover-col{width:var(--disc-height);height:var(--disc-height);min-width:0}
@@ -305,6 +306,9 @@ nav a:hover{color:#fff}
 }
 .credits-panel::selection,
 .credits-panel *::selection{background:#dddcd5;color:#07090b}
+.credit-people strong{
+  font-weight:600;color:#b8bab5
+}
 .credit-production{
   display:block;margin-top:7px;color:#747a7d
 }
@@ -526,7 +530,7 @@ const ALBUMS=[
     cover:"https://grimorium-verum.ru/images/page2-img6.jpg",
     spotifyEmbed:ARTIST_EMBED,
     tracks:["Through the labyrinth of times","The black church of eternity","The lamp of destiny","Hourglass","Last ritual","In the catacombs","Burn Gypsy burn","Brocken hourglass","It's time....padre","A slave of the lamp","REALL"],
-    creditsPeople:"Roma Diamond - vocals, Zavalnyy Andrey - guitars, keyboards, Klimychev Nikita - bass, Ponomarev Ilya - drums, Molodetskov Vitaliy - solo guitar, Zavalnaya Uliana - back vocal. Lyrics by Roma Diamond, all music by Zavalnyy Andrey.",
+    creditsPeople:"<strong>Roma Diamond</strong> - vocals, <strong>Andrey Zavalny</strong> - guitars, keyboards, <strong>Nikita Klimychev</strong> - bass, <strong>Ilya Ponomarev</strong> - drums, <strong>Vitaliy Molodetskov</strong> - solo guitar, <strong>Uliana Zavalnaya</strong> - back vocal. Lyrics by <strong>Roma Diamond</strong>, all music by <strong>Andrey Zavalny</strong>.",
     creditsProduction:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio."
   },
   {
@@ -534,7 +538,7 @@ const ALBUMS=[
     cover:"https://grimorium-verum.ru/images/page2-img5.jpg",
     spotifyEmbed:ARTIST_EMBED,
     tracks:["The born son of the devil","The kingdom of the pain","The march of the northern kings","Blind faith in nothing","The light of dark father","Revenant","The circus of the dark illusion","Sacred temple of blood","The great serpentine saint","The resurrected on the devil’s hands"],
-    creditsPeople:"Roma Diamond - vocals, Zavalnyy Andrey - guitars, bass, keyboards, Ivan N. - drums, Molodetskov Vitaliy - solo guitar, Zavalnaya Uliana - back vocal, Zavalnyy Efim - Back vocal & piano. Lyrics by Roma Diamond, all music by Zavalnyy Andrey.",
+    creditsPeople:"<strong>Roma Diamond</strong> - vocals, <strong>Andrey Zavalny</strong> - guitars, bass, keyboards, <strong>Ivan N.</strong> - drums, <strong>Vitaliy Molodetskov</strong> - solo guitar, <strong>Uliana Zavalnaya</strong> - back vocal, <strong>Efim Zavalny</strong> - back vocal & piano. Lyrics by <strong>Roma Diamond</strong>, all music by <strong>Andrey Zavalny</strong>.",
     creditsProduction:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio."
   },
   {
@@ -542,7 +546,7 @@ const ALBUMS=[
     cover:"https://grimorium-verum.ru/images/page2-img4.jpg",
     spotifyEmbed:"https://open.spotify.com/embed/track/6vY6dF2S1GYmiHFS7SsLJr?utm_source=generator&theme=0",
     tracks:["Relict","Rising morning star","At the gates of darkness","Black tears monastery","Night burning icons","The vision in solar eclipse","Pilgrimage to satan","In satan we trust","The truth forgotten in time","Odium"],
-    creditsPeople:"Roma Diamond - vocals, Zavalnyy Andrey - guitars, bass, keyboards, Ponomarev Ilya - drums, Drugov Dmitriy - solo guitar, Zavalnaya Uliana - back vocal, Zavalnyy Efim - Back vocal & piano, Matviychuk Vladimir - Piano. Lyrics by Roma Diamond, all music by Zavalnyy Andrey.",
+    creditsPeople:"<strong>Roma Diamond</strong> - vocals, <strong>Andrey Zavalny</strong> - guitars, bass, keyboards, <strong>Ilya Ponomarev</strong> - drums, <strong>Dmitriy Drugov</strong> - solo guitar, <strong>Uliana Zavalnaya</strong> - back vocal, <strong>Efim Zavalny</strong> - back vocal & piano, <strong>Vladimir Matviychuk</strong> - piano. Lyrics by <strong>Roma Diamond</strong>, all music by <strong>Andrey Zavalny</strong>.",
     creditsProduction:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed at Dead Witch Studio."
   },
   {
@@ -550,7 +554,7 @@ const ALBUMS=[
     cover:"https://grimorium-verum.ru/images/page2-img1.jpg",
     spotifyEmbed:ARTIST_EMBED,
     tracks:["Among ancient walls","Wolf bite","Witch","Torture","Unfetter","White spirit of the dark side","Fall into oblivion","Immortal soul"],
-    creditsPeople:"Roma Diamond - vocals, Zavalnyy A. - guitars, bass, keyboards, Zuban - drums, Esev Michael - solo guitar, Lodygina Alena - back vocal, Zavalnyy E. - Back vocal, orchestration arranged. Lyrics by Roma Diamond, all music by Zavalnyy Andrey.",
+    creditsPeople:"<strong>Roma Diamond</strong> - vocals, <strong>Andrey Zavalny</strong> - guitars, bass, keyboards, <strong>Zuban</strong> - drums, <strong>Michael Esev</strong> - solo guitar, <strong>Alena Lodygina</strong> - back vocal, <strong>Efim Zavalny</strong> - back vocal, orchestration arranged. Lyrics by <strong>Roma Diamond</strong>, all music by <strong>Andrey Zavalny</strong>.",
     creditsProduction:"Recorded at Dead Witch Studio."
   },
   {
@@ -558,7 +562,7 @@ const ALBUMS=[
     cover:"https://www.metal-archives.com/images/3/8/6/2/386271.jpg",
     spotifyEmbed:ARTIST_EMBED,
     tracks:["Intro - Undercover guest","Sacrifice","Funeral","God of nothing","Homohereticus","Last night of vampire","A time to kill","Curse of voodoo","Gollywog","Egypt","Twisted human form","Digging grave","...from the grave","Painted black","Outro"],
-    creditsPeople:"Roma Diamond - vocals, Zavalnyy A. - guitars, bass, keyboards, drums. Lyrics by Roma Diamond, all music by Zavalnyy Andrey, Yura Linber, John Money.",
+    creditsPeople:"<strong>Roma Diamond</strong> - vocals, <strong>Andrey Zavalny</strong> - guitars, bass, keyboards, drums. Lyrics by <strong>Roma Diamond</strong>, all music by <strong>Andrey Zavalny</strong>, <strong>Yura Linber</strong>, <strong>John Money</strong>.",
     creditsProduction:"Recorded at Dead Witch Studio. Co-produced by Yura Linber."
   }
 ];
@@ -638,28 +642,7 @@ function currentDiscHeight(){
 
 function trackFontFor(count){
   const row=currentDiscHeight()/Math.max(1,count);
-  return Math.max(12.25,Math.min(18,row*.48));
-}
-
-function fitTrackTypography(panel){
-  const trackCol=panel.querySelector(".track-col");
-  const rows=[...panel.querySelectorAll(".track")];
-  if(!trackCol||!rows.length)return;
-
-  const numberCol=28;
-  const gap=9;
-  const available=Math.max(80,trackCol.clientWidth-numberCol-gap-2);
-  let size=parseFloat(getComputedStyle(rows[0]).fontSize)||13;
-
-  const labels=rows.map(r=>r.lastElementChild);
-  for(let pass=0;pass<12;pass++){
-    labels.forEach(el=>el.style.fontSize=size+"px");
-    const widest=Math.max(...labels.map(el=>el.scrollWidth));
-    if(widest<=available)break;
-    size=Math.max(10.5,size*.94);
-  }
-
-  labels.forEach(el=>el.style.fontSize=size.toFixed(2)+"px");
+  return Math.max(13.25,Math.min(18,row*.5));
 }
 
 function makeDiscPanel(a){
@@ -715,7 +698,7 @@ function makeCreditsPanel(a){
   panel.className="credits-panel";
   const people=document.createElement("span");
   people.className="credit-people";
-  people.textContent=a.creditsPeople||"Credits will be announced.";
+  people.innerHTML=a.creditsPeople||"Credits will be announced.";
   panel.appendChild(people);
 
   if(a.creditsProduction){
@@ -731,9 +714,6 @@ function setStaticPanel(windowEl,panel){
   windowEl.innerHTML="";
   panel.classList.add("current");
   windowEl.appendChild(panel);
-  if(windowEl===discContentWindow){
-    requestAnimationFrame(()=>fitTrackTypography(panel));
-  }
 }
 
 function animateWindow(windowEl,newPanel,direction,token){
@@ -749,10 +729,8 @@ function animateWindow(windowEl,newPanel,direction,token){
   oldPanel.classList.add("outgoing",direction);
   newPanel.classList.add("incoming",direction);
   windowEl.appendChild(newPanel);
-  if(windowEl===discContentWindow)fitTrackTypography(newPanel);
 
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    if(windowEl===discContentWindow)fitTrackTypography(newPanel);
     oldPanel.classList.add("go");
     newPanel.classList.add("go");
   }));
