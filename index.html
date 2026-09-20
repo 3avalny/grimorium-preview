@@ -323,24 +323,27 @@ nav a:hover{color:#fff}
 }
 .live-inner,.contact-inner{width:min(var(--shell),100%);margin:auto}
 .live p,.contact p{font-family:var(--serif);font-size:16px;color:#999b97}
-.contact{min-height:250px;background:linear-gradient(180deg,#090b0d,#06080a)}
-.contact-row{display:flex;justify-content:space-between;gap:36px;align-items:flex-end}
-.contact-copy{min-width:0}
-.socials{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
-.social-link{
-  width:46px;height:46px;border:1px solid var(--line);display:grid;place-items:center;
-  background:rgba(255,255,255,.015);transition:.18s ease
+.contact{
+  min-height:150px;background:linear-gradient(180deg,#090b0d,#06080a);
+  display:flex;align-items:center;justify-content:center
 }
-.social-link:hover{border-color:#757b7d;background:#121619;transform:translateY(-2px)}
-.social-link img{width:20px;height:20px;object-fit:contain;opacity:.84}
+.contact-inner{width:100%;margin:auto}
+.socials{display:flex;flex-wrap:wrap;gap:18px}
+.contact-socials{justify-content:center;align-items:center;margin:0}
+.social-link{
+  width:38px;height:38px;border:0;display:grid;place-items:center;
+  background:transparent;transition:opacity .18s ease,transform .18s ease
+}
+.social-link:hover{background:transparent;opacity:.72;transform:translateY(-2px)}
+.social-link img{width:22px;height:22px;object-fit:contain;opacity:1}
 .social-link:hover img{opacity:1}
-.social-link svg{width:21px;height:21px;fill:none;stroke:#d7d7d1;stroke-width:1.6}
-.email-text{font-family:var(--serif);font-size:15px;letter-spacing:.08em;color:#b8b9b4;white-space:nowrap}
-.email-text:hover{color:#fff}
+.social-link svg{width:22px;height:22px;fill:none;stroke:#d7d7d1;stroke-width:1.6}
+.credit-person-link{color:inherit;text-decoration:none}
+.credit-person-link:hover{color:#fff}
 
 footer{
-  padding:20px var(--pad);display:flex;justify-content:space-between;gap:20px;
-  border-top:1px solid var(--line);font-size:8px;letter-spacing:.17em;text-transform:uppercase;color:#5f6568
+  padding:20px var(--pad);display:flex;justify-content:center;text-align:center;
+  border-top:0;font-size:8px;letter-spacing:.17em;text-transform:uppercase;color:#5f6568
 }
 
 @media(max-width:1180px){
@@ -415,10 +418,9 @@ footer{
   .album-credits{grid-template-columns:1fr;gap:8px;min-height:0;margin-top:10px}
   .credits-text-window{min-height:0;overflow:visible}
   .credits-panel{position:static;transform:none!important;opacity:1!important}
-  .live,.contact{padding:46px 18px}
-  .contact-row{display:block}
-  .email-text{display:inline-block;margin-top:20px;white-space:normal}
-  footer{flex-direction:column;padding-inline:18px}
+  .live{padding:46px 18px}
+  .contact{padding:34px 18px;min-height:130px}
+  footer{padding-inline:18px}
 }
 @media(max-width:420px){
   .hero h1{font-size:clamp(34px,10.4vw,46px)}
@@ -433,7 +435,7 @@ footer{
 <body>
 <header>
   <a class="brand" href="#top" aria-label="Grimorium Verum home"><img src="assets/grimorium-logo.png" alt="Grimorium Verum"></a>
-  <nav><a href="#music">Music</a><a href="#live">Live</a><a href="#contact">Contact</a></nav>
+  <nav><a href="#music">Music</a><a href="#live">Live</a></nav>
 </header>
 
 <main id="top">
@@ -490,29 +492,22 @@ footer{
     </div>
   </div>
 
-  <div class="contact" id="contact">
+  <div class="contact">
     <div class="contact-inner">
-      <div class="contact-row">
-        <div class="contact-copy">
-          <h2>Contact</h2><div class="rule"></div>
-          <p>Booking · Press · General</p>
-          <div class="socials">
-            <a class="social-link" href="https://vk.com/grimorium_verum" target="_blank" rel="noopener" aria-label="VK" title="VK"><img src="https://cdn.simpleicons.org/vk/d8d8d2" alt=""></a>
-            <a class="social-link" href="https://www.instagram.com/grimoriumv" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><img src="https://cdn.simpleicons.org/instagram/d8d8d2" alt=""></a>
-            <a class="social-link" href="https://www.facebook.com/grimoriumverumband" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><img src="https://cdn.simpleicons.org/facebook/d8d8d2" alt=""></a>
-            <a class="social-link" href="mailto:contact@grimorium-verum.ru" aria-label="Email" title="Email">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h17v11h-17z"/><path d="m4 7 8 6 8-6"/></svg>
-            </a>
-          </div>
-        </div>
-        <a class="email-text" href="mailto:contact@grimorium-verum.ru">contact@grimorium-verum.ru</a>
+      <div class="socials contact-socials" aria-label="Grimorium Verum social links">
+        <a class="social-link" href="https://vk.com/grimorium_verum" target="_blank" rel="noopener" aria-label="VK" title="VK"><img src="https://cdn.simpleicons.org/vk/d8d8d2" alt=""></a>
+        <a class="social-link" href="https://www.instagram.com/grimoriumv" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><img src="https://cdn.simpleicons.org/instagram/d8d8d2" alt=""></a>
+        <a class="social-link" href="https://www.facebook.com/grimoriumverumband" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><img src="https://cdn.simpleicons.org/facebook/d8d8d2" alt=""></a>
+        <a class="social-link" href="mailto:contact@grimorium-verum.ru" aria-label="Email" title="Email">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h17v11h-17z"/><path d="m4 7 8 6 8-6"/></svg>
+        </a>
       </div>
     </div>
   </div>
 </section>
 </main>
 
-<footer><span>© 2026 Grimorium Verum</span><span>Syktyvkar · Russia</span></footer>
+<footer><span>© 2026 Grimorium Verum</span></footer>
 
 <script>
 const ARTIST_EMBED="https://open.spotify.com/embed/artist/65nL8HSKtOigMf9h8d4rUK?utm_source=generator&theme=0";
@@ -538,7 +533,7 @@ const ALBUMS=[
     cover:"https://grimorium-verum.ru/images/page2-img5.jpg",
     spotifyEmbed:ARTIST_EMBED,
     tracks:["The born son of the devil","The kingdom of the pain","The march of the northern kings","Blind faith in nothing","The light of dark father","Revenant","The circus of the dark illusion","Sacred temple of blood","The great serpentine saint","The resurrected on the devil’s hands"],
-    creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, bass, keyboards; <strong>Ivan N.</strong> — drums; <strong>Vitaliy Molodetskov</strong> — solo guitar; <strong>Efim Zavalny</strong> — back vocal & piano; <strong>Uliana Zavalnaya</strong> — back vocal. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>.",
+    creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, bass, keyboards; <strong>Ivan N.</strong> — drums; <strong>Vitaliy Molodetskov</strong> — solo guitar; <strong><a class="credit-person-link" href="https://www.instagram.com/3avalny/" target="_blank" rel="noopener">Efim Zavalny</a></strong> — back vocal & piano; <strong>Uliana Zavalnaya</strong> — back vocal. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>.",
     creditsProduction:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio."
   },
   {
@@ -546,7 +541,7 @@ const ALBUMS=[
     cover:"https://grimorium-verum.ru/images/page2-img4.jpg",
     spotifyEmbed:"https://open.spotify.com/embed/track/6vY6dF2S1GYmiHFS7SsLJr?utm_source=generator&theme=0",
     tracks:["Relict","Rising morning star","At the gates of darkness","Black tears monastery","Night burning icons","The vision in solar eclipse","Pilgrimage to satan","In satan we trust","The truth forgotten in time","Odium"],
-    creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, bass, keyboards; <strong>Ilya Ponomarev</strong> — drums; <strong>Dmitriy Drugov</strong> — solo guitar; <strong>Efim Zavalny</strong> — back vocal & piano; <strong>Uliana Zavalnaya</strong> — back vocal; <strong>Vladimir Matviychuk</strong> — piano. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>.",
+    creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, bass, keyboards; <strong>Ilya Ponomarev</strong> — drums; <strong>Dmitriy Drugov</strong> — solo guitar; <strong><a class="credit-person-link" href="https://www.instagram.com/3avalny/" target="_blank" rel="noopener">Efim Zavalny</a></strong> — back vocal & piano; <strong>Uliana Zavalnaya</strong> — back vocal; <strong>Vladimir Matviychuk</strong> — piano. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>.",
     creditsProduction:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed at Dead Witch Studio."
   },
   {
@@ -554,7 +549,7 @@ const ALBUMS=[
     cover:"https://grimorium-verum.ru/images/page2-img1.jpg",
     spotifyEmbed:ARTIST_EMBED,
     tracks:["Among ancient walls","Wolf bite","Witch","Torture","Unfetter","White spirit of the dark side","Fall into oblivion","Immortal soul"],
-    creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, bass, keyboards; <strong>Zuban</strong> — drums; <strong>Efim Zavalny</strong> — back vocal, orchestration arranged; <strong>Michael Esev</strong> — solo guitar; <strong>Alena Lodygina</strong> — back vocal. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>.",
+    creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, bass, keyboards; <strong>Zuban</strong> — drums; <strong><a class="credit-person-link" href="https://www.instagram.com/3avalny/" target="_blank" rel="noopener">Efim Zavalny</a></strong> — back vocal, orchestration arranged; <strong>Michael Esev</strong> — solo guitar; <strong>Alena Lodygina</strong> — back vocal. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>.",
     creditsProduction:"Recorded at Dead Witch Studio."
   },
   {
