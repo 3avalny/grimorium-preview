@@ -9,10 +9,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
 <style>
+@font-face{
+  font-family:"Cattedrale-Demo";
+  src:url("assets/Cattedrale-Demo-Regular.woff2") format("woff2");
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+}
 :root{
   --bg:#07090b;--bg2:#0a0d10;--ink:#dddcd5;--soft:#a6a6a0;--dim:#6f7477;
   --line:rgba(223,224,218,.13);--line-strong:rgba(223,224,218,.32);--red:#8b1e23;
-  --serif:"Cormorant Garamond",Georgia,serif;--sans:"Manrope",Arial,sans-serif;
+  --serif:"Cormorant Garamond",Georgia,serif;--sans:"Manrope",Arial,sans-serif;--album-display:"Cattedrale-Demo",var(--serif);
   --pad:clamp(20px,4.7vw,72px);--shell:1380px
 }
 *{box-sizing:border-box}
@@ -70,7 +77,7 @@ nav a:hover{color:#fff}
   width:min(730px,67vw);margin:0;min-width:0
 }
 .hero h1{
-  margin:0;font-family:var(--serif);font-weight:400;
+  margin:0;font-family:var(--album-display);font-weight:400;
   font-size:clamp(50px,8.2vw,120px);line-height:.82;letter-spacing:.075em;text-transform:uppercase;
   text-shadow:0 6px 40px rgba(0,0,0,.85);white-space:nowrap
 }
@@ -114,7 +121,7 @@ nav a:hover{color:#fff}
 .record-head{position:relative;z-index:2;margin-bottom:30px}
 .record-title-slot{
   display:flex;align-items:flex-start;margin:0;
-  font-family:var(--serif);font-weight:400;
+  font-family:var(--album-display);font-weight:400;
   font-size:clamp(40px,5vw,66px);line-height:1;
   letter-spacing:.13em;text-transform:uppercase;color:var(--ink);
   white-space:nowrap
@@ -230,7 +237,7 @@ nav a:hover{color:#fff}
   background:
     radial-gradient(circle at 55% 30%,rgba(114,26,30,.32),transparent 28%),
     linear-gradient(145deg,#121619,#050607);
-  font-family:var(--serif);font-size:clamp(24px,3vw,38px);
+  font-family:var(--album-display);font-size:clamp(24px,3vw,38px);
   line-height:1;white-space:nowrap;letter-spacing:.08em
 }
 
