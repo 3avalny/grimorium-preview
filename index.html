@@ -201,6 +201,7 @@ nav a:hover{color:#fff}
     opacity .42s ease var(--cascade-delay,0ms);
   will-change:transform,opacity
 }
+.disc-content-panel.preparing .cascade-stage{transition:none!important}
 .stage-track{--cascade-delay:0ms}
 .stage-cover,.stage-year{--cascade-delay:90ms}
 .stage-stream{--cascade-delay:180ms}
@@ -401,8 +402,9 @@ nav a:hover{color:#fff}
 .live-inner,.contact-inner{width:min(var(--shell),100%);margin:auto}
 .live p,.contact p{font-family:var(--serif);font-size:16px;color:#999b97}
 .contact{
-  min-height:150px;background:#07090b;
-  display:flex;align-items:center;justify-content:center
+  min-height:118px;background:#07090b;
+  padding:34px var(--pad) 12px;
+  display:flex;align-items:flex-end;justify-content:center
 }
 .contact-inner{width:100%;margin:auto}
 .socials{display:flex;flex-wrap:wrap;gap:18px}
@@ -529,7 +531,7 @@ footer{
   .credits-text-window{min-height:0;overflow:visible}
   .credits-panel{position:static;transform:none!important;opacity:1!important}
   .live{padding:46px 18px}
-  .contact{padding:34px 18px;min-height:130px}
+  .contact{padding:26px 18px 10px;min-height:104px}
   footer{padding-inline:18px}
 }
 @media(max-width:420px){
@@ -608,7 +610,7 @@ footer{
     <p>At the heart of the catalogue are the voice and lyrics of Roma Diamond and the music of Andrey Zavalny. In 2026, Grimorium Verum opens a new chapter with <em>Renaissance</em>.</p>
   </div>
   <div class="bio-figure bio-figure-right" aria-hidden="true">
-    <img src="assets/bio-right.png" alt="">
+    <img src="assets/bio-diamond.png" alt="">
   </div>
 </section>
 
@@ -626,9 +628,7 @@ footer{
         <a class="social-link" href="https://vk.com/grimorium_verum" target="_blank" rel="noopener" aria-label="VK" title="VK"><img src="https://cdn.simpleicons.org/vk/d8d8d2" alt=""></a>
         <a class="social-link" href="https://www.instagram.com/grimoriumv" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram"><img src="https://cdn.simpleicons.org/instagram/d8d8d2" alt=""></a>
         <a class="social-link" href="https://www.facebook.com/grimoriumverumband" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook"><img src="https://cdn.simpleicons.org/facebook/d8d8d2" alt=""></a>
-        <a class="social-link" href="mailto:contact@grimorium-verum.ru" aria-label="Email" title="Email">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h17v11h-17z"/><path d="m4 7 8 6 8-6"/></svg>
-        </a>
+        <a class="social-link" href="mailto:contact@grimorium-verum.ru" aria-label="Email" title="Email"><img src="assets/email-alt.svg" alt=""></a>
       </div>
     </div>
   </div>
@@ -827,7 +827,7 @@ function discPanelFor(id){
 }
 
 function resetDiscPanelState(panel){
-  panel.classList.remove("current","incoming","outgoing","up","down","go");
+  panel.classList.remove("current","incoming","outgoing","up","down","go","preparing");
 }
 
 function animateDiscWindow(newPanel,oldPanel,direction,token){
@@ -841,7 +841,12 @@ function animateDiscWindow(newPanel,oldPanel,direction,token){
   }
 
   oldPanel.classList.add("outgoing",direction);
-  newPanel.classList.add("incoming",direction);
+  newPanel.classList.add("preparing","incoming",direction);
+
+  // Persistent panels already exist in the DOM. Stage the incoming panel
+  // instantly at its off-screen start position before transitions are enabled.
+  void newPanel.offsetWidth;
+  newPanel.classList.remove("preparing");
 
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     oldPanel.classList.add("go");
