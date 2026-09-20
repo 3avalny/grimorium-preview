@@ -498,7 +498,13 @@ footer{
   }
   .record-title-slot .record-prefix,
   .record-title-slot .record-tail-window{display:none}
-  .record-title-slot::after{content:attr(data-mobile-title);white-space:nowrap}
+  .record-title-slot::after{
+    content:attr(data-mobile-title);white-space:nowrap;
+    filter:blur(0);opacity:1;
+    transition:filter .18s ease,opacity .18s ease;
+    will-change:filter,opacity
+  }
+  .record-title-slot.mobile-title-blur::after{filter:blur(10px);opacity:0}
   .discography-grid{
     display:flex;flex-direction:column;align-items:stretch;
     gap:22px;width:100%;min-width:0
@@ -552,8 +558,23 @@ footer{
   }
   .player,.player iframe{width:100%;height:152px;min-height:152px}
   .album-credits{grid-template-columns:1fr;gap:8px;min-height:0;margin-top:10px}
-  .credits-text-window{min-height:0;overflow:visible}
-  .credits-panel{position:static;transform:none!important;opacity:1!important}
+  .credits-text-window{
+    display:grid;min-height:0;overflow:hidden
+  }
+  .credits-panel{
+    position:static;grid-area:1/1;width:100%;
+    transform:translateX(0);opacity:1;
+    transition:
+      transform .48s cubic-bezier(.22,.78,.2,1),
+      opacity .48s ease
+  }
+  .credits-panel.current{transform:translateX(0);opacity:1}
+  .credits-panel.incoming.down{transform:translateX(108%);opacity:.18}
+  .credits-panel.incoming.up{transform:translateX(-108%);opacity:.18}
+  .credits-panel.outgoing{transform:translateX(0);opacity:1}
+  .credits-panel.outgoing.down.go{transform:translateX(-108%);opacity:.08}
+  .credits-panel.outgoing.up.go{transform:translateX(108%);opacity:.08}
+  .credits-panel.incoming.go{transform:translateX(0);opacity:1}
   .live{padding:46px 18px}
   .contact{padding:26px 18px 10px;min-height:104px}
   footer{padding-inline:18px}
@@ -752,8 +773,26 @@ function setStaticTail(text){
 
 function animateTitle(a,direction,token){
   const nextTail=tailFor(a.title);
+  const mobile=window.matchMedia("(max-width:720px)").matches;
   recordTitle.setAttribute("aria-label",a.title);
-  recordTitle.dataset.mobileTitle=a.title.toUpperCase();
+
+  if(mobile){
+    if(!direction){
+      recordTitle.dataset.mobileTitle=a.title.toUpperCase();
+      setStaticTail(nextTail);
+      return;
+    }
+
+    recordTitle.classList.add("mobile-title-blur");
+    window.setTimeout(()=>{
+      if(token!==animToken)return;
+      recordTitle.dataset.mobileTitle=a.title.toUpperCase();
+      setStaticTail(nextTail);
+      void recordTitle.offsetWidth;
+      recordTitle.classList.remove("mobile-title-blur");
+    },180);
+    return;
+  }
 
   if(!direction){
     setStaticTail(nextTail);
@@ -915,7 +954,12 @@ function animateWindow(windowEl,newPanel,direction,token){
   const mobile=window.matchMedia("(max-width:720px)").matches;
   const oldPanel=windowEl.querySelector(".current");
 
-  if(!direction || mobile || !oldPanel){
+  if(!direction || !oldPanel){
+    setStaticPanel(windowEl,newPanel);
+    return;
+  }
+
+  if(mobile && windowEl!==creditsTextWindow){
     setStaticPanel(windowEl,newPanel);
     return;
   }
@@ -925,17 +969,24 @@ function animateWindow(windowEl,newPanel,direction,token){
   newPanel.classList.add("incoming",direction);
   windowEl.appendChild(newPanel);
 
+  if(mobile){
+    newPanel.style.transition="none";
+    void newPanel.offsetWidth;
+    newPanel.style.transition="";
+  }
+
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     oldPanel.classList.add("go");
     newPanel.classList.add("go");
   }));
 
+  const delay=mobile?520:(SWAP_MS+CASCADE_MAX_MS+40);
   window.setTimeout(()=>{
     if(token!==animToken)return;
     oldPanel.remove();
     newPanel.classList.remove("incoming",direction,"go");
     newPanel.classList.add("current");
-  },SWAP_MS+CASCADE_MAX_MS+40);
+  },delay);
 }
 
 function selectAlbum(id){
