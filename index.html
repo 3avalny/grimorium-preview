@@ -154,6 +154,22 @@ nav a:hover{color:#fff}
 }
 .platform:hover{border-color:#777d7f;background:#14181b}
 .platform img{width:20px;height:20px;object-fit:contain;opacity:.86}
+.album-credits{
+  position:relative;z-index:2;margin-top:30px;padding-top:20px;
+  border-top:1px solid rgba(255,255,255,.08);
+  display:grid;grid-template-columns:110px minmax(0,1fr);gap:24px;
+  min-height:112px
+}
+.album-credits-label{
+  font-family:var(--sans);font-size:9px;letter-spacing:.22em;
+  text-transform:uppercase;color:#62686b;padding-top:3px
+}
+.album-credits-text{
+  max-width:1080px;font-family:var(--serif);font-size:13px;
+  line-height:1.65;letter-spacing:.025em;color:#8f918d
+}
+.album-credits.is-empty{opacity:.45}
+
 .platform:hover img{opacity:1}
 
 .bottom{display:block;background:#080a0c;border-top:1px solid var(--line)}
@@ -228,6 +244,7 @@ footer{
   .track{font-size:13px;grid-template-columns:23px minmax(0,1fr)}
   .player,.player iframe{height:390px;min-height:390px}
   .platforms{height:auto;flex-direction:row;justify-content:center}
+  .album-credits{grid-template-columns:1fr;gap:8px;min-height:0;margin-top:10px}
   .live,.contact{padding:46px 18px}.contact-row{display:block}.email-text{display:inline-block;margin-top:20px;white-space:normal}
   footer{flex-direction:column;padding-inline:18px}
 }
@@ -264,6 +281,10 @@ footer{
         <a class="yandex" href="https://music.yandex.ru/search?text=Grimorium%20Verum" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music">
           <img src="assets/yandex-music.png" alt="">
         </a>
+      </div>
+      <div class="album-credits" id="albumCredits">
+        <div class="album-credits-label">Credits</div>
+        <div class="album-credits-text" id="albumCreditsText"></div>
       </div>
     </div>
   </div>
@@ -335,39 +356,46 @@ footer{
 const ARTIST_EMBED="https://open.spotify.com/embed/artist/65nL8HSKtOigMf9h8d4rUK?utm_source=generator&theme=0";
 const ALBUMS=[
   {
+    id:"renaissance",title:"Renaissance",year:"2026",status:"Coming soon",
+    cover:"assets/renaissance-cover.jpg",
+    spotifyEmbed:ARTIST_EMBED,
+    tracks:["...","...","...","...","...","...","...","...","...","..."],
+    credits:""
+  },
+  {
     id:"reall",title:"REALL",year:"2022",
     cover:"https://grimorium-verum.ru/images/page2-img6.jpg",
     spotifyEmbed:ARTIST_EMBED,
-    tracks:["Through the Labyrinth of Times","The Black Church of Eternity","The Lamp of Destiny","Hourglass","Last Ritual","In the Catacombs","Burn Gypsy Burn","Broken Hourglass","It's Time... Padre","A Slave of the Lamp","REALL"],
-    credits:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio."
+    tracks:["Through the labyrinth of times","The black church of eternity","The lamp of destiny","Hourglass","Last ritual","In the catacombs","Burn Gypsy burn","Brocken hourglass","It's time....padre","A slave of the lamp","REALL"],
+    credits:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio. Roma Diamond - vocals, Zavalnyy Andrey - guitars, keyboards, Klimychev Nikita - bass, Ponomarev Ilya - drums, Molodetskov Vitaliy - solo guitar, Zavalnaya Uliana - back vocal. Lyrics by Roma Diamond, all music by Zavalnyy Andrey."
   },
   {
     id:"revenant",title:"Revenant",year:"2018",
     cover:"https://grimorium-verum.ru/images/page2-img5.jpg",
     spotifyEmbed:ARTIST_EMBED,
-    tracks:["The Born Son of the Devil","The Kingdom of the Pain","The March of the Northern Kings","Blind Faith in Nothing","The Light of Dark Father","Revenant","The Circus of the Dark Illusion","Sacred Temple of Blood","The Great Serpentine Saint","The Resurrected on the Devil's Hands"],
-    credits:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio."
+    tracks:["The born son of the devil","The kingdom of the pain","The march of the northern kings","Blind faith in nothing","The light of dark father","Revenant","The circus of the dark illusion","Sacred temple of blood","The great serpentine saint","The resurrected on the devil’s hands"],
+    credits:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio. Roma Diamond - vocals, Zavalnyy Andrey - guitars, bass, keyboards, Ivan N. - drums, Molodetskov Vitaliy - solo guitar, Zavalnaya Uliana - back vocal, Zavalnyy Efim - Back vocal & piano. Lyrics by Roma Diamond, all music by Zavalnyy Andrey."
   },
   {
     id:"relict",title:"Relict",year:"2015",
     cover:"https://grimorium-verum.ru/images/page2-img4.jpg",
     spotifyEmbed:"https://open.spotify.com/embed/track/6vY6dF2S1GYmiHFS7SsLJr?utm_source=generator&theme=0",
-    tracks:["Relict","Rising Morning Star","At the Gates of Darkness","Black Tears Monastery","Night Burning Icons","The Vision in Solar Eclipse","Pilgrimage to Satan","In Satan We Trust","The Truth Forgotten in Time","Odium"],
-    credits:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed at Dead Witch Studio."
+    tracks:["Relict","Rising morning star","At the gates of darkness","Black tears monastery","Night burning icons","The vision in solar eclipse","Pilgrimage to satan","In satan we trust","The truth forgotten in time","Odium"],
+    credits:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed at Dead Witch Studio. Roma Diamond - vocals, Zavalnyy Andrey - guitars, bass, keyboards, Ponomarev Ilya - drums, Drugov Dmitriy - solo guitar, Zavalnaya Uliana - back vocal, Zavalnyy Efim - Back vocal & piano, Matviychuk Vladimir - Piano. Lyrics by Roma Diamond, all music by Zavalnyy Andrey."
   },
   {
     id:"reborn",title:"Reborn",year:"2011",
     cover:"https://grimorium-verum.ru/images/page2-img1.jpg",
     spotifyEmbed:ARTIST_EMBED,
-    tracks:["Among Ancient Walls","Wolf Bite","Witch","Torture","Unfetter","White Spirit of the Dark Side","Fall into Oblivion","Immortal Soul"],
-    credits:"Recorded at Dead Witch Studio."
+    tracks:["Among ancient walls","Wolf bite","Witch","Torture","Unfetter","White spirit of the dark side","Fall into oblivion","Immortal soul"],
+    credits:"Recorded at Dead Witch Studio. Roma Diamond - vocals, Zavalnyy A. - guitars, bass, keyboards, Zuban - drums, Esev Michael - solo guitar, Lodygina Alena - back vocal, Zavalnyy E. - Back vocal, orchestration arranged. Lyrics by Roma Diamond, all music by Zavalnyy Andrey."
   },
   {
     id:"retaliation",title:"Retaliation",year:"2008",
     cover:"https://www.metal-archives.com/images/3/8/6/2/386271.jpg",
     spotifyEmbed:ARTIST_EMBED,
-    tracks:["Intro - Undercover Guest","Sacrifice","Funeral","God of Nothing","Homohereticus","Last Night of Vampire","A Time to Kill","Curse of Voodoo","Gollywog","Egypt","Twisted Human Form","Digging Grave","...from the Grave","Painted Black","Outro"],
-    credits:"Recorded at Dead Witch Studio."
+    tracks:["Intro - Undercover guest","Sacrifice","Funeral","God of nothing","Homohereticus","Last night of vampire","A time to kill","Curse of voodoo","Gollywog","Egypt","Twisted human form","Digging grave","...from the grave","Painted black","Outro"],
+    credits:"Recorded at Dead Witch Studio. Roma Diamond - vocals, Zavalnyy A. - guitars, bass, keyboards, drums. Co-produced by Yura Linber. Lyrics by Roma Diamond, all music by Zavalnyy Andrey, Yura Linber, John Money."
   }
 ];
 
@@ -380,6 +408,8 @@ const spotifyLink=document.getElementById("spotifyLink");
 const appleLink=document.getElementById("appleLink");
 const yandexLink=document.getElementById("yandexLink");
 const spotifyPlayer=document.getElementById("spotifyPlayer");
+const albumCredits=document.getElementById("albumCredits");
+const albumCreditsText=document.getElementById("albumCreditsText");
 
 function query(a){return encodeURIComponent("Grimorium Verum "+a.title)}
 
@@ -402,7 +432,9 @@ function selectAlbum(id){
   const selectedCover=coverWrap.querySelector("img");
   selectedCover.addEventListener("error",()=>{coverWrap.innerHTML=`<div class="cover-fallback">${a.title}</div>`;});
 
-  albumName.textContent=`${a.title} · ${a.year}`;
+  albumName.textContent=a.status?`${a.title} · ${a.year} · ${a.status}`:`${a.title} · ${a.year}`;
+  albumCreditsText.textContent=a.credits||"Credits will be announced.";
+  albumCredits.classList.toggle("is-empty",!a.credits);
 
   const spotifySearch="https://open.spotify.com/search/"+query(a);
   spotifyLink.href=spotifySearch;
@@ -417,7 +449,7 @@ function selectAlbum(id){
 }
 
 renderTabs();
-selectAlbum("reall");
+selectAlbum("renaissance");
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{
   const el=document.querySelector(a.getAttribute("href"));
