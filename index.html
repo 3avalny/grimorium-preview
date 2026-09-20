@@ -321,6 +321,68 @@ nav a:hover{color:#fff}
   display:block;margin-top:7px;color:#747a7d
 }
 
+
+.bio{
+  position:relative;min-height:760px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(ellipse at 50% 47%,rgba(31,37,40,.32) 0%,rgba(12,15,17,.12) 36%,transparent 64%),
+    linear-gradient(180deg,#07090b 0%,#090c0e 48%,#07090b 100%);
+  border-top:1px solid rgba(255,255,255,.05)
+}
+.bio:after{
+  content:"";position:absolute;z-index:2;inset:0;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(7,9,11,0) 0 24%,rgba(7,9,11,.30) 38%,rgba(7,9,11,.58) 50%,rgba(7,9,11,.30) 62%,rgba(7,9,11,0) 76%),
+    linear-gradient(0deg,#07090b 0%,transparent 16%,transparent 84%,rgba(7,9,11,.22) 100%)
+}
+.bio-side-label{
+  position:absolute;z-index:6;left:34px;top:50%;
+  transform:translate(-50%,-50%) rotate(-90deg);
+  transform-origin:center;white-space:nowrap;
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  letter-spacing:.30em;text-transform:uppercase;color:#73787b
+}
+.bio-figure{
+  position:absolute;z-index:1;bottom:-2px;height:91%;width:31vw;
+  display:flex;align-items:flex-end;pointer-events:none
+}
+.bio-figure-left{left:max(22px,calc((100vw - var(--shell))/2 - 40px))}
+.bio-figure-right{right:max(18px,calc((100vw - var(--shell))/2 - 40px))}
+.bio-figure img{
+  width:100%;height:100%;object-fit:contain;object-position:center bottom;
+  filter:saturate(.78) contrast(1.05) brightness(.88);
+  opacity:.94
+}
+.bio-copy{
+  position:relative;z-index:4;width:min(500px,38vw);
+  padding:56px 26px;text-align:center;
+  -webkit-user-select:text!important;user-select:text!important
+}
+.bio-copy:before{
+  content:"";position:absolute;z-index:-1;inset:-70px -95px;
+  background:radial-gradient(ellipse at center,rgba(7,9,11,.92) 0%,rgba(7,9,11,.72) 44%,rgba(7,9,11,0) 74%);
+  pointer-events:none
+}
+.bio-eyebrow{
+  margin-bottom:20px;font-family:var(--sans);font-size:9px;
+  letter-spacing:.27em;text-transform:uppercase;color:#72777a
+}
+.bio h2{
+  margin:0;font-family:var(--album-display);font-weight:400;
+  font-size:clamp(44px,5vw,70px);line-height:1.08;
+  letter-spacing:.075em;text-transform:uppercase;color:var(--ink)
+}
+.bio .rule{margin:24px auto 28px}
+.bio p{
+  margin:0 0 18px;font-family:var(--serif);
+  font-size:clamp(16px,1.3vw,20px);line-height:1.58;
+  letter-spacing:.015em;color:#aaa9a4
+}
+.bio p:last-child{margin-bottom:0}
+.bio-copy,.bio-copy *{-webkit-user-select:text!important;user-select:text!important}
+.bio-copy::selection,.bio-copy *::selection{background:#dddcd5;color:#07090b}
+
 .bottom{display:block;background:#07090b;border-top:0}
 .live{display:none!important}
 .live,.contact{position:relative;width:100%;padding:58px var(--pad)}
@@ -357,6 +419,9 @@ footer{
 }
 
 @media(max-width:1180px){
+  .bio{min-height:720px}
+  .bio-figure{height:82%;width:35vw}
+  .bio-copy{width:min(470px,43vw)}
   .record{
     --disc-height:357px;
     --album-size:52px;
@@ -373,6 +438,12 @@ footer{
   .credits-text-window{min-height:108px}
 }
 @media(max-width:900px){
+  .bio{min-height:760px}
+  .bio-side-label{left:26px;font-size:12px}
+  .bio-figure{height:69%;width:42vw;opacity:.88}
+  .bio-figure-left{left:-4vw}
+  .bio-figure-right{right:-4vw}
+  .bio-copy{width:min(510px,58vw);padding-inline:18px}
   header{height:76px;padding-inline:24px}.brand img{width:180px}nav{display:none}
   .hero{height:100vh;min-height:100vh}.hero-copy{width:86vw}
   .hero h1{font-size:clamp(48px,11vw,90px)}
@@ -380,6 +451,25 @@ footer{
 }
 @media(max-width:720px){
   :root{--pad:18px}
+  .bio{
+    min-height:930px;display:block;padding:58px 18px 0;
+    background:
+      radial-gradient(ellipse at 50% 28%,rgba(31,37,40,.26),transparent 46%),
+      linear-gradient(180deg,#07090b,#090c0e 55%,#07090b)
+  }
+  .bio:after{
+    background:linear-gradient(0deg,#07090b 0%,transparent 27%,transparent 76%,rgba(7,9,11,.12) 100%)
+  }
+  .bio-side-label{display:none}
+  .bio-copy{width:100%;max-width:560px;margin:0 auto;padding:0 0 430px}
+  .bio-copy:before{inset:-45px -25px;background:radial-gradient(ellipse at center,rgba(7,9,11,.9),rgba(7,9,11,.35) 58%,transparent 78%)}
+  .bio h2{font-size:clamp(40px,11vw,56px);letter-spacing:.055em}
+  .bio p{font-size:16px;line-height:1.55}
+  .bio-figure{bottom:-2px;height:415px;width:58vw;opacity:.94}
+  .bio-figure-left{left:-9vw}
+  .bio-figure-right{right:-9vw}
+  .bio-figure img{object-position:center bottom}
+
   header{padding-inline:18px;height:72px;grid-template-columns:1fr auto 1fr}
   .brand{grid-column:2;justify-self:center}
   .brand img{width:155px;max-width:55vw}
@@ -446,7 +536,7 @@ footer{
 <body>
 <header>
   <a class="brand" href="#top" aria-label="Grimorium Verum home"><img src="assets/grimorium-logo.png" alt="Grimorium Verum"></a>
-  <nav><a href="#music">Music</a></nav>
+  <nav><a href="#music">Music</a><a href="#bio">Bio</a></nav>
 </header>
 
 <main id="top">
@@ -492,6 +582,24 @@ footer{
       <div class="album-credits-label">Credits</div>
       <div class="credits-text-window" id="creditsTextWindow"></div>
     </div>
+  </div>
+</section>
+
+
+<section class="bio" id="bio">
+  <div class="bio-side-label">Bio</div>
+  <div class="bio-figure bio-figure-left" aria-hidden="true">
+    <img src="assets/bio-left.webp" alt="">
+  </div>
+  <div class="bio-copy">
+    <div class="bio-eyebrow">Est. 1996 · Syktyvkar</div>
+    <h2>Grimorium Verum</h2>
+    <div class="rule"></div>
+    <p>Grimorium Verum is a symphonic black metal band formed in Syktyvkar in 1996. Across decades of releases, the band has shaped a dark, theatrical sound built around heavy guitars, keyboards and ritual atmosphere.</p>
+    <p>At the heart of the catalogue are the voice and lyrics of Roma Diamond and the music of Andrey Zavalny. In 2026, Grimorium Verum opens a new chapter with <em>Renaissance</em>.</p>
+  </div>
+  <div class="bio-figure bio-figure-right" aria-hidden="true">
+    <img src="assets/bio-right.webp" alt="">
   </div>
 </section>
 
