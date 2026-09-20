@@ -28,7 +28,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:100;op
 
 header{
   position:absolute;z-index:20;inset:0 0 auto;height:92px;
-  display:grid;grid-template-columns:minmax(190px,280px) 1fr minmax(90px,280px);
+  display:grid;grid-template-columns:1fr auto 1fr;
   align-items:center;padding-inline:var(--pad);
   border-bottom:1px solid rgba(255,255,255,.05);
   background:linear-gradient(180deg,rgba(5,7,8,.58),rgba(5,7,8,0))
@@ -39,9 +39,9 @@ header{
   mix-blend-mode:normal;filter:drop-shadow(0 3px 16px rgba(0,0,0,.45))
 }
 nav{justify-self:center;display:flex;gap:clamp(22px,2.6vw,38px)}
-nav a,.lang{font-family:var(--serif);font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:#bdbdb6}
-nav a:hover,.lang:hover{color:#fff}
-.lang{justify-self:end}
+nav{grid-column:2}
+nav a{font-family:var(--serif);font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:#bdbdb6}
+nav a:hover{color:#fff}
 
 .hero{height:100svh;min-height:720px;max-height:980px;position:relative;overflow:hidden;background:#07090b}
 .hero-art{
@@ -72,7 +72,6 @@ nav a:hover,.lang:hover{color:#fff}
 .listen:before{content:"";width:108px;height:1px;background:#c2c2bc}
 .services{display:flex;gap:22px;margin-top:15px;font-family:var(--serif);font-size:14px;color:#a5a69f}
 .services a:hover{color:#fff}
-.quote-side{position:absolute;right:var(--pad);top:29%;z-index:3;width:130px;font-family:var(--serif);font-size:11px;line-height:1.45;letter-spacing:.18em;text-transform:uppercase;color:#a4a5a0}
 
 .record{
   position:relative;padding:72px 0 92px;background:
@@ -93,8 +92,9 @@ nav a:hover,.lang:hover{color:#fff}
 }
 .discography-grid{
   position:relative;z-index:2;display:grid;min-width:0;
-  grid-template-columns:72px minmax(250px,292px) minmax(310px,400px) minmax(340px,1fr);
-  gap:clamp(24px,3.3vw,52px);align-items:center
+  grid-template-columns:72px minmax(250px,292px) minmax(300px,380px) minmax(360px,1fr) 52px;
+  gap:clamp(20px,2.5vw,38px);align-items:stretch;
+  height:520px
 }
 .album-tabs{
   display:flex;flex-direction:column;justify-content:center;gap:11px;
@@ -103,7 +103,7 @@ nav a:hover,.lang:hover{color:#fff}
 .album-tab{
   position:relative;flex:0 0 auto;width:62px;height:62px;padding:0;
   border:1px solid transparent;background:#101214;opacity:.38;cursor:pointer;
-  transition:opacity .2s ease,transform .2s ease,border-color .2s ease;overflow:hidden
+  transition:opacity .2s ease,border-color .2s ease;overflow:hidden
 }
 .tab-fallback{
   position:absolute;inset:0;display:grid;place-items:center;font-family:var(--serif);
@@ -111,8 +111,11 @@ nav a:hover,.lang:hover{color:#fff}
 }
 .album-tab img{width:100%;height:100%;object-fit:cover;filter:saturate(.52);position:relative;z-index:1}
 .album-tab:hover{opacity:.78}
-.album-tab.active{opacity:1;border-color:#b5b6b1;transform:translateX(4px)}
-.track-col,.cover-col,.stream-col{min-width:0}
+.album-tab.active{opacity:1;border-color:#b5b6b1}
+.track-col,.cover-col,.stream-col{min-width:0;height:100%}
+.track-col{display:flex;flex-direction:column;justify-content:flex-start}
+#tracklist{min-height:0;overflow:hidden}
+.cover-col{display:flex;flex-direction:column;justify-content:center}
 .track-col h3{
   font-family:var(--serif);font-size:clamp(23px,2vw,31px);font-weight:400;
   letter-spacing:clamp(.065em,.14vw,.12em);line-height:1;margin:0 0 17px;
@@ -122,7 +125,7 @@ nav a:hover,.lang:hover{color:#fff}
 .track{display:grid;grid-template-columns:25px minmax(0,1fr);gap:9px;padding:4px 0;font-family:var(--serif);font-size:13.5px;line-height:1.25;letter-spacing:.035em;color:#aaa9a4}
 .track span:first-child{font-family:var(--sans);font-size:9px;color:#686d70;padding-top:2px}
 .track span:last-child{min-width:0;overflow-wrap:break-word;word-break:normal}
-.cover-wrap{border:1px solid rgba(220,222,217,.36);padding:9px;background:#090b0d}
+.cover-wrap{border:1px solid rgba(220,222,217,.36);padding:9px;background:#090b0d;width:100%;max-width:380px;margin-inline:auto}
 .cover{width:100%;aspect-ratio:1;object-fit:cover;filter:saturate(.65) contrast(1.03)}
 .cover-fallback{
   aspect-ratio:1;display:flex;align-items:flex-end;padding:25px;
@@ -130,37 +133,24 @@ nav a:hover,.lang:hover{color:#fff}
   font-family:var(--serif);font-size:clamp(24px,3vw,38px);line-height:1;white-space:nowrap;letter-spacing:.08em
 }
 .album-name{text-align:center;margin-top:14px;font-family:var(--serif);font-size:16px;letter-spacing:.25em;text-transform:uppercase}
-.stream-col{display:flex;flex-direction:column;justify-content:center}
+.stream-col{display:flex;flex-direction:column;justify-content:stretch}
 .player{
-  width:100%;min-height:352px;border:1px solid var(--line);
+  width:100%;height:100%;min-height:0;border:1px solid var(--line);
   border-radius:10px;overflow:hidden;background:#111
 }
-.player iframe{display:block;width:100%;height:352px;border:0;background:#111}
-.platforms{display:flex;gap:10px;margin-top:16px;align-items:center}
+.player iframe{display:block;width:100%;height:100%;min-height:100%;border:0;background:#111}
+.platforms{
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  gap:10px;margin:0;height:100%
+}
 .platform{
   position:relative;width:44px;height:44px;border:1px solid var(--line);
   display:grid;place-items:center;background:rgba(7,9,11,.58);
   transition:.18s ease
 }
-.platform:hover{border-color:#777d7f;background:#14181b;transform:translateY(-2px)}
+.platform:hover{border-color:#777d7f;background:#14181b}
 .platform img{width:20px;height:20px;object-fit:contain;opacity:.86}
 .platform:hover img{opacity:1}
-.credits{margin-top:13px;font-size:9px;line-height:1.55;color:#666c6f;max-width:420px}
-
-.band{
-  position:relative;min-height:430px;padding:72px 0;background:
-  linear-gradient(90deg,rgba(6,8,10,.05),rgba(6,8,10,.35) 50%,rgba(6,8,10,.93) 72%),
-  url("https://grimorium-verum.ru/images/page2-img5.jpg") left center/cover no-repeat
-}
-.band:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(5,7,8,.2),transparent 40%)}
-.band .shell{display:flex;justify-content:flex-end}
-.band-copy{width:min(510px,50vw);position:relative;z-index:2}
-.band h2,.live h2,.contact h2{font-family:var(--serif);font-size:clamp(32px,3.2vw,42px);font-weight:400;letter-spacing:.16em;text-transform:uppercase;margin:0}
-.band .rule,.live .rule,.contact .rule{margin:12px 0 20px}
-.band p{font-family:var(--serif);font-size:19px;line-height:1.5;color:#b5b5af}
-.facts{display:grid;grid-template-columns:110px 1fr;gap:9px 18px;margin-top:24px}
-.facts b{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#6f7477}
-.facts span{font-family:var(--serif);font-size:16px;color:#bbbcb8}
 
 .bottom{display:block;background:#080a0c;border-top:1px solid var(--line)}
 .live,.contact{position:relative;width:100%;padding:58px var(--pad)}
@@ -193,20 +183,19 @@ footer{
 }
 
 @media(max-width:1120px){
-  header{grid-template-columns:minmax(170px,230px) 1fr 70px}
-  .discography-grid{grid-template-columns:64px minmax(230px,280px) minmax(280px,360px);gap:28px}
-  .stream-col{grid-column:2/-1;width:min(680px,100%);justify-self:start}
-  .player,.player iframe{min-height:330px;height:330px}
+  .discography-grid{
+    grid-template-columns:62px minmax(210px,255px) minmax(260px,320px) minmax(300px,1fr) 48px;
+    gap:18px;height:500px
+  }
 }
 @media(max-width:900px){
   header{height:76px;padding-inline:24px}.brand img{width:180px}nav{display:none}
-  .hero{height:auto;min-height:720px}.hero-copy{width:86vw}.quote-side{display:none}
+  .hero{height:auto;min-height:720px}.hero-copy{width:86vw}
   .hero h1{font-size:clamp(48px,11vw,90px)}
-  .band-copy{width:62vw}
 }
 @media(max-width:720px){
   :root{--pad:18px}
-  header{padding-inline:18px;height:72px;grid-template-columns:1fr auto}.brand img{width:155px;max-width:55vw}.lang{font-size:11px}
+  header{padding-inline:18px;height:72px;grid-template-columns:1fr}.brand img{width:155px;max-width:55vw}
   .hero{min-height:640px}.hero-art{background-position:58% 45%;filter:saturate(.84) contrast(1.03) brightness(.86)}
   .hero-inner{align-items:flex-end;padding:96px 18px 68px}.hero-copy{width:100%;margin:0}
   .hero-side{margin-bottom:30px}.hero-side span{font-size:10px}.hero-side .vline{height:54px}
@@ -214,20 +203,17 @@ footer{
   .hero-sub{font-size:14px;line-height:1.35;letter-spacing:.13em}
   .listen{margin-top:32px}.listen:before{width:62px}.services{gap:14px;flex-wrap:wrap;font-size:13px}
   .record{padding:48px 0 66px}.record-head{margin-bottom:24px}.record-head h2{font-size:clamp(35px,11vw,50px);letter-spacing:.12em}
-  .discography-grid{display:flex;flex-direction:column;align-items:stretch;gap:25px}
+  .discography-grid{display:flex;flex-direction:column;align-items:stretch;gap:25px;height:auto}
   .album-tabs{order:0;flex-direction:row;justify-content:flex-start;overflow-x:auto;align-self:auto;padding:4px 2px 8px;scrollbar-width:none}
   .album-tabs::-webkit-scrollbar{display:none}
-  .album-tab{width:58px;height:58px;flex:0 0 58px}.album-tab.active{transform:translateY(-3px)}
+  .album-tab{width:58px;height:58px;flex:0 0 58px}
   .cover-col{order:1;width:min(100%,420px);align-self:center}
   .track-col{order:2;width:100%}
   .stream-col{order:3;width:100%}
   .track-col h3{font-size:clamp(23px,7vw,29px)}
   .track{font-size:13px;grid-template-columns:23px minmax(0,1fr)}
-  .player,.player iframe{height:352px;min-height:352px}
-  .platforms{justify-content:center}
-  .credits{text-align:center;margin-inline:auto}
-  .band{background-position:35% center}.band .shell{justify-content:flex-start}
-  .band-copy{width:100%;background:rgba(6,8,10,.74);padding:22px}
+  .player,.player iframe{height:390px;min-height:390px}
+  .platforms{height:auto;flex-direction:row;justify-content:center}
   .live,.contact{padding:46px 18px}.contact-row{display:block}.email-text{display:inline-block;margin-top:20px;white-space:normal}
   footer{flex-direction:column;padding-inline:18px}
 }
@@ -235,7 +221,7 @@ footer{
   .hero h1{font-size:clamp(34px,10.4vw,46px)}
   .hero-sub{font-size:13px}
   .album-tab{width:54px;height:54px;flex-basis:54px}
-  .player,.player iframe{height:330px;min-height:330px}
+  .player,.player iframe{height:360px;min-height:360px}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
@@ -243,8 +229,7 @@ footer{
 <body>
 <header>
   <a class="brand" href="#top" aria-label="Grimorium Verum home"><img src="assets/grimorium-logo.png" alt="Grimorium Verum"></a>
-  <nav><a href="#music">Music</a><a href="#band">Band</a><a href="#live">Live</a><a href="#contact">Contact</a></nav>
-  <a class="lang" href="#music">EN ↓</a>
+  <nav><a href="#music">Music</a><a href="#live">Live</a><a href="#contact">Contact</a></nav>
 </header>
 
 <main id="top">
@@ -261,7 +246,6 @@ footer{
       </div>
     </div>
   </div>
-  <div class="quote-side">In shadows<br>we preserve<br>what was<br>true</div>
 </section>
 
 <section class="record" id="music">
@@ -283,26 +267,12 @@ footer{
 
       <div class="stream-col">
         <div class="player" id="spotifyPlayer"></div>
-        <div class="platforms" aria-label="Streaming platforms">
-          <a class="platform" id="spotifyLink" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify"><img src="https://cdn.simpleicons.org/spotify/d8d8d2" alt=""></a>
-          <a class="platform" id="appleLink" target="_blank" rel="noopener" aria-label="Apple Music" title="Apple Music"><img src="https://cdn.simpleicons.org/applemusic/d8d8d2" alt=""></a>
-          <a class="platform" id="yandexLink" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music"><img src="https://cdn.simpleicons.org/yandexmusic/d8d8d2" alt=""></a>
-        </div>
-        <div class="credits" id="credits"></div>
       </div>
-    </div>
-  </div>
-</section>
 
-<section class="band" id="band">
-  <div class="shell">
-    <div class="band-copy">
-      <h2>Band</h2><div class="rule"></div>
-      <p>Symphonic black metal from Syktyvkar. Grimorium Verum has built its catalogue around orchestration, darkness and theatrical atmosphere since the 1990s.</p>
-      <div class="facts">
-        <b>Origin</b><span>Syktyvkar, Komi Republic</span>
-        <b>Founded</b><span>1996</span>
-        <b>Genre</b><span>Symphonic black metal</span>
+      <div class="platforms" aria-label="Streaming platforms">
+        <a class="platform" id="spotifyLink" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify"><img src="https://cdn.simpleicons.org/spotify/d8d8d2" alt=""></a>
+        <a class="platform" id="appleLink" target="_blank" rel="noopener" aria-label="Apple Music" title="Apple Music"><img src="https://cdn.simpleicons.org/applemusic/d8d8d2" alt=""></a>
+        <a class="platform" id="yandexLink" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music"><img src="https://cdn.simpleicons.org/yandexmusic/d8d8d2" alt=""></a>
       </div>
     </div>
   </div>
@@ -385,7 +355,6 @@ const recordTitle=document.getElementById("recordTitle");
 const tracklist=document.getElementById("tracklist");
 const coverWrap=document.getElementById("coverWrap");
 const albumName=document.getElementById("albumName");
-const credits=document.getElementById("credits");
 const spotifyLink=document.getElementById("spotifyLink");
 const appleLink=document.getElementById("appleLink");
 const yandexLink=document.getElementById("yandexLink");
@@ -413,7 +382,6 @@ function selectAlbum(id){
   selectedCover.addEventListener("error",()=>{coverWrap.innerHTML=`<div class="cover-fallback">${a.title}</div>`;});
 
   albumName.textContent=`${a.title} · ${a.year}`;
-  credits.textContent=a.credits;
 
   const spotifySearch="https://open.spotify.com/search/"+query(a);
   spotifyLink.href=spotifySearch;
