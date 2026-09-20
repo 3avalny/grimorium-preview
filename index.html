@@ -165,7 +165,7 @@ const ALBUMS=[
 ];
 const tabs=document.getElementById("albumTabs"),recordTitle=document.getElementById("recordTitle"),tracklist=document.getElementById("tracklist"),coverWrap=document.getElementById("coverWrap"),albumName=document.getElementById("albumName"),credits=document.getElementById("credits"),spotifyLink=document.getElementById("spotifyLink"),appleLink=document.getElementById("appleLink"),yandexLink=document.getElementById("yandexLink"),spotifyPlayer=document.getElementById("spotifyPlayer");
 function query(a){return encodeURIComponent("Grimorium Verum "+a.title)}
-function renderTabs(){tabs.innerHTML=ALBUMS.map((a,i)=>'<button class="album-tab '+(i===0?'active ':'')+(a.cover?'':'fallback')+'" data-id="'+a.id+'">'+(a.cover?'<img src="'+a.cover+'" alt="'+a.title+'">':'GV')+'</button>').join("");tabs.querySelectorAll(".album-tab").forEach(b=>b.addEventListener("click",()=>selectAlbum(b.dataset.id)))}
+function renderTabs(){tabs.innerHTML=ALBUMS.map((a,i)=>'<button class="album-tab '+(i===0?'active ':'')+(a.cover?'':'fallback')+'" data-id="'+a.id+'"><span class="tab-fallback">'+a.title.slice(0,2).toUpperCase()+'</span>'+(a.cover?'<img src="'+a.cover+'" alt="'+a.title+'" onerror="this.remove()">':'')+'</button>').join("");tabs.querySelectorAll(".album-tab").forEach(b=>b.addEventListener("click",()=>selectAlbum(b.dataset.id)))}
 function selectAlbum(id){
   const a=ALBUMS.find(x=>x.id===id);if(!a)return;
   tabs.querySelectorAll(".album-tab").forEach(b=>b.classList.toggle("active",b.dataset.id===id));
