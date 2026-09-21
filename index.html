@@ -33,12 +33,14 @@ body{
   width:100%;max-width:100%;overflow-x:hidden;
   -webkit-user-select:none;user-select:none
 }
-body:after{
-  content:"";position:fixed;z-index:0;inset:-14vh 0;pointer-events:none;
+.site-parallax-bg{
+  position:fixed;z-index:0;inset:-16vh 0;pointer-events:none;
   background:url("assets/bio-background.webp") center center/cover no-repeat;
-  transform:translate3d(0,calc(var(--parallax-y,0) * 1px),0) scale(1.08);
+  transform:translate3d(0,0,0) scale(1.10);
   transform-origin:center center;
-  will-change:transform
+  will-change:transform;
+  backface-visibility:hidden;
+  contain:paint
 }
 main,footer{position:relative;z-index:1}
 a{color:inherit;text-decoration:none}
@@ -411,7 +413,10 @@ nav a:hover{color:#fff}
 .bio-desktop{display:contents}
 .bio-mobile{display:none}
 
-.bottom{display:block;background:#07090b;border-top:0}
+.bottom{
+  position:relative;z-index:3;
+  display:block;background:#07090b;border-top:0
+}
 .live{display:none!important}
 .live,.contact{position:relative;width:100%;padding:58px var(--pad)}
 .live{
@@ -423,11 +428,19 @@ nav a:hover{color:#fff}
 .live-inner,.contact-inner{width:min(var(--shell),100%);margin:auto}
 .live p,.contact p{font-family:var(--serif);font-size:16px;color:#999b97}
 .contact{
-  min-height:118px;background:#07090b;
+  position:relative;z-index:2;min-height:118px;background:#07090b;
   padding:34px var(--pad) 12px;
-  display:flex;align-items:flex-end;justify-content:center
+  display:flex;align-items:flex-end;justify-content:center;
+  overflow:visible
 }
-.contact-inner{width:100%;margin:auto}
+.contact:before{
+  content:"";position:absolute;z-index:0;left:0;right:0;top:-250px;height:270px;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse 78% 82% at 50% 100%,rgba(7,9,11,.98) 0%,rgba(7,9,11,.92) 38%,rgba(7,9,11,.56) 64%,rgba(7,9,11,0) 100%),
+    linear-gradient(to bottom,rgba(7,9,11,0) 0%,rgba(7,9,11,.22) 46%,rgba(7,9,11,.88) 88%,#07090b 100%)
+}
+.contact-inner{position:relative;z-index:1;width:100%;margin:auto}
 .socials{display:flex;flex-wrap:wrap;gap:18px}
 .contact-socials{justify-content:center;align-items:center;margin:0}
 .social-link{
@@ -457,6 +470,9 @@ footer{
     border-top:0
   }
   .record{overflow:hidden}
+  .bio{
+    box-shadow:inset 0 -110px 90px -72px rgba(7,9,11,.92)
+  }
 
   .record:before,
   .bio:before{
@@ -525,7 +541,7 @@ footer{
   .record-side-label{left:26px;font-size:12px}
 }
 @media(max-width:720px){
-  body:after{display:none}
+  .site-parallax-bg{display:none}
   html,body,main,.record,.bio{max-width:100%;overflow-x:hidden}
   .record>.shell:before{display:none}
   .record{touch-action:pan-y pinch-zoom;overscroll-behavior-x:none}
@@ -731,6 +747,7 @@ footer{
 </style>
 </head>
 <body>
+<div class="site-parallax-bg" aria-hidden="true"></div>
 <header>
   <a class="brand" href="#top" aria-label="Grimorium Verum home"><img src="assets/grimorium-logo.png" alt="Grimorium Verum"></a>
   <nav><a href="#music">Music</a><a href="#biography">Biography</a></nav>
@@ -1236,37 +1253,63 @@ if(mobileRecord){
 
 const parallaxRecord=document.querySelector(".record");
 const parallaxBio=document.querySelector(".bio");
-let parallaxTick=false;
+const parallaxLayer=document.querySelector(".site-parallax-bg");
+
 let parallaxStart=0;
 let parallaxRange=0;
+let parallaxTarget=0;
+let parallaxCurrent=0;
+let parallaxFrame=0;
 
 function measureParallax(){
   if(!parallaxRecord || !parallaxBio)return;
   parallaxStart=parallaxRecord.offsetTop;
   parallaxRange=Math.max(0,parallaxBio.offsetTop+parallaxBio.offsetHeight-parallaxStart);
 }
-function updateParallax(){
-  parallaxTick=false;
-  if(window.innerWidth<=720 || !parallaxRecord || !parallaxBio){
-    document.documentElement.style.setProperty("--parallax-y","0");
+
+function setParallaxTarget(){
+  if(window.innerWidth<=720 || !parallaxLayer){
+    parallaxTarget=0;
+    parallaxCurrent=0;
+    if(parallaxLayer)parallaxLayer.style.transform="translate3d(0,0,0) scale(1.10)";
     return;
   }
+
   const travel=Math.max(0,Math.min(window.scrollY-parallaxStart,parallaxRange));
-  document.documentElement.style.setProperty("--parallax-y",(-travel*.065).toFixed(1));
+  parallaxTarget=-travel*.052;
+
+  if(!parallaxFrame)parallaxFrame=requestAnimationFrame(renderParallax);
 }
-function requestParallax(){
-  if(parallaxTick)return;
-  parallaxTick=true;
-  requestAnimationFrame(updateParallax);
+
+function renderParallax(){
+  const delta=parallaxTarget-parallaxCurrent;
+  parallaxCurrent+=delta*.16;
+
+  if(parallaxLayer){
+    parallaxLayer.style.transform=`translate3d(0,${parallaxCurrent.toFixed(2)}px,0) scale(1.10)`;
+  }
+
+  if(Math.abs(delta)>.12){
+    parallaxFrame=requestAnimationFrame(renderParallax);
+  }else{
+    parallaxCurrent=parallaxTarget;
+    if(parallaxLayer){
+      parallaxLayer.style.transform=`translate3d(0,${parallaxCurrent.toFixed(2)}px,0) scale(1.10)`;
+    }
+    parallaxFrame=0;
+  }
 }
+
 function refreshParallax(){
   measureParallax();
-  requestParallax();
+  setParallaxTarget();
 }
-window.addEventListener("scroll",requestParallax,{passive:true});
+
+window.addEventListener("scroll",setParallaxTarget,{passive:true});
 window.addEventListener("resize",refreshParallax,{passive:true});
+window.addEventListener("load",refreshParallax,{once:true});
 measureParallax();
-updateParallax();
+setParallaxTarget();
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{
   const el=document.querySelector(a.getAttribute("href"));
