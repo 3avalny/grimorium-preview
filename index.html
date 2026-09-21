@@ -1980,16 +1980,10 @@ let desktopSnapFrame=0;
 let desktopLogoAvailable=true;
 
 let desktopWheelLastAt=0;
-let desktopWheelLastAbs=0;
+let desktopWheelGestureLocked=false;
 let desktopWheelDirection=0;
-let desktopWheelPeak=0;
-let desktopWheelDecayCount=0;
-let desktopWheelRestartReady=false;
-let desktopWheelRiseCount=0;
-let desktopWheelLastTriggerAt=0;
 
-const DESKTOP_WHEEL_NEW_GESTURE_GAP=88;
-const DESKTOP_WHEEL_RESTART_MIN_MS=120;
+const DESKTOP_WHEEL_NEW_GESTURE_GAP=180;
 
 function desktopSnapTargets(){
   const record=document.querySelector(".record");
@@ -2103,14 +2097,10 @@ function triggerDesktopSnap(direction){
   animateDesktopSnap(next.y);
 }
 
-function resetDesktopWheelGesture(direction,amount,now){
+function startDesktopWheelGesture(direction,now){
   desktopWheelDirection=direction;
-  desktopWheelPeak=amount;
-  desktopWheelLastAbs=amount;
-  desktopWheelDecayCount=0;
-  desktopWheelRestartReady=false;
-  desktopWheelRiseCount=0;
-  desktopWheelLastTriggerAt=now;
+  desktopWheelGestureLocked=true;
+  desktopWheelLastAt=now;
   triggerDesktopSnap(direction);
 }
 
@@ -2152,15 +2142,12 @@ window.addEventListener("wheel",e=>{
     return;
   }
 
-  // Spotify owns scrolling inside its player. If its iframe reaches an
-  // internal edge, block scroll chaining into the page and desktop snap.
   if(wheelIsOverSpotifyPlayer(e)){
     e.preventDefault();
     return;
   }
 
   if(Math.abs(e.deltaX)>Math.abs(e.deltaY))return;
-
   e.preventDefault();
 
   const direction=Math.sign(e.deltaY);
@@ -2168,73 +2155,29 @@ window.addEventListener("wheel",e=>{
   if(!direction || amount<.01)return;
 
   const now=performance.now();
-  const gap=now-desktopWheelLastAt;
-  const directionChanged=desktopWheelDirection!==0 && direction!==desktopWheelDirection;
+  const gap=desktopWheelLastAt===0?Infinity:now-desktopWheelLastAt;
 
-  // A short real pause is a new gesture regardless of strength.
-  if(
-    desktopWheelLastAt===0 ||
-    gap>DESKTOP_WHEEL_NEW_GESTURE_GAP ||
-    (directionChanged && now-desktopWheelLastTriggerAt>70)
-  ){
-    resetDesktopWheelGesture(direction,amount,now);
-    desktopWheelLastAt=now;
-    return;
+  // A gesture only unlocks after a real quiet period. Momentum/inertia from
+  // the same physical swipe may continue for many wheel events, but can never
+  // trigger another section while the gesture remains locked.
+  if(gap>DESKTOP_WHEEL_NEW_GESTURE_GAP){
+    desktopWheelGestureLocked=false;
+    desktopWheelDirection=0;
   }
 
-  desktopWheelPeak=Math.max(desktopWheelPeak,amount);
-
-  // Once the first swipe is clearly decaying, arm the detector for a fresh
-  // swipe. We do not wait for the inertial tail to end.
-  if(amount<desktopWheelLastAbs*.94){
-    desktopWheelDecayCount+=1;
-  }else if(amount>desktopWheelLastAbs*1.08){
-    desktopWheelDecayCount=Math.max(0,desktopWheelDecayCount-1);
-  }
-
-  if(
-    desktopWheelDecayCount>=2 &&
-    now-desktopWheelLastTriggerAt>80
-  ){
-    desktopWheelRestartReady=true;
-  }
-
-  // A new deliberate swipe appears as renewed acceleration after decay.
-  // Require two rising samples so momentum jitter cannot create a second step.
-  if(
-    desktopWheelRestartReady &&
-    now-desktopWheelLastTriggerAt>DESKTOP_WHEEL_RESTART_MIN_MS &&
-    amount>desktopWheelLastAbs*1.32 &&
-    amount-desktopWheelLastAbs>.7
-  ){
-    desktopWheelRiseCount+=1;
-  }else if(amount<=desktopWheelLastAbs*1.08){
-    desktopWheelRiseCount=0;
-  }
-
-  if(desktopWheelRiseCount>=2){
-    resetDesktopWheelGesture(direction,amount,now);
-    desktopWheelLastAt=now;
-    return;
-  }
-
-  desktopWheelDirection=direction;
-  desktopWheelLastAbs=amount;
   desktopWheelLastAt=now;
+
+  if(desktopWheelGestureLocked)return;
+
+  startDesktopWheelGesture(direction,now);
 },{passive:false});
 
 function resetDesktopIntroSnap(){
   desktopLogoAvailable=true;
   desktopSnapKey="logo";
-
   desktopWheelLastAt=0;
-  desktopWheelLastAbs=0;
+  desktopWheelGestureLocked=false;
   desktopWheelDirection=0;
-  desktopWheelPeak=0;
-  desktopWheelDecayCount=0;
-  desktopWheelRestartReady=false;
-  desktopWheelRiseCount=0;
-  desktopWheelLastTriggerAt=0;
 }
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{
