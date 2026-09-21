@@ -30,6 +30,7 @@ html{
   scroll-behavior:smooth;background:var(--bg);
   width:100%;max-width:100%;overflow-x:hidden
 }
+html.desktop-snapping{scroll-behavior:auto!important}
 body{
   margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
   width:100%;max-width:100%;overflow-x:hidden
@@ -1528,6 +1529,124 @@ if(introBrandImg && !introBrandImg.complete){
 }
 measureScenes();
 renderScenes();
+
+let desktopSnapAnimating=false;
+let desktopSnapGestureUsed=false;
+let desktopSnapAccumulator=0;
+let desktopSnapLastWheelAt=0;
+let desktopSnapDirection=0;
+let desktopSnapFrame=0;
+
+function desktopSnapTargets(){
+  const record=document.querySelector(".record");
+  const bio=document.querySelector(".bio");
+  const maxScroll=Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
+  const positions=[
+    0,
+    record?record.getBoundingClientRect().top+window.scrollY:0,
+    bio?bio.getBoundingClientRect().top+window.scrollY:0,
+    maxScroll
+  ];
+  return positions
+    .map(v=>Math.max(0,Math.min(maxScroll,Math.round(v))))
+    .filter((v,i,a)=>i===0||Math.abs(v-a[i-1])>8);
+}
+
+function nearestDesktopSnapIndex(targets){
+  let best=0;
+  let distance=Infinity;
+  targets.forEach((target,index)=>{
+    const d=Math.abs(window.scrollY-target);
+    if(d<distance){
+      distance=d;
+      best=index;
+    }
+  });
+  return best;
+}
+
+function animateDesktopSnap(target){
+  if(desktopSnapFrame)cancelAnimationFrame(desktopSnapFrame);
+  const start=window.scrollY;
+  const distance=target-start;
+  if(Math.abs(distance)<2)return;
+
+  desktopSnapAnimating=true;
+  document.documentElement.classList.add("desktop-snapping");
+
+  if(reducedMotionQuery.matches){
+    window.scrollTo(0,target);
+    desktopSnapAnimating=false;
+    document.documentElement.classList.remove("desktop-snapping");
+    requestScenes();
+    return;
+  }
+
+  const duration=Math.min(900,Math.max(620,Math.abs(distance)*.48));
+  const started=performance.now();
+
+  const tick=now=>{
+    const t=clamp01((now-started)/duration);
+    const eased=t<.5
+      ? 4*t*t*t
+      : 1-Math.pow(-2*t+2,3)/2;
+    window.scrollTo(0,start+distance*eased);
+    requestScenes();
+
+    if(t<1){
+      desktopSnapFrame=requestAnimationFrame(tick);
+    }else{
+      desktopSnapFrame=0;
+      window.scrollTo(0,target);
+      desktopSnapAnimating=false;
+      document.documentElement.classList.remove("desktop-snapping");
+      requestScenes();
+    }
+  };
+
+  desktopSnapFrame=requestAnimationFrame(tick);
+}
+
+window.addEventListener("wheel",e=>{
+  if(window.innerWidth<=720 || e.ctrlKey)return;
+  if(Math.abs(e.deltaX)>Math.abs(e.deltaY))return;
+
+  const now=performance.now();
+  const quietFor=now-desktopSnapLastWheelAt;
+  desktopSnapLastWheelAt=now;
+
+  if(quietFor>190){
+    desktopSnapGestureUsed=false;
+    desktopSnapAccumulator=0;
+    desktopSnapDirection=0;
+  }
+
+  e.preventDefault();
+
+  if(desktopSnapAnimating || desktopSnapGestureUsed)return;
+
+  const direction=Math.sign(e.deltaY);
+  if(!direction)return;
+
+  if(desktopSnapDirection && direction!==desktopSnapDirection){
+    desktopSnapAccumulator=0;
+  }
+  desktopSnapDirection=direction;
+  desktopSnapAccumulator+=Math.abs(e.deltaY);
+
+  if(desktopSnapAccumulator<32)return;
+
+  const targets=desktopSnapTargets();
+  const current=nearestDesktopSnapIndex(targets);
+  const next=Math.max(0,Math.min(targets.length-1,current+direction));
+
+  desktopSnapGestureUsed=true;
+  desktopSnapAccumulator=0;
+
+  if(next!==current){
+    animateDesktopSnap(targets[next]);
+  }
+},{passive:false});
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{
   const el=document.querySelector(a.getAttribute("href"));
