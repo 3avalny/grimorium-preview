@@ -590,9 +590,25 @@ nav{display:none!important}
   .bio-figure-right{right:-6vw}
   .bio-copy{width:min(680px,72vw);padding-inline:18px}
   header{height:76px;padding-inline:24px}.brand img{width:180px}nav{display:none}
-  .hero{height:100vh;min-height:100vh}.hero-copy{width:86vw}
+
+  /* Keep the full intro travel on tablets so Renaissance has its own scene. */
+  .hero{height:165vh;min-height:1000px}
+  .hero-copy{width:86vw}
   .hero h1{font-size:clamp(48px,11vw,90px)}
+
   .record-side-label{left:26px;font-size:12px}
+
+  /* Tablet Spotify uses the same compact embed height as mobile. */
+  .disc-content-window{height:527px}
+  .disc-content-panel{
+    grid-template-rows:var(--disc-height) 152px;
+  }
+  .stream-col{height:152px}
+  .platforms{height:152px}
+  .player,.player iframe{
+    height:152px;
+    min-height:152px
+  }
 }
 @media(max-width:720px){
   .site-parallax-bg{display:none}
