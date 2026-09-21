@@ -1633,24 +1633,24 @@ function createParticleField(){
       const scrollY=window.scrollY||0;
       const heroRange=Math.max(1,(introHero?.offsetHeight||state.height)-state.height);
       const heroRaw=particleClamp(scrollY/heroRange);
-      const leave=particleSmooth((heroRaw-.055)/.34);
-      const bgStart=particleSmooth((heroRaw-.26)/.24);
+      const leave=particleSmooth((heroRaw-.045)/.56);
+      const bgStart=particleSmooth((heroRaw-.38)/.30);
 
       // The assembled logo is particles only. The original PNG stays fully hidden
       // until the particle logo has dispersed, then it can return as the small header mark.
-      const imageReveal=reducedMotionQuery.matches?1:particleSmooth((heroRaw-.38)/.10);
+      const imageReveal=reducedMotionQuery.matches?1:particleSmooth((heroRaw-.62)/.12);
       introBrandImg.style.opacity=imageReveal.toFixed(3);
 
       const heroAlpha=particleMix(.94,.18,particleSmooth(leave/.72));
       const bgPulse=.965+.035*Math.sin(now*.00022);
       const alpha=particleMix(heroAlpha,.165*bgPulse,bgStart);
       const heroSize=particleMix(.90,.78,bgStart);
-      const response=1-Math.pow(.00075,dt/16.67);
+      const response=1-Math.pow(.91,dt/16.67);
 
       // At rest the logo is a dense field of pixel-sized particles. It is
       // visually monolithic, but still generated from particle pixels rather
       // than by compositing the original image.
-      const stampAlpha=1-particleSmooth((heroRaw-.018)/.105);
+      const stampAlpha=1-particleSmooth((heroRaw-.025)/.19);
       if(state.logoStamp && state.logoRender && stampAlpha>.001){
         particleCtx.save();
         particleCtx.globalAlpha=stampAlpha;
@@ -1666,7 +1666,7 @@ function createParticleField(){
         particleCtx.restore();
       }
 
-      const movingParticleAlpha=particleSmooth((heroRaw-.025)/.11);
+      const movingParticleAlpha=particleSmooth((heroRaw-.02)/.18);
       particleCtx.fillStyle="#f2f2ef";
       particleCtx.globalCompositeOperation="source-over";
       particleCtx.globalAlpha=alpha*movingParticleAlpha;
@@ -1678,12 +1678,26 @@ function createParticleField(){
         const logo=state.logoPoints[i]||state.logoPoints[i%state.logoPoints.length];
         const web=state.webPoints[i]||webPoint(i,count);
 
-        // Curved dispersal only while moving from the logo into the web.
-        const arc=Math.sin(Math.PI*leave);
+        // Each particle leaves on its own schedule. The stagger plus multiple
+        // seeded bends makes the dispersal feel chaotic rather than like one morph.
+        const particleStart=.055+p.seed*.15;
+        const particleDuration=.48+p.seed2*.19;
+        const localLeave=particleSmooth((heroRaw-particleStart)/particleDuration);
+        const arc=Math.sin(Math.PI*localLeave);
         const angle=p.seed*Math.PI*2;
-        const arcRadius=(28+p.seed2*150)*arc;
-        let tx=particleMix(logo.x,web.x,leave)+Math.cos(angle)*arcRadius;
-        let ty=particleMix(logo.y,web.y,leave)+Math.sin(angle)*arcRadius*.58;
+        const swirl=localLeave*Math.PI*(.55+p.seed3*1.65);
+        const arcRadius=(34+p.seed2*210)*arc;
+
+        let tx=particleMix(logo.x,web.x,localLeave);
+        let ty=particleMix(logo.y,web.y,localLeave);
+
+        tx+=Math.cos(angle+swirl)*arcRadius;
+        ty+=Math.sin(angle+swirl*.83)*arcRadius*.68;
+
+        // Secondary cross-current breaks up obvious radial trajectories.
+        const cross=(1-Math.abs(localLeave*.2-1))*arc;
+        tx+=Math.sin(localLeave*11.0+p.seed2*17.0)*cross*(10+p.seed3*28);
+        ty+=Math.cos(localLeave*8.5+p.seed*19.0)*cross*(8+p.seed2*24);
 
         // The formed web stays in the same place on every section. Only a slow,
         // low-amplitude distortion keeps it alive.
