@@ -820,7 +820,12 @@ footer{
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 @supports(height:100dvh){
   .hero-inner{height:100dvh}
-  @media(max-width:720px){.hero{height:165dvh;min-height:1000px}}
+}
+@supports(height:100svh){
+  @media(max-width:720px){
+    .hero-inner{height:100svh}
+    .hero{height:165svh;min-height:1000px}
+  }
 }
 </style>
 </head>
@@ -1387,6 +1392,7 @@ const parallaxLayer=document.querySelector(".site-parallax-bg");
 
 let sceneFrame=0;
 let introRange=1;
+let introViewportHeight=window.innerHeight;
 let parallaxStart=0;
 let parallaxRange=0;
 
@@ -1395,7 +1401,11 @@ function smoothstep(v){v=clamp01(v);return v*v*(3-2*v)}
 
 function measureScenes(){
   if(introHero){
-    introRange=Math.max(1,introHero.offsetHeight-window.innerHeight);
+    const heroInner=introHero.querySelector(".hero-inner");
+    introViewportHeight=window.innerWidth<=720
+      ? Math.max(1,heroInner?.offsetHeight||window.innerHeight)
+      : window.innerHeight;
+    introRange=Math.max(1,introHero.offsetHeight-introViewportHeight);
   }
   if(parallaxRecord && parallaxBio){
     parallaxStart=parallaxRecord.offsetTop;
@@ -1420,10 +1430,16 @@ function renderScenes(){
     const finalScale=Math.min(1,finalLogoWidth/layoutLogoWidth);
     const scale=1+(finalScale-1)*move;
     const finalCenterY=introHeader.offsetHeight/2;
-    const deltaY=(finalCenterY-window.innerHeight/2)*move;
+    const viewportHeight=window.innerWidth<=720?introViewportHeight:window.innerHeight;
+    const headerDeltaY=finalCenterY-viewportHeight/2;
+    const mobileReleaseStart=introRange*.40;
+    const mobileRelease=window.innerWidth<=720
+      ? Math.max(0,scrollY-mobileReleaseStart)
+      : 0;
+    const deltaY=headerDeltaY*move-mobileRelease;
 
     if(reducedMotion){
-      introBrand.style.transform=`translate(-50%,-50%) translate3d(0,${(finalCenterY-window.innerHeight/2).toFixed(2)}px,0) scale(${finalScale.toFixed(4)})`;
+      introBrand.style.transform=`translate(-50%,-50%) translate3d(0,${headerDeltaY.toFixed(2)}px,0) scale(${finalScale.toFixed(4)})`;
       introCopy.style.opacity="1";
       introCopy.style.transform="translate3d(0,0,0) scale(1)";
       introCopy.style.pointerEvents="auto";
@@ -1487,7 +1503,20 @@ function refreshScenes(){
 }
 
 window.addEventListener("scroll",requestScenes,{passive:true});
-window.addEventListener("resize",refreshScenes,{passive:true});
+let lastSceneWidth=window.innerWidth;
+window.addEventListener("resize",()=>{
+  const widthChanged=Math.abs(window.innerWidth-lastSceneWidth)>2;
+  if(window.innerWidth<=720 && !widthChanged){
+    requestScenes();
+    return;
+  }
+  lastSceneWidth=window.innerWidth;
+  refreshScenes();
+},{passive:true});
+window.addEventListener("orientationchange",()=>{
+  lastSceneWidth=window.innerWidth;
+  window.setTimeout(refreshScenes,80);
+},{passive:true});
 window.addEventListener("load",refreshScenes,{once:true});
 if(introBrandImg && !introBrandImg.complete){
   introBrandImg.addEventListener("load",refreshScenes,{once:true});
