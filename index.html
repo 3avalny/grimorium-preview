@@ -91,7 +91,7 @@ nav{display:none!important}
   pointer-events:none
 }
 .hero-light{
-  position:absolute;z-index:0;left:50%;bottom:8vh;
+  position:absolute;z-index:0;left:50%;bottom:5vh;
   width:100vw;height:auto;max-width:none;
   transform:translate3d(-50%,0,0);
   transform-origin:center bottom;
@@ -450,11 +450,19 @@ nav{display:none!important}
   display:block;background:#07090b;border-top:0
 }
 .bottom:before{
-  content:"";position:absolute;z-index:0;left:0;right:0;top:-230px;height:230px;
+  content:"";position:absolute;z-index:0;left:0;right:0;top:-145px;height:145px;
   pointer-events:none;
   background:
-    radial-gradient(ellipse 62% 145% at 50% -8%,rgba(7,9,11,0) 0%,rgba(7,9,11,0) 46%,rgba(7,9,11,.28) 62%,rgba(7,9,11,.74) 80%,#07090b 100%),
-    linear-gradient(to bottom,rgba(7,9,11,0) 0%,rgba(7,9,11,.16) 52%,#07090b 100%)
+    radial-gradient(
+      ellipse 90% 205% at 50% -126%,
+      rgba(7,9,11,0) 0%,
+      rgba(7,9,11,0) 76%,
+      rgba(7,9,11,.04) 82%,
+      rgba(7,9,11,.14) 87%,
+      rgba(7,9,11,.32) 92%,
+      rgba(7,9,11,.62) 97%,
+      #07090b 100%
+    )
 }
 .live{display:none!important}
 .live,.contact{position:relative;width:100%;padding:58px var(--pad)}
@@ -565,7 +573,7 @@ footer{
     background:url("assets/bio-background2.webp") center center/cover no-repeat;
     opacity:var(--intro-bg-opacity,0)
   }
-  .bottom:before{top:-150px;height:150px}
+  .bottom:before{top:-105px;height:105px}
   html,body,main,.record,.bio{max-width:100%;overflow-x:hidden}
   .record>.shell:before{display:none}
   .record{touch-action:pan-y pinch-zoom;overscroll-behavior-x:none}
@@ -630,7 +638,7 @@ footer{
   .hero-inner{height:100vh;padding:0 18px}
   .hero-light{
     width:145vw;
-    bottom:8vh;
+    bottom:5vh;
     max-height:48vh;
     object-fit:contain;
     object-position:center bottom
