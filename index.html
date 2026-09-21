@@ -42,7 +42,9 @@ body{
   backface-visibility:hidden;
   contain:paint
 }
-main,footer{position:relative;z-index:1}
+.site-light-layer,
+.site-rocks-layer{display:none;pointer-events:none}
+main,footer{position:relative;z-index:2}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none}
 img{
@@ -502,6 +504,23 @@ footer{
 }
 
 @media(min-width:721px){
+  .site-light-layer,
+  .site-rocks-layer{
+    display:block;position:fixed;left:50%;width:100vw;height:auto;max-width:none;
+    object-fit:contain;object-position:center bottom;
+    transform-origin:center bottom;
+    will-change:transform;
+    backface-visibility:hidden
+  }
+  .site-light-layer{
+    z-index:1;bottom:5vh;
+    transform:translate3d(-50%,0,0)
+  }
+  .site-rocks-layer{
+    z-index:8;bottom:0;
+    transform:translate3d(-50%,0,0)
+  }
+  .hero-light,.hero-rocks{display:none}
   .record,
   .bio{
     height:100vh;
@@ -786,6 +805,8 @@ footer{
 </head>
 <body>
 <div class="site-parallax-bg" aria-hidden="true"></div>
+<img class="site-light-layer" src="assets/light.webp?v=0680db37" alt="" aria-hidden="true">
+<img class="site-rocks-layer" src="assets/rocks.webp?v=8f46a97b" alt="" aria-hidden="true">
 <header>
   <a class="brand" href="#top" aria-label="Grimorium Verum home"><img src="assets/GV%20logo.png" alt="Grimorium Verum"></a>
 </header>
@@ -1296,6 +1317,8 @@ const introBrandImg=introBrand?.querySelector("img");
 const introCopy=document.querySelector(".hero-copy");
 const introLight=document.querySelector(".hero-light");
 const introRocks=document.querySelector(".hero-rocks");
+const siteLight=document.querySelector(".site-light-layer");
+const siteRocks=document.querySelector(".site-rocks-layer");
 const parallaxRecord=document.querySelector(".record");
 const parallaxBio=document.querySelector(".bio");
 const parallaxLayer=document.querySelector(".site-parallax-bg");
@@ -1341,15 +1364,17 @@ function renderScenes(){
     introCopy.style.transform=`translate3d(0,${((1-revealIn)*24).toFixed(2)}px,0) scale(${(.992+revealIn*.008).toFixed(4)})`;
     introCopy.style.pointerEvents=reveal>.88?"auto":"none";
     const sceneDepth=smoothstep(raw);
-    if(introLight){
-      const lightOpacity=1-exit;
-      introLight.style.opacity=lightOpacity.toFixed(3);
-      introLight.style.transform=`translate3d(-50%,${(-sceneDepth*5).toFixed(2)}px,0)`;
-    }
-    if(introRocks){
-      const rocksOpacity=1-exit;
-      introRocks.style.opacity=rocksOpacity.toFixed(3);
-      introRocks.style.transform=`translate3d(-50%,${(-sceneDepth*16).toFixed(2)}px,0)`;
+    if(window.innerWidth<=720){
+      if(introLight){
+        const lightOpacity=1-exit;
+        introLight.style.opacity=lightOpacity.toFixed(3);
+        introLight.style.transform=`translate3d(-50%,${(-sceneDepth*5).toFixed(2)}px,0)`;
+      }
+      if(introRocks){
+        const rocksOpacity=1-exit;
+        introRocks.style.opacity=rocksOpacity.toFixed(3);
+        introRocks.style.transform=`translate3d(-50%,${(-sceneDepth*16).toFixed(2)}px,0)`;
+      }
     }
     introHero.style.setProperty("--intro-black",(1-bgReveal).toFixed(3));
     introHero.style.setProperty("--intro-bg-opacity",bgReveal.toFixed(3));
@@ -1363,6 +1388,15 @@ function renderScenes(){
       const travel=Math.max(0,Math.min(scrollY-parallaxStart,parallaxRange));
       const offset=-travel*.035;
       parallaxLayer.style.transform=`translate3d(0,${offset.toFixed(2)}px,0) scale(1.10)`;
+
+      const pageRange=Math.max(1,document.documentElement.scrollHeight-window.innerHeight);
+      const pageProgress=clamp01(scrollY/pageRange);
+      if(siteLight){
+        siteLight.style.transform=`translate3d(-50%,${(-pageProgress*8).toFixed(2)}px,0)`;
+      }
+      if(siteRocks){
+        siteRocks.style.transform=`translate3d(-50%,${(-pageProgress*22).toFixed(2)}px,0)`;
+      }
     }
   }
 }
