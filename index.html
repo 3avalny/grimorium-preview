@@ -1531,18 +1531,23 @@ measureScenes();
 renderScenes();
 
 let desktopSnapAnimating=false;
-let desktopSnapGestureUsed=false;
-let desktopSnapAccumulator=0;
-let desktopSnapLastWheelAt=0;
-let desktopSnapDirection=0;
+let desktopSnapIndex=0;
 let desktopSnapFrame=0;
+let desktopWheelLastAt=0;
+let desktopWheelLastAbs=0;
+let desktopWheelPeak=0;
+let desktopWheelTriggeredAt=0;
+let desktopWheelTailArmed=false;
+let desktopSnapLastDirection=0;
 
 function desktopSnapTargets(){
   const record=document.querySelector(".record");
   const bio=document.querySelector(".bio");
   const maxScroll=Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
+  const renaissance=Math.max(0,Math.min(maxScroll,Math.round(introRange*.54)));
   const positions=[
     0,
+    renaissance,
     record?record.getBoundingClientRect().top+window.scrollY:0,
     bio?bio.getBoundingClientRect().top+window.scrollY:0,
     maxScroll
@@ -1566,13 +1571,24 @@ function nearestDesktopSnapIndex(targets){
 }
 
 function animateDesktopSnap(target){
-  if(desktopSnapFrame)cancelAnimationFrame(desktopSnapFrame);
+  if(desktopSnapFrame){
+    cancelAnimationFrame(desktopSnapFrame);
+    desktopSnapFrame=0;
+  }
+
   const start=window.scrollY;
   const distance=target-start;
-  if(Math.abs(distance)<2)return;
+  document.documentElement.classList.add("desktop-snapping");
+
+  if(Math.abs(distance)<2){
+    window.scrollTo(0,target);
+    desktopSnapAnimating=false;
+    document.documentElement.classList.remove("desktop-snapping");
+    requestScenes();
+    return;
+  }
 
   desktopSnapAnimating=true;
-  document.documentElement.classList.add("desktop-snapping");
 
   if(reducedMotionQuery.matches){
     window.scrollTo(0,target);
@@ -1582,7 +1598,7 @@ function animateDesktopSnap(target){
     return;
   }
 
-  const duration=Math.min(900,Math.max(620,Math.abs(distance)*.48));
+  const duration=Math.min(820,Math.max(520,Math.abs(distance)*.42));
   const started=performance.now();
 
   const tick=now=>{
@@ -1607,45 +1623,67 @@ function animateDesktopSnap(target){
   desktopSnapFrame=requestAnimationFrame(tick);
 }
 
+function triggerDesktopSnap(direction){
+  const targets=desktopSnapTargets();
+
+  if(!desktopSnapAnimating){
+    desktopSnapIndex=nearestDesktopSnapIndex(targets);
+  }else{
+    desktopSnapIndex=Math.max(0,Math.min(targets.length-1,desktopSnapIndex));
+  }
+
+  const next=Math.max(0,Math.min(targets.length-1,desktopSnapIndex+direction));
+  if(next===desktopSnapIndex)return;
+
+  desktopSnapIndex=next;
+  animateDesktopSnap(targets[desktopSnapIndex]);
+}
+
 window.addEventListener("wheel",e=>{
   if(window.innerWidth<=720 || e.ctrlKey)return;
   if(Math.abs(e.deltaX)>Math.abs(e.deltaY))return;
 
-  const now=performance.now();
-  const quietFor=now-desktopSnapLastWheelAt;
-  desktopSnapLastWheelAt=now;
-
-  if(quietFor>190){
-    desktopSnapGestureUsed=false;
-    desktopSnapAccumulator=0;
-    desktopSnapDirection=0;
-  }
-
   e.preventDefault();
 
-  if(desktopSnapAnimating || desktopSnapGestureUsed)return;
-
   const direction=Math.sign(e.deltaY);
-  if(!direction)return;
+  const amount=Math.abs(e.deltaY);
+  if(!direction || amount<.01)return;
 
-  if(desktopSnapDirection && direction!==desktopSnapDirection){
-    desktopSnapAccumulator=0;
+  const now=performance.now();
+  const gap=now-desktopWheelLastAt;
+  const directionChanged=desktopWheelLastAbs>0 && Math.sign(e.deltaY)!==Math.sign(desktopSnapLastDirection||direction);
+
+  let newGesture=gap>72;
+
+  if(!newGesture && desktopWheelTailArmed){
+    const burstFloor=Math.max(3.5,desktopWheelLastAbs*1.65);
+    if(amount>=burstFloor && now-desktopWheelTriggeredAt>110){
+      newGesture=true;
+    }
   }
-  desktopSnapDirection=direction;
-  desktopSnapAccumulator+=Math.abs(e.deltaY);
 
-  if(desktopSnapAccumulator<32)return;
-
-  const targets=desktopSnapTargets();
-  const current=nearestDesktopSnapIndex(targets);
-  const next=Math.max(0,Math.min(targets.length-1,current+direction));
-
-  desktopSnapGestureUsed=true;
-  desktopSnapAccumulator=0;
-
-  if(next!==current){
-    animateDesktopSnap(targets[next]);
+  if(!newGesture && directionChanged && now-desktopWheelTriggeredAt>80){
+    newGesture=true;
   }
+
+  if(newGesture){
+    desktopWheelPeak=amount;
+    desktopWheelTailArmed=false;
+    desktopWheelTriggeredAt=now;
+    triggerDesktopSnap(direction);
+  }else{
+    desktopWheelPeak=Math.max(desktopWheelPeak,amount);
+    if(
+      now-desktopWheelTriggeredAt>90 &&
+      amount<=Math.max(2.2,desktopWheelPeak*.32)
+    ){
+      desktopWheelTailArmed=true;
+    }
+  }
+
+  desktopSnapLastDirection=direction;
+  desktopWheelLastAbs=amount;
+  desktopWheelLastAt=now;
 },{passive:false});
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{
