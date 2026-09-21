@@ -17,10 +17,17 @@
   font-weight:400;
   font-display:swap;
 }
+@font-face{
+  font-family:"GrimoriumCarved";
+  src:url("assets/GrimoriumCarved-Regular.woff2") format("woff2");
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+}
 :root{
   --bg:#07090b;--bg2:#0a0d10;--ink:#dddcd5;--soft:#a6a6a0;--dim:#6f7477;
   --line:rgba(223,224,218,.13);--line-strong:rgba(223,224,218,.32);--red:#8b1e23;
-  --serif:"Cormorant Garamond",Georgia,serif;--sans:"Manrope",Arial,sans-serif;--album-display:"Cattedrale-Demo",var(--serif);
+  --serif:"Cormorant Garamond",Georgia,serif;--sans:"Manrope",Arial,sans-serif;--album-display:"Cattedrale-Demo",var(--serif);--disc-album-display:"GrimoriumCarved",var(--album-display);
   --pad:clamp(20px,4.7vw,72px);--shell:1380px
 }
 *{box-sizing:border-box}
@@ -149,7 +156,7 @@ nav{display:none!important}
 .record-head{position:relative;z-index:2;margin-bottom:30px}
 .record-title-slot{
   display:flex;align-items:flex-start;margin:0;
-  font-family:var(--album-display);font-weight:400;
+  font-family:var(--disc-album-display);font-weight:400;
   font-size:clamp(40px,5vw,66px);line-height:1;
   letter-spacing:.13em;text-transform:uppercase;color:var(--ink);
   white-space:nowrap
