@@ -1457,6 +1457,7 @@ function createParticleField(){
       height:0,
       dpr:1,
       lastTime:performance.now(),
+      previousHeroRaw:0,
       raf:0,
       active:true,
       ready:false
@@ -1699,23 +1700,9 @@ function createParticleField(){
         return {x,y};
       }
 
-      // Three overlapping centres: one dominant web and two smaller satellite
-      // hubs. They share the same particle field so the result reads as one
-      // complex natural structure rather than three separate graphics.
-      const mainCount=Math.floor(count*.58);
-      const secondCount=Math.floor(count*.25);
-
-      if(index<mainCount){
-        return orbPoint(index,mainCount,w*.44,h*.40,1.13,101);
-      }
-      if(index<mainCount+secondCount){
-        return orbPoint(index-mainCount,secondCount,w*.77,h*.68,.58,17011);
-      }
-      return orbPoint(
-        index-mainCount-secondCount,
-        Math.max(1,count-mainCount-secondCount),
-        w*.18,h*.73,.46,33017
-      );
+      // One large organic web centre. All particles contribute to the same
+      // structure, so the web reads as a single coherent real web.
+      return orbPoint(index,count,w*.49,h*.44,1.14,101);
     }
 
     function frame(now){
@@ -1732,6 +1719,8 @@ function createParticleField(){
       const scrollY=window.scrollY||0;
       const heroRange=Math.max(1,(introHero?.offsetHeight||state.height)-state.height);
       const heroRaw=particleClamp(scrollY/heroRange);
+      const returningToLogo=heroRaw<state.previousHeroRaw-.0004;
+      state.previousHeroRaw=heroRaw;
       const leave=particleSmooth((heroRaw-.025)/.46);
       const bgStart=particleSmooth((heroRaw-.18)/.30);
 
@@ -1742,7 +1731,7 @@ function createParticleField(){
 
       const heroAlpha=particleMix(.94,.18,particleSmooth(leave/.72));
       const bgPulse=.965+.035*Math.sin(now*.00022);
-      const alpha=particleMix(heroAlpha,.30*bgPulse,bgStart);
+      const alpha=particleMix(heroAlpha,.44*bgPulse,bgStart);
       const heroSize=particleMix(.90,.42,bgStart);
       const response=1-Math.pow(.965,dt/16.67);
 
@@ -1823,7 +1812,12 @@ function createParticleField(){
         ty+=waveY*live;
 
         const settleBoost=particleSmooth((localLeave-.88)/.12);
-        const followResponse=particleMix(response,.082,settleBoost);
+        const outwardResponse=particleMix(response,.082,settleBoost);
+        // Reverse assembly is intentionally faster than dispersal.
+        const returnResponse=particleMix(.115,.19,1-localLeave);
+        const followResponse=returningToLogo
+          ? Math.max(outwardResponse,returnResponse)
+          : outwardResponse;
         p.x+= (tx-p.x)*followResponse;
         p.y+= (ty-p.y)*followResponse;
 
@@ -1835,7 +1829,7 @@ function createParticleField(){
         }
 
         const logoR=Math.max(.38,p.size*.90);
-        const webR=Math.max(.24,p.size*.38);
+        const webR=Math.max(.34,p.size*.58);
         const r=particleMix(logoR,webR,bgStart);
         particleCtx.moveTo(p.x+r,p.y);
         particleCtx.arc(p.x,p.y,r,0,Math.PI*2);
@@ -1846,7 +1840,7 @@ function createParticleField(){
       if(heroRaw<.12 && settleSamples){
         const avgDistance=settleDistance/settleSamples;
         const settledNow=1-particleSmooth((avgDistance-.65)/5.5);
-        state.logoSettle+= (settledNow-state.logoSettle)*.16;
+        state.logoSettle+= (settledNow-state.logoSettle)*.30;
       }else{
         state.logoSettle+=(0-state.logoSettle)*.18;
       }
