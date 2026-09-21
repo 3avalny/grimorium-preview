@@ -830,6 +830,24 @@ nav{display:none!important}
   .album-tab{width:40px;height:40px;flex:0 0 40px}
   .stream-col,.player,.player iframe{height:152px;min-height:152px}
 }
+
+/* Particle sigil field — the hero logo and the background share the same particles. */
+.particle-field{
+  position:fixed;
+  z-index:1;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  opacity:1;
+  transform:translateZ(0);
+  backface-visibility:hidden;
+  contain:strict;
+}
+@media(prefers-reduced-motion:reduce){
+  .particle-field{display:none!important}
+}
+
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 @supports(height:100dvh){
   .hero-inner{height:100dvh}
@@ -844,6 +862,7 @@ nav{display:none!important}
 </head>
 <body>
 <div class="site-parallax-bg" aria-hidden="true"></div>
+<canvas id="particle-field" class="particle-field" aria-hidden="true"></canvas>
 <img class="site-light-layer" src="assets/light.webp?v=0680db37" alt="" aria-hidden="true">
 <img class="site-rocks-layer" src="assets/rocks.webp?v=8f46a97b" alt="" aria-hidden="true">
 <header>
@@ -1375,6 +1394,339 @@ const parallaxRecord=document.querySelector(".record");
 const parallaxBio=document.querySelector(".bio");
 const parallaxLayer=document.querySelector(".site-parallax-bg");
 const reducedMotionQuery=window.matchMedia("(prefers-reduced-motion: reduce)");
+
+/* ---------- LOGO PARTICLE / SIGIL FIELD ---------- */
+const particleCanvas=document.getElementById("particle-field");
+const particleCtx=particleCanvas?.getContext("2d",{alpha:true,desynchronized:true});
+let particleField=null;
+
+function particleHash(n){
+  const x=Math.sin(n*12.9898+78.233)*43758.5453123;
+  return x-Math.floor(x);
+}
+function particleClamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}
+function particleSmooth(v){
+  v=particleClamp(v);
+  return v*v*(3-2*v);
+}
+function particleMix(a,b,t){return a+(b-a)*t}
+
+function createParticleField(){
+  if(!particleCanvas || !particleCtx || !introBrandImg || reducedMotionQuery.matches)return;
+
+  const source=new Image();
+  source.decoding="async";
+  source.src=introBrandImg.currentSrc||introBrandImg.src;
+
+  source.onload=()=>{
+    const state={
+      source,
+      particles:[],
+      logoPoints:[],
+      width:0,
+      height:0,
+      dpr:1,
+      lastTime:performance.now(),
+      raf:0,
+      active:true,
+      ready:false
+    };
+
+    function resize(){
+      state.width=Math.max(1,window.innerWidth);
+      state.height=Math.max(1,window.innerHeight);
+      state.dpr=Math.min(window.devicePixelRatio||1,1.5);
+      particleCanvas.width=Math.round(state.width*state.dpr);
+      particleCanvas.height=Math.round(state.height*state.dpr);
+      particleCanvas.style.width=state.width+"px";
+      particleCanvas.style.height=state.height+"px";
+      particleCtx.setTransform(state.dpr,0,0,state.dpr,0,0);
+      buildLogoPoints();
+    }
+
+    function desiredCount(){
+      if(state.width<=720)return 820;
+      if(state.width<=1100)return 1500;
+      return 2600;
+    }
+
+    function buildLogoPoints(){
+      const logoW=Math.min(state.width*.56,820);
+      const aspect=source.naturalWidth/Math.max(1,source.naturalHeight);
+      const logoH=logoW/aspect;
+      const sampleW=state.width<=720?320:500;
+      const sampleH=Math.max(1,Math.round(sampleW/aspect));
+      const off=document.createElement("canvas");
+      off.width=sampleW;
+      off.height=sampleH;
+      const octx=off.getContext("2d",{willReadFrequently:true});
+      octx.clearRect(0,0,sampleW,sampleH);
+      octx.drawImage(source,0,0,sampleW,sampleH);
+      const data=octx.getImageData(0,0,sampleW,sampleH).data;
+      const candidates=[];
+      const scanStep=state.width<=720?2:2;
+
+      for(let y=0;y<sampleH;y+=scanStep){
+        for(let x=0;x<sampleW;x+=scanStep){
+          const k=(y*sampleW+x)*4;
+          const a=data[k+3]/255;
+          const lum=(data[k]+data[k+1]+data[k+2])/3;
+          if(a>.16 && lum>72){
+            candidates.push({
+              x:state.width*.5+(x/sampleW-.5)*logoW,
+              y:state.height*.5+(y/sampleH-.5)*logoH
+            });
+          }
+        }
+      }
+
+      const count=Math.min(desiredCount(),candidates.length);
+      state.logoPoints.length=0;
+      if(!count)return;
+
+      // Evenly walk the mask instead of choosing fresh random pixels on every resize.
+      const stride=candidates.length/count;
+      const offset=Math.floor(particleHash(411)*Math.max(1,stride));
+      for(let i=0;i<count;i++){
+        const p=candidates[Math.min(candidates.length-1,Math.floor(offset+i*stride))];
+        state.logoPoints.push(p);
+      }
+
+      while(state.particles.length<count){
+        const i=state.particles.length;
+        const p=state.logoPoints[i]||{x:state.width*.5,y:state.height*.5};
+        const seed=particleHash(i+1);
+        state.particles.push({
+          x:p.x,
+          y:p.y,
+          vx:0,
+          vy:0,
+          seed,
+          seed2:particleHash(i+971),
+          seed3:particleHash(i+1877),
+          size:.55+particleHash(i+301)*1.05
+        });
+      }
+      if(state.particles.length>count)state.particles.length=count;
+      state.ready=true;
+      document.documentElement.classList.add("particle-field-ready");
+    }
+
+    function sigilPoint(setIndex,index,count){
+      const w=state.width,h=state.height;
+      const mobile=w<=720;
+      const groups=mobile?2:3;
+      const g=index%groups;
+      const j=Math.floor(index/groups);
+      const localCount=Math.ceil(count/groups);
+      const u=(j+.5)/localCount;
+      const seed=particleHash(index+setIndex*1709);
+      const seed2=particleHash(index+setIndex*3313+47);
+
+      const centers=mobile
+        ? [[.22,.30],[.76,.72]]
+        : [[.17,.28],[.78,.36],[.50,.78]];
+      const cx=centers[g][0]*w;
+      const cy=centers[g][1]*h;
+      const base=Math.min(w,h)*(mobile?.19:.205);
+      const scale=base*(.72+g*.12);
+
+      let x=0,y=0;
+      const branch=Math.floor(u*6)%6;
+      const t=(u*6)%1;
+      const a=t*Math.PI*2;
+
+      if(setIndex%3===0){
+        // Broken ritual wheel: rings, a vertical spine and asymmetric horns.
+        if(branch<=1){
+          const r=scale*(branch===0?.88:.52);
+          x=Math.cos(a)*r;
+          y=Math.sin(a)*r*.92;
+        }else if(branch===2){
+          x=(seed-.5)*scale*.09;
+          y=(t-.5)*scale*2.05;
+        }else if(branch===3){
+          const s=t*2-1;
+          x=s*scale*.96;
+          y=-scale*.18-Math.abs(s)*scale*.42+Math.sin(s*Math.PI*2)*scale*.10;
+        }else if(branch===4){
+          const s=t*2-1;
+          x=s*scale*.78;
+          y=scale*.17+Math.abs(s)*scale*.56;
+        }else{
+          const s=t*2-1;
+          x=s*scale*.48;
+          y=s*scale*.78;
+        }
+      }else if(setIndex%3===1){
+        // Mirrored thorn / antler shape.
+        const side=(index&1)?1:-1;
+        const q=(u*3)%1;
+        const band=Math.floor(u*3);
+        if(band===0){
+          x=side*scale*(.10+q*.92);
+          y=-scale*.74+q*scale*1.28+Math.sin(q*Math.PI*2)*scale*.16;
+        }else if(band===1){
+          x=side*scale*(.05+Math.sin(q*Math.PI*.92)*.82);
+          y=scale*.65-q*scale*1.42;
+        }else{
+          x=side*scale*(.12+q*.63);
+          y=(q-.5)*scale*.35+Math.sin(q*Math.PI*3)*scale*.24;
+        }
+      }else{
+        // Tall rune: diamond/circle fragments with slashed arms.
+        if(branch===0){
+          x=(t-.5)*scale*.10;
+          y=(t-.5)*scale*2.15;
+        }else if(branch===1){
+          const r=scale*.62;
+          x=Math.cos(a)*r;
+          y=Math.sin(a)*r*.72;
+        }else if(branch===2){
+          const s=t*2-1;
+          x=s*scale*.82;
+          y=-Math.abs(s)*scale*.62;
+        }else if(branch===3){
+          const s=t*2-1;
+          x=s*scale*.72;
+          y=Math.abs(s)*scale*.68;
+        }else if(branch===4){
+          const ang=Math.PI*.25+t*Math.PI*.5;
+          x=Math.cos(ang)*scale*.62;
+          y=Math.sin(ang)*scale*.62;
+        }else{
+          x=(t-.5)*scale*1.05;
+          y=Math.sin(t*Math.PI*2)*scale*.10;
+        }
+      }
+
+      // Make the geometry feel hand-drawn rather than CAD-perfect.
+      const rough=(mobile?2.4:3.4);
+      x+=(seed-.5)*rough;
+      y+=(seed2-.5)*rough;
+      return {x:cx+x,y:cy+y};
+    }
+
+    function frame(now){
+      if(!state.active)return;
+      const dt=Math.min(32,Math.max(8,now-state.lastTime));
+      state.lastTime=now;
+      particleCtx.clearRect(0,0,state.width,state.height);
+
+      if(!state.ready){
+        state.raf=requestAnimationFrame(frame);
+        return;
+      }
+
+      const scrollY=window.scrollY||0;
+      const heroRange=Math.max(1,(introHero?.offsetHeight||state.height)-state.height);
+      const heroRaw=particleClamp(scrollY/heroRange);
+      const leave=particleSmooth((heroRaw-.055)/.34);
+      const bgStart=particleSmooth((heroRaw-.26)/.24);
+
+      // Once the logo has left, use page progress to continuously morph between sigils.
+      const maxScroll=Math.max(1,document.documentElement.scrollHeight-state.height);
+      const afterHero=particleClamp((scrollY-heroRange*.42)/Math.max(1,maxScroll-heroRange*.42));
+      const stage=afterHero*2.72;
+      const setA=Math.floor(stage)%3;
+      const setB=(setA+1)%3;
+      const setMix=particleSmooth(stage-Math.floor(stage));
+
+      // Keep the normal image available as the small header logo, but at the top
+      // the particle mask is the logo itself.
+      const imageReveal=reducedMotionQuery.matches?1:particleSmooth((heroRaw-.06)/.20);
+      introBrandImg.style.opacity=imageReveal.toFixed(3);
+
+      const heroAlpha=particleMix(.92,.13,particleSmooth(leave/.72));
+      const bgPulse=.78+.22*Math.sin(now*.00028);
+      const alpha=particleMix(heroAlpha,.055*bgPulse,bgStart);
+      const heroSize=particleMix(1.22,.82,bgStart);
+      const response=1-Math.pow(.00075,dt/16.67);
+
+      particleCtx.fillStyle="#f2f2ef";
+      particleCtx.globalCompositeOperation="source-over";
+
+      const count=state.particles.length;
+      for(let i=0;i<count;i++){
+        const p=state.particles[i];
+        const logo=state.logoPoints[i]||state.logoPoints[i%state.logoPoints.length];
+        const a=sigilPoint(setA,i,count);
+        const b=sigilPoint(setB,i,count);
+        const motif={
+          x:particleMix(a.x,b.x,setMix),
+          y:particleMix(a.y,b.y,setMix)
+        };
+
+        // Curved dispersal path: strongest in the middle of the hero morph.
+        const arc=Math.sin(Math.PI*leave);
+        const angle=(p.seed*Math.PI*2)+(setA*.83);
+        const arcRadius=(44+p.seed2*190)*arc;
+        let tx=particleMix(logo.x,motif.x,leave)+Math.cos(angle)*arcRadius;
+        let ty=particleMix(logo.y,motif.y,leave)+Math.sin(angle)*arcRadius*.62;
+
+        // Tiny living drift. It is deliberately much smaller at the hero logo.
+        const driftAmount=particleMix(.35,3.4,bgStart);
+        tx+=Math.sin(now*.00034+p.seed*19+i*.013)*driftAmount;
+        ty+=Math.cos(now*.00029+p.seed2*23+i*.011)*driftAmount;
+
+        p.x+= (tx-p.x)*response;
+        p.y+= (ty-p.y)*response;
+
+        // Individual shimmer is tiny so the background reads as a silhouette, not stars.
+        const shimmer=.78+p.seed3*.22;
+        particleCtx.globalAlpha=alpha*shimmer;
+        const r=p.size*heroSize;
+        particleCtx.fillRect(p.x-r*.5,p.y-r*.5,Math.max(.55,r),Math.max(.55,r));
+      }
+
+      particleCtx.globalAlpha=1;
+      state.raf=requestAnimationFrame(frame);
+    }
+
+    resize();
+    state.raf=requestAnimationFrame(frame);
+    particleField=state;
+
+    window.addEventListener("resize",resize,{passive:true});
+    document.addEventListener("visibilitychange",()=>{
+      if(document.hidden){
+        state.active=false;
+        if(state.raf)cancelAnimationFrame(state.raf);
+      }else if(!state.active){
+        state.active=true;
+        state.lastTime=performance.now();
+        state.raf=requestAnimationFrame(frame);
+      }
+    });
+  };
+
+  source.onerror=()=>{
+    // The original logo remains untouched if the mask cannot be read.
+    introBrandImg.style.opacity="1";
+  };
+}
+
+if(reducedMotionQuery.matches){
+  if(introBrandImg)introBrandImg.style.opacity="1";
+}else{
+  createParticleField();
+}
+
+if(typeof reducedMotionQuery.addEventListener==="function"){
+  reducedMotionQuery.addEventListener("change",e=>{
+    if(e.matches){
+      if(particleField?.raf)cancelAnimationFrame(particleField.raf);
+      if(particleField)particleField.active=false;
+      if(particleCanvas)particleCanvas.style.display="none";
+      if(introBrandImg)introBrandImg.style.opacity="1";
+    }else{
+      if(particleCanvas)particleCanvas.style.display="";
+      if(!particleField)createParticleField();
+    }
+  });
+}
+/* ---------- /LOGO PARTICLE / SIGIL FIELD ---------- */
+
 
 ["gesturestart","gesturechange","gestureend"].forEach(type=>{
   document.addEventListener(type,e=>e.preventDefault(),{passive:false});
