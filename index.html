@@ -1566,122 +1566,129 @@ function createParticleField(){
     function webPoint(index,count){
       const w=state.width,h=state.height;
 
-      // One persistent, screen-filling orb web. The hub is intentionally
-      // off-centre and the geometry is irregular so it feels built, not plotted.
-      const cx=w*.47;
-      const cy=h*.43;
-      const minR=Math.min(w,h)*.026;
-      const spokeCount=Math.max(24,Math.round(w/64));
-      const radialShare=.30;
-      const captureShare=.60;
-      const radialPoints=Math.floor(count*radialShare);
-      const capturePoints=Math.floor(count*captureShare);
+      function orbPoint(localIndex,localCount,cx,cy,reachScale,seedBase){
+        const minR=Math.min(w,h)*(.012+.010*reachScale);
+        const spokeCount=Math.max(26,Math.round(30+reachScale*24));
+        const radialShare=.31;
+        const captureShare=.63;
+        const radialPoints=Math.floor(localCount*radialShare);
+        const capturePoints=Math.floor(localCount*captureShare);
 
-      function spokeAngle(spoke){
-        const base=(spoke/spokeCount)*Math.PI*2-.22;
-        const jitter=(particleHash(spoke*97+13)-.5)*.17;
-        return base+jitter;
-      }
-
-      function edgeRadius(theta){
-        const cos=Math.cos(theta);
-        const sin=Math.sin(theta);
-        const rx=Math.abs(cos)<.0001?1e9:(cos>0?(w-cx)/cos:(0-cx)/cos);
-        const ry=Math.abs(sin)<.0001?1e9:(sin>0?(h-cy)/sin:(0-cy)/sin);
-        return Math.max(minR,Math.min(Math.abs(rx),Math.abs(ry))*1.13);
-      }
-
-      let x=cx,y=cy;
-
-      if(index<radialPoints){
-        // Main load-bearing radial threads. Each has its own angle, curvature
-        // and reach so the web does not resemble a symmetric wheel.
-        const local=index/Math.max(1,radialPoints);
-        const spoke=Math.min(spokeCount-1,Math.floor(local*spokeCount));
-        const along=(local*spokeCount)-spoke;
-        const theta0=spokeAngle(spoke);
-        const reach=edgeRadius(theta0)*(1.00+(particleHash(spoke*43+7)-.5)*.08);
-        const bend=
-          Math.sin(along*Math.PI)*(.012+(particleHash(spoke*19+3)*.018))+
-          Math.sin(along*Math.PI*2+spoke*.63)*.006;
-        const theta=theta0+bend;
-        const radius=minR+(reach-minR)*Math.pow(along,.94);
-
-        x=cx+Math.cos(theta)*radius;
-        y=cy+Math.sin(theta)*radius;
-      }else if(index<radialPoints+capturePoints){
-        // Irregular capture spiral. It grows outward while sagging between
-        // radial threads, which creates the characteristic polygonal/scalloped
-        // cells of a real orb web instead of concentric circles.
-        const local=(index-radialPoints)/Math.max(1,capturePoints);
-        const turns=10.6;
-        const thetaBase=local*Math.PI*2*turns-.46;
-        const turn=Math.floor(local*turns);
-        const thetaNoise=
-          Math.sin(local*Math.PI*2*3.0)*.018+
-          Math.sin(local*Math.PI*2*7.0+1.2)*.008;
-        const theta=thetaBase+thetaNoise;
-
-        const edge=edgeRadius(theta)*.96;
-        const growth=Math.pow(local,.82);
-        let radius=minR+(edge-minR)*growth;
-
-        // Approximate the section between neighbouring radials and let the
-        // capture thread bow slightly under tension.
-        const normalized=((theta+.22)/(Math.PI*2))*spokeCount;
-        const cellPhase=normalized-Math.floor(normalized);
-        const sag=Math.sin(cellPhase*Math.PI);
-        const ringIrregularity=
-          (particleHash(turn*73+5)-.5)*radius*.030+
-          Math.sin(theta*2.0+turn*.71)*radius*.008;
-        radius+=ringIrregularity+sag*radius*(.010+.010*particleHash(turn*41+17));
-
-        x=cx+Math.cos(theta)*radius;
-        y=cy+Math.sin(theta)*radius;
-
-        // A few missing cells / repairs make the web feel imperfect. Displaced
-        // particles stay close to the break instead of vanishing completely.
-        const cell=Math.floor(normalized);
-        const broken=particleHash(turn*911+cell*37+29)<.055;
-        if(broken && cellPhase>.26 && cellPhase<.76){
-          const nudge=(cellPhase-.5)*Math.min(w,h)*.020;
-          x+=Math.cos(theta+Math.PI*.5)*nudge;
-          y+=Math.sin(theta+Math.PI*.5)*nudge;
+        function spokeAngle(spoke){
+          const base=(spoke/spokeCount)*Math.PI*2-.20;
+          const jitter=(particleHash(seedBase+spoke*97+13)-.5)*.125;
+          return base+jitter;
         }
-      }else{
-        // Short repair/support threads between non-neighbouring areas of the web.
-        // These are sparse on purpose; they add the "messy real web" detail.
-        const repairLocal=(index-radialPoints-capturePoints)/
-          Math.max(1,count-radialPoints-capturePoints);
-        const repairCount=9;
-        const strand=Math.min(repairCount-1,Math.floor(repairLocal*repairCount));
-        const t=(repairLocal*repairCount)-strand;
 
-        const a0=spokeAngle((strand*3+2)%spokeCount);
-        const a1=spokeAngle((strand*3+5+Math.floor(particleHash(strand+9)*4))%spokeCount);
-        const r0=edgeRadius(a0)*(.22+.48*particleHash(strand*11+1));
-        const r1=edgeRadius(a1)*(.34+.48*particleHash(strand*17+5));
+        function edgeRadius(theta){
+          const cos=Math.cos(theta);
+          const sin=Math.sin(theta);
+          const rx=Math.abs(cos)<.0001?1e9:(cos>0?(w-cx)/cos:(0-cx)/cos);
+          const ry=Math.abs(sin)<.0001?1e9:(sin>0?(h-cy)/sin:(0-cy)/sin);
+          return Math.max(minR,Math.min(Math.abs(rx),Math.abs(ry))*reachScale);
+        }
 
-        const x0=cx+Math.cos(a0)*r0;
-        const y0=cy+Math.sin(a0)*r0;
-        const x1=cx+Math.cos(a1)*r1;
-        const y1=cy+Math.sin(a1)*r1;
+        let x=cx,y=cy;
 
-        const mx=(x0+x1)*.5+(particleHash(strand*23+3)-.5)*w*.055;
-        const my=(y0+y1)*.5+(particleHash(strand*29+7)-.5)*h*.055;
+        if(localIndex<radialPoints){
+          // Numerous fine load-bearing spokes with slight natural bow.
+          const local=localIndex/Math.max(1,radialPoints);
+          const spoke=Math.min(spokeCount-1,Math.floor(local*spokeCount));
+          const along=(local*spokeCount)-spoke;
+          const theta0=spokeAngle(spoke);
+          const reach=edgeRadius(theta0)*(1+(particleHash(seedBase+spoke*43+7)-.5)*.075);
+          const bow=
+            Math.sin(along*Math.PI)*(.010+particleHash(seedBase+spoke*19+3)*.018)+
+            Math.sin(along*Math.PI*3+spoke*.41)*.0045;
+          const theta=theta0+bow;
+          const radius=minR+(reach-minR)*Math.pow(along,.96);
 
-        const omt=1-t;
-        x=omt*omt*x0+2*omt*t*mx+t*t*x1;
-        y=omt*omt*y0+2*omt*t*my+t*t*y1;
+          x=cx+Math.cos(theta)*radius;
+          y=cy+Math.sin(theta)*radius;
+        }else if(localIndex<radialPoints+capturePoints){
+          // Dense irregular capture spiral: many more turns means much finer,
+          // thinner-looking cells like a real orb web.
+          const local=(localIndex-radialPoints)/Math.max(1,capturePoints);
+          const turns=16+Math.round(reachScale*10);
+          const thetaBase=local*Math.PI*2*turns-.42;
+          const turn=Math.floor(local*turns);
+          const theta=
+            thetaBase+
+            Math.sin(local*Math.PI*2*4.0+seedBase*.01)*.014+
+            Math.sin(local*Math.PI*2*11.0+1.7)*.0055;
+
+          const edge=edgeRadius(theta)*.985;
+          const growth=Math.pow(local,.79);
+          let radius=minR+(edge-minR)*growth;
+
+          const normalized=((theta+.20)/(Math.PI*2))*spokeCount;
+          const cellPhase=normalized-Math.floor(normalized);
+          const sag=Math.sin(cellPhase*Math.PI);
+          radius+=
+            (particleHash(seedBase+turn*73+5)-.5)*radius*.022+
+            Math.sin(theta*2.4+turn*.63)*radius*.006+
+            sag*radius*(.006+.010*particleHash(seedBase+turn*41+17));
+
+          x=cx+Math.cos(theta)*radius;
+          y=cy+Math.sin(theta)*radius;
+
+          // Sparse imperfect/broken cells.
+          const cell=Math.floor(normalized);
+          const broken=particleHash(seedBase+turn*911+cell*37+29)<.035;
+          if(broken && cellPhase>.28 && cellPhase<.72){
+            const nudge=(cellPhase-.5)*Math.min(w,h)*.012;
+            x+=Math.cos(theta+Math.PI*.5)*nudge;
+            y+=Math.sin(theta+Math.PI*.5)*nudge;
+          }
+        }else{
+          // Repair / anchor threads add the irregular secondary structure
+          // characteristic of an actual web.
+          const repairLocal=(localIndex-radialPoints-capturePoints)/
+            Math.max(1,localCount-radialPoints-capturePoints);
+          const repairCount=Math.max(8,Math.round(8+reachScale*8));
+          const strand=Math.min(repairCount-1,Math.floor(repairLocal*repairCount));
+          const t=(repairLocal*repairCount)-strand;
+
+          const a0=spokeAngle((strand*3+2)%spokeCount);
+          const a1=spokeAngle((strand*5+7+Math.floor(particleHash(seedBase+strand+9)*5))%spokeCount);
+          const r0=edgeRadius(a0)*(.18+.56*particleHash(seedBase+strand*11+1));
+          const r1=edgeRadius(a1)*(.24+.60*particleHash(seedBase+strand*17+5));
+
+          const x0=cx+Math.cos(a0)*r0;
+          const y0=cy+Math.sin(a0)*r0;
+          const x1=cx+Math.cos(a1)*r1;
+          const y1=cy+Math.sin(a1)*r1;
+          const mx=(x0+x1)*.5+(particleHash(seedBase+strand*23+3)-.5)*w*.045;
+          const my=(y0+y1)*.5+(particleHash(seedBase+strand*29+7)-.5)*h*.045;
+
+          const omt=1-t;
+          x=omt*omt*x0+2*omt*t*mx+t*t*x1;
+          y=omt*omt*y0+2*omt*t*my+t*t*y1;
+        }
+
+        const rough=.42;
+        x+=(particleHash(seedBase+localIndex+1409)-.5)*rough;
+        y+=(particleHash(seedBase+localIndex+2903)-.5)*rough;
+        return {x,y};
       }
 
-      // Stable microscopic roughness keeps strands organic without making
-      // them fuzzy. The web is still deterministic across every section.
-      const rough=.85;
-      x+=(particleHash(index+1409)-.5)*rough;
-      y+=(particleHash(index+2903)-.5)*rough;
+      // Three overlapping centres: one dominant web and two smaller satellite
+      // hubs. They share the same particle field so the result reads as one
+      // complex natural structure rather than three separate graphics.
+      const mainCount=Math.floor(count*.58);
+      const secondCount=Math.floor(count*.25);
 
-      return {x,y};
+      if(index<mainCount){
+        return orbPoint(index,mainCount,w*.44,h*.40,1.13,101);
+      }
+      if(index<mainCount+secondCount){
+        return orbPoint(index-mainCount,secondCount,w*.77,h*.68,.58,17011);
+      }
+      return orbPoint(
+        index-mainCount-secondCount,
+        Math.max(1,count-mainCount-secondCount),
+        w*.18,h*.73,.46,33017
+      );
     }
 
     function frame(now){
@@ -1698,24 +1705,24 @@ function createParticleField(){
       const scrollY=window.scrollY||0;
       const heroRange=Math.max(1,(introHero?.offsetHeight||state.height)-state.height);
       const heroRaw=particleClamp(scrollY/heroRange);
-      const leave=particleSmooth((heroRaw-.045)/.56);
-      const bgStart=particleSmooth((heroRaw-.38)/.30);
+      const leave=particleSmooth((heroRaw-.025)/.46);
+      const bgStart=particleSmooth((heroRaw-.18)/.30);
 
       // The assembled logo is particles only. The original PNG stays fully hidden
       // until the particle logo has dispersed, then it can return as the small header mark.
-      const imageReveal=reducedMotionQuery.matches?1:particleSmooth((heroRaw-.62)/.12);
+      const imageReveal=reducedMotionQuery.matches?1:particleSmooth((heroRaw-.50)/.10);
       introBrandImg.style.opacity=imageReveal.toFixed(3);
 
       const heroAlpha=particleMix(.94,.18,particleSmooth(leave/.72));
       const bgPulse=.965+.035*Math.sin(now*.00022);
       const alpha=particleMix(heroAlpha,.165*bgPulse,bgStart);
-      const heroSize=particleMix(.90,.78,bgStart);
-      const response=1-Math.pow(.91,dt/16.67);
+      const heroSize=particleMix(.90,.42,bgStart);
+      const response=1-Math.pow(.965,dt/16.67);
 
       // At rest the logo is a dense field of pixel-sized particles. It is
       // visually monolithic, but still generated from particle pixels rather
       // than by compositing the original image.
-      const stampAlpha=1-particleSmooth((heroRaw-.025)/.19);
+      const stampAlpha=1-particleSmooth((heroRaw-.015)/.105);
       if(state.logoStamp && state.logoRender && stampAlpha>.001){
         particleCtx.save();
         particleCtx.globalAlpha=stampAlpha;
@@ -1731,7 +1738,7 @@ function createParticleField(){
         particleCtx.restore();
       }
 
-      const movingParticleAlpha=particleSmooth((heroRaw-.02)/.18);
+      const movingParticleAlpha=particleSmooth((heroRaw-.012)/.095);
       particleCtx.fillStyle="#f2f2ef";
       particleCtx.globalCompositeOperation="source-over";
       particleCtx.globalAlpha=alpha*movingParticleAlpha;
@@ -1743,43 +1750,67 @@ function createParticleField(){
         const logo=state.logoPoints[i]||state.logoPoints[i%state.logoPoints.length];
         const web=state.webPoints[i]||webPoint(i,count);
 
-        // Each particle leaves on its own schedule. The stagger plus multiple
-        // seeded bends makes the dispersal feel chaotic rather than like one morph.
-        const particleStart=.055+p.seed*.15;
-        const particleDuration=.48+p.seed2*.19;
+        // Start by visibly bending/twisting the logo itself. The deformation
+        // grows before the particle has fully committed to the flight path.
+        const particleStart=.025+p.seed*.075;
+        const particleDuration=.255+p.seed2*.105;
         const localLeave=particleSmooth((heroRaw-particleStart)/particleDuration);
+
+        const logoCx=state.width*.5;
+        const logoCy=state.height*.5;
+        const dx=logo.x-logoCx;
+        const dy=logo.y-logoCy;
+        const radial=particleClamp(Math.hypot(dx,dy)/Math.max(1,state.width*.34));
+        const bendIn=particleSmooth((heroRaw-.012)/.14);
+        const bendOut=1-particleSmooth(localLeave/.72);
+        const warp=bendIn*(.35+.65*bendOut);
+        const twist=warp*(.16+radial*.62);
+        const ct=Math.cos(twist);
+        const st=Math.sin(twist);
+
+        let warpedX=logoCx+dx*ct-dy*st;
+        let warpedY=logoCy+dx*st+dy*ct;
+        warpedX+=Math.sin(logo.y*.020+heroRaw*12.0)*warp*(22+radial*62);
+        warpedY+=Math.sin(logo.x*.017-heroRaw*10.0)*warp*(16+radial*48);
+
+        // Long, seeded vortex paths. Targets reach the web by Renaissance,
+        // but the low response above makes the actual flight visibly slower.
         const arc=Math.sin(Math.PI*localLeave);
         const angle=p.seed*Math.PI*2;
-        const swirl=localLeave*Math.PI*(.55+p.seed3*1.65);
-        const arcRadius=(34+p.seed2*210)*arc;
+        const swirl=localLeave*Math.PI*(1.35+p.seed3*3.1);
+        const arcRadius=(66+p.seed2*290)*arc;
 
-        let tx=particleMix(logo.x,web.x,localLeave);
-        let ty=particleMix(logo.y,web.y,localLeave);
+        let tx=particleMix(warpedX,web.x,localLeave);
+        let ty=particleMix(warpedY,web.y,localLeave);
 
         tx+=Math.cos(angle+swirl)*arcRadius;
-        ty+=Math.sin(angle+swirl*.83)*arcRadius*.68;
+        ty+=Math.sin(angle+swirl*.79)*arcRadius*.72;
 
-        // Secondary cross-current breaks up obvious radial trajectories.
-        const cross=(1-Math.abs(localLeave*.2-1))*arc;
-        tx+=Math.sin(localLeave*11.0+p.seed2*17.0)*cross*(10+p.seed3*28);
-        ty+=Math.cos(localLeave*8.5+p.seed*19.0)*cross*(8+p.seed2*24);
+        // Strong secondary turbulence destroys the feeling of a clean radial morph.
+        const cross=arc;
+        tx+=Math.sin(localLeave*17.0+p.seed2*31.0)*cross*(18+p.seed3*58);
+        ty+=Math.cos(localLeave*13.0+p.seed*37.0)*cross*(16+p.seed2*52);
+        tx+=Math.sin(localLeave*5.0+p.seed*47.0)*cross*24;
+        ty+=Math.cos(localLeave*6.0+p.seed3*43.0)*cross*20;
 
-        // The formed web stays in the same place on every section. Only a slow,
-        // low-amplitude distortion keeps it alive.
+        // Visible, coherent web drift: slow spatial waves move whole nearby
+        // thread segments together instead of turning them into fuzzy noise.
         const live=bgStart;
         const waveX=
-          Math.sin(now*.00015+web.y*.009+p.seed*4.2)*2.7+
-          Math.sin(now*.000085+web.x*.005)*1.2;
+          Math.sin(now*.000105+web.y*.0062)*6.8+
+          Math.sin(now*.000061+web.x*.0038+web.y*.0024)*3.4;
         const waveY=
-          Math.cos(now*.00013+web.x*.007+p.seed2*4.7)*2.4+
-          Math.sin(now*.000075+web.y*.006)*1.0;
+          Math.cos(now*.000094+web.x*.0055)*6.0+
+          Math.sin(now*.000058+web.y*.0042-web.x*.0020)*3.0;
         tx+=waveX*live;
         ty+=waveY*live;
 
         p.x+= (tx-p.x)*response;
         p.y+= (ty-p.y)*response;
 
-        const r=Math.max(.38,p.size*heroSize);
+        const logoR=Math.max(.38,p.size*.90);
+        const webR=Math.max(.16,p.size*.30);
+        const r=particleMix(logoR,webR,bgStart);
         particleCtx.moveTo(p.x+r,p.y);
         particleCtx.arc(p.x,p.y,r,0,Math.PI*2);
       }
