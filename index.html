@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <meta name="description" content="Official site of Grimorium Verum.">
 <title>Grimorium Verum — Official</title>
@@ -46,7 +46,8 @@ html.desktop-snapping{scroll-behavior:auto!important}
 html.spotify-scroll-lock{overflow-y:hidden!important}
 body{
   margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
-  width:100%;max-width:100%;overflow-x:hidden
+  width:100%;max-width:100%;overflow-x:hidden;
+  touch-action:pan-y
 }
 .site-parallax-bg{
   position:fixed;z-index:0;inset:-16vh 0;pointer-events:none;
@@ -151,10 +152,12 @@ nav{display:none!important}
   text-shadow:0 8px 42px rgba(0,0,0,.86);white-space:nowrap
 }
 .hero-carved-s{
+  display:inline-block;
   font-family:"Grimorium Carved",var(--album-display);
   font-weight:400;
-  font-size:1em;
-  line-height:inherit
+  font-size:1.32em;
+  line-height:0;
+  vertical-align:baseline
 }
 .hero-sub{
   margin-top:26px;font-family:var(--serif);font-size:clamp(16px,1.7vw,27px);
@@ -596,7 +599,7 @@ nav{display:none!important}
   .record>.shell:before{display:none}
   .record{
     margin-top:0;
-    touch-action:pan-y pinch-zoom;overscroll-behavior-x:none;
+    touch-action:pan-y;overscroll-behavior-x:none;
     background:url("assets/bio-background2.webp?v=3c75c6af") center center/cover no-repeat
   }
   :root{--pad:18px}
@@ -1378,6 +1381,13 @@ const parallaxBio=document.querySelector(".bio");
 const parallaxLayer=document.querySelector(".site-parallax-bg");
 const reducedMotionQuery=window.matchMedia("(prefers-reduced-motion: reduce)");
 
+["gesturestart","gesturechange","gestureend"].forEach(type=>{
+  document.addEventListener(type,e=>e.preventDefault(),{passive:false});
+});
+document.addEventListener("touchmove",e=>{
+  if(e.touches && e.touches.length>1)e.preventDefault();
+},{passive:false});
+
 let sceneFrame=0;
 let introRange=1;
 let introViewportHeight=window.innerHeight;
@@ -1590,14 +1600,12 @@ function animateDesktopSnap(target){
     return;
   }
 
-  const duration=Math.min(820,Math.max(520,Math.abs(distance)*.42));
+  const duration=Math.min(980,Math.max(680,Math.abs(distance)*.52));
   const started=performance.now();
 
   const tick=now=>{
     const t=clamp01((now-started)/duration);
-    const eased=t<.5
-      ? 4*t*t*t
-      : 1-Math.pow(-2*t+2,3)/2;
+    const eased=t*t*t*(t*(t*6-15)+10);
     window.scrollTo(0,start+distance*eased);
     requestScenes();
 
