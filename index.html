@@ -1018,13 +1018,27 @@ function query(a){return encodeURIComponent("Grimorium Verum "+a.title)}
 
 function renderTabs(){
   tabs.innerHTML=ALBUMS.map((a,i)=>`
-    <button class="album-tab ${i===0?"active":""}" data-id="${a.id}" role="tab"
+    <button class="album-tab ${i===0?"active":""}" data-id="${a.id}" id="album-tab-${a.id}" role="tab"
       aria-selected="${i===0?"true":"false"}" aria-controls="album-panel-${a.id}"
       tabindex="${i===0?"0":"-1"}" aria-label="${a.title} ${a.year}" title="${a.title} · ${a.year}">
       <span class="tab-fallback">${a.title.slice(0,2).toUpperCase()}</span>
       <img src="${a.cover}" alt="" onerror="this.remove()">
     </button>`).join("");
   tabs.querySelectorAll(".album-tab").forEach(b=>b.addEventListener("click",()=>selectAlbum(b.dataset.id)));
+  tabs.addEventListener("keydown",e=>{
+    const keys=["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End"];
+    if(!keys.includes(e.key))return;
+    e.preventDefault();
+    const buttons=[...tabs.querySelectorAll(".album-tab")];
+    const current=Math.max(0,buttons.indexOf(document.activeElement));
+    let next=current;
+    if(e.key==="Home")next=0;
+    else if(e.key==="End")next=buttons.length-1;
+    else if(e.key==="ArrowLeft"||e.key==="ArrowUp")next=(current-1+buttons.length)%buttons.length;
+    else next=(current+1)%buttons.length;
+    buttons[next].focus();
+    selectAlbum(buttons[next].dataset.id);
+  });
 }
 
 function tailFor(title){
@@ -1122,6 +1136,7 @@ function makeDiscPanel(a){
   panel.dataset.albumId=a.id;
   panel.id=`album-panel-${a.id}`;
   panel.setAttribute("role","tabpanel");
+  panel.setAttribute("aria-labelledby",`album-tab-${a.id}`);
   const font=trackFontFor(a.tracks.length);
   panel.style.setProperty("--track-count",a.tracks.length);
   panel.style.setProperty("--track-font",font.toFixed(2)+"px");
