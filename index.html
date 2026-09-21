@@ -707,6 +707,8 @@ footer{
   .record-title-slot.mobile-title-up.go::after{transform:translateX(108%);opacity:.08}
   .record-title-slot.mobile-title-down.go::before,
   .record-title-slot.mobile-title-up.go::before{transform:translateX(0);opacity:1}
+  .record-title-slot.mobile-title-reset::before,
+  .record-title-slot.mobile-title-reset::after{transition:none!important}
   .discography-grid{
     display:flex;flex-direction:column;align-items:stretch;
     gap:22px;width:100%;min-width:0
@@ -1028,7 +1030,7 @@ function animateTitle(a,direction,token){
   recordTitle.setAttribute("aria-label",a.title);
 
   if(mobile){
-    recordTitle.classList.remove("mobile-title-down","mobile-title-up","go");
+    recordTitle.classList.remove("mobile-title-down","mobile-title-up","mobile-title-reset","go");
 
     if(!direction){
       recordTitle.dataset.mobileTitle=a.title.toUpperCase();
@@ -1048,10 +1050,13 @@ function animateTitle(a,direction,token){
 
     window.setTimeout(()=>{
       if(token!==animToken)return;
+      recordTitle.classList.add("mobile-title-reset");
       recordTitle.dataset.mobileTitle=a.title.toUpperCase();
       recordTitle.dataset.mobileNext="";
       recordTitle.classList.remove("mobile-title-down","mobile-title-up","go");
       setStaticTail(nextTail);
+      void recordTitle.offsetWidth;
+      recordTitle.classList.remove("mobile-title-reset");
     },340);
     return;
   }
