@@ -90,6 +90,16 @@ nav{display:none!important}
   padding:0 var(--pad);overflow:hidden;
   pointer-events:none
 }
+.hero-light{
+  position:absolute;z-index:0;left:50%;bottom:18vh;
+  width:100vw;height:auto;max-width:none;
+  transform:translate3d(-50%,0,0);
+  transform-origin:center bottom;
+  opacity:1;
+  object-fit:contain;object-position:center bottom;
+  will-change:transform,opacity;
+  pointer-events:none
+}
 .hero-rocks{
   position:absolute;z-index:1;left:50%;bottom:0;
   width:100vw;height:auto;max-width:none;
@@ -618,6 +628,13 @@ footer{
   .brand img{width:min(76vw,390px);max-width:none;max-height:none}
   .hero{height:165vh;min-height:1000px}
   .hero-inner{height:100vh;padding:0 18px}
+  .hero-light{
+    width:145vw;
+    bottom:16vh;
+    max-height:48vh;
+    object-fit:contain;
+    object-position:center bottom
+  }
   .hero-rocks{
     width:145vw;
     max-height:42vh;
@@ -768,7 +785,8 @@ footer{
 <main id="top">
 <section class="hero">
   <div class="hero-inner">
-    <img class="hero-rocks" src="assets/rocks.webp?v=5738fbec" alt="" aria-hidden="true">
+    <img class="hero-light" src="assets/light.webp?v=0680db37" alt="" aria-hidden="true">
+    <img class="hero-rocks" src="assets/rocks.webp?v=8f46a97b" alt="" aria-hidden="true">
     <div class="hero-copy">
       <h1>Renaissance</h1>
       <div class="hero-sub">New album — 2026</div>
@@ -1268,6 +1286,7 @@ const introHeader=document.querySelector("header");
 const introBrand=document.querySelector(".brand");
 const introBrandImg=introBrand?.querySelector("img");
 const introCopy=document.querySelector(".hero-copy");
+const introLight=document.querySelector(".hero-light");
 const introRocks=document.querySelector(".hero-rocks");
 const parallaxRecord=document.querySelector(".record");
 const parallaxBio=document.querySelector(".bio");
@@ -1313,10 +1332,16 @@ function renderScenes(){
     introCopy.style.opacity=reveal.toFixed(3);
     introCopy.style.transform=`translate3d(0,${((1-revealIn)*24).toFixed(2)}px,0) scale(${(.992+revealIn*.008).toFixed(4)})`;
     introCopy.style.pointerEvents=reveal>.88?"auto":"none";
+    const sceneDepth=smoothstep(raw);
+    if(introLight){
+      const lightOpacity=1-exit;
+      introLight.style.opacity=lightOpacity.toFixed(3);
+      introLight.style.transform=`translate3d(-50%,${(-sceneDepth*5).toFixed(2)}px,0)`;
+    }
     if(introRocks){
       const rocksOpacity=1-exit;
       introRocks.style.opacity=rocksOpacity.toFixed(3);
-      introRocks.style.transform="translate3d(-50%,0,0)";
+      introRocks.style.transform=`translate3d(-50%,${(-sceneDepth*16).toFixed(2)}px,0)`;
     }
     introHero.style.setProperty("--intro-black",(1-bgReveal).toFixed(3));
     introHero.style.setProperty("--intro-bg-opacity",bgReveal.toFixed(3));
