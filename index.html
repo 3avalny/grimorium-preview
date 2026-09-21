@@ -1461,8 +1461,29 @@ const particleCtx=particleCanvas?.getContext("2d",{alpha:true,desynchronized:tru
 let particleField=null;
 
 function particleHash(n){
-  const x=Math.sin(n*12.9898+78.233)*43758.5453123;
-  return x-Math.floor(x);
+  let x=(Math.floor(n)>>>0)+0x9e3779b9;
+  x=Math.imul(x^(x>>>16),0x21f0aaad);
+  x=Math.imul(x^(x>>>15),0x735a2d97);
+  x=x^(x>>>15);
+  return (x>>>0)/4294967296;
+}
+function particleShuffle(array,salt=0x51f15e){
+  // Deterministic Fisher-Yates: stable across reloads, but destroys any
+  // relationship between raster order and particle identity.
+  let state=(salt>>>0)||1;
+  const rnd=()=>{
+    state^=state<<13;
+    state^=state>>>17;
+    state^=state<<5;
+    return (state>>>0)/4294967296;
+  };
+  for(let i=array.length-1;i>0;i--){
+    const j=Math.floor(rnd()*(i+1));
+    const tmp=array[i];
+    array[i]=array[j];
+    array[j]=tmp;
+  }
+  return array;
 }
 function particleClamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}
 function particleSmooth(v){
@@ -1608,6 +1629,7 @@ function createParticleField(){
         const p=candidates[Math.min(candidates.length-1,Math.floor(offset+i*stride))];
         state.logoPoints.push(p);
       }
+      particleShuffle(state.logoPoints,0x91e10da5);
 
       while(state.particles.length<count){
         const i=state.particles.length;
@@ -1621,6 +1643,8 @@ function createParticleField(){
           seed,
           seed2:particleHash(i+971),
           seed3:particleHash(i+1877),
+          seed4:particleHash(i+3571),
+          seed5:particleHash(i+6947),
           size:.48+particleHash(i+301)*.12
         });
       }
@@ -1720,6 +1744,9 @@ function createParticleField(){
         const p=candidates[idx];
         points.push({x:p.x,y:p.y,motion:p.motion,glow:p.glow});
       }
+      // Target ordering must be unrelated to source ordering. Otherwise a
+      // contiguous source region can visibly travel toward one target region.
+      particleShuffle(points,0xc2b2ae35);
       return points;
     }
 
@@ -1784,8 +1811,8 @@ function createParticleField(){
 
         // Start by visibly bending/twisting the logo itself. The deformation
         // grows before the particle has fully committed to the flight path.
-        const particleStart=.025+p.seed*.075;
-        const particleDuration=.255+p.seed2*.105;
+        const particleStart=.018+p.seed4*.105;
+        const particleDuration=.245+p.seed5*.145;
         const localLeave=particleSmooth((heroRaw-particleStart)/particleDuration);
 
         const logoCx=state.width*.5;
@@ -1808,15 +1835,18 @@ function createParticleField(){
         // Long, seeded vortex paths. Targets reach the web by Renaissance,
         // but the low response above makes the actual flight visibly slower.
         const arc=Math.sin(Math.PI*localLeave);
-        const angle=p.seed*Math.PI*2;
-        const swirl=localLeave*Math.PI*(1.35+p.seed3*3.1);
-        const arcRadius=(66+p.seed2*290)*arc;
+        const angle=p.seed2*Math.PI*2;
+        const exitAngle=p.seed4*Math.PI*2;
+        const swirl=localLeave*Math.PI*(1.15+p.seed3*3.8);
+        const arcRadius=(54+p.seed5*315)*arc;
 
         let tx=particleMix(warpedX,web.x,localLeave);
         let ty=particleMix(warpedY,web.y,localLeave);
 
         tx+=Math.cos(angle+swirl)*arcRadius;
         ty+=Math.sin(angle+swirl*.79)*arcRadius*.72;
+        tx+=Math.cos(exitAngle-localLeave*5.7)*arc*(12+p.seed3*46);
+        ty+=Math.sin(exitAngle+localLeave*4.9)*arc*(10+p.seed*40);
 
         // Strong secondary turbulence destroys the feeling of a clean radial morph.
         const cross=arc;
