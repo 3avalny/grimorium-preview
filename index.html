@@ -1644,8 +1644,22 @@ function armDesktopWheelUnlock(){
   },DESKTOP_WHEEL_GESTURE_GAP);
 }
 
+function wheelIsOverSpotifyPlayer(e){
+  if(e.target instanceof Element && e.target.closest(".player"))return true;
+  const underPointer=document.elementFromPoint(e.clientX,e.clientY);
+  return underPointer instanceof Element && !!underPointer.closest(".player");
+}
+
 window.addEventListener("wheel",e=>{
   if(window.innerWidth<=720 || e.ctrlKey)return;
+
+  // Spotify owns scrolling inside its player. If its iframe reaches an
+  // internal edge, block scroll chaining into the page and desktop snap.
+  if(wheelIsOverSpotifyPlayer(e)){
+    e.preventDefault();
+    return;
+  }
+
   if(Math.abs(e.deltaX)>Math.abs(e.deltaY))return;
 
   e.preventDefault();
