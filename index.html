@@ -1431,7 +1431,9 @@ function renderScenes(){
     const move=smoothstep(raw/.36);
     const revealIn=smoothstep((raw-.30)/.16);
     const bgReveal=smoothstep((raw-.46)/.24);
-    const exit=smoothstep((raw-.80)/.16);
+    const mobileExit=smoothstep((raw-.80)/.16);
+    const desktopExit=smoothstep((raw-.72)/.28);
+    const exit=isMobile?mobileExit:desktopExit;
     const reveal=revealIn*(1-exit);
     const layoutLogoWidth=Math.max(1,introBrandImg.offsetWidth);
     const finalLogoWidth=isMobile?155:Math.min(230,window.innerWidth*.15);
@@ -1463,7 +1465,7 @@ function renderScenes(){
       introHero.querySelector(".hero-inner").style.visibility=isMobile?"visible":(raw>=.995?"hidden":"visible");
     }else{
       introBrand.style.transform=`translate(-50%,-50%) translate3d(0,${deltaY.toFixed(2)}px,0) scale(${scale.toFixed(4)})`;
-    const introCopyY=(1-revealIn)*24-(isMobile?0:exit*24);
+    const introCopyY=(1-revealIn)*24-(isMobile?0:desktopExit*42);
     introCopy.style.opacity=reveal.toFixed(3);
     introCopy.style.transform=`translate3d(0,${introCopyY.toFixed(2)}px,0) scale(${(.992+revealIn*.008).toFixed(4)})`;
     introCopy.style.pointerEvents=reveal>.88?"auto":"none";
