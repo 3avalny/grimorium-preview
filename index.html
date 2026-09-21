@@ -607,18 +607,27 @@ footer{
   .record-side-label{display:none}
   .record-head{width:328px;max-width:100%;margin:0 auto 24px}
   .record-title-slot{
-    width:100%;justify-content:center;text-align:center;
+    width:100%;justify-content:center;text-align:center;overflow:hidden;
     font-size:clamp(34px,10vw,50px);letter-spacing:.09em
   }
   .record-title-slot .record-prefix,
   .record-title-slot .record-tail-window{display:none}
   .record-title-slot::after{
-    content:attr(data-mobile-title);white-space:nowrap;
-    filter:blur(0);
-    transition:filter .24s cubic-bezier(.22,.78,.2,1);
-    will-change:filter
+    content:attr(data-mobile-title);display:block;white-space:nowrap;
+    transform:translateX(0);opacity:1;
+    transition:
+      transform .30s cubic-bezier(.22,.78,.2,1),
+      opacity .22s ease;
+    will-change:transform,opacity
   }
-  .record-title-slot.mobile-title-blur::after{filter:blur(16px)}
+  .record-title-slot.mobile-title-exit-left::after{transform:translateX(-115%);opacity:.12}
+  .record-title-slot.mobile-title-exit-right::after{transform:translateX(115%);opacity:.12}
+  .record-title-slot.mobile-title-prep-left::after{
+    transition:none!important;transform:translateX(-115%);opacity:.12
+  }
+  .record-title-slot.mobile-title-prep-right::after{
+    transition:none!important;transform:translateX(115%);opacity:.12
+  }
   .discography-grid{
     display:flex;flex-direction:column;align-items:stretch;
     gap:22px;width:100%;min-width:0
@@ -934,22 +943,40 @@ function animateTitle(a,direction,token){
   recordTitle.setAttribute("aria-label",a.title);
 
   if(mobile){
+    const titleMotionClasses=[
+      "mobile-title-exit-left",
+      "mobile-title-exit-right",
+      "mobile-title-prep-left",
+      "mobile-title-prep-right"
+    ];
+    recordTitle.classList.remove(...titleMotionClasses);
+
     if(!direction){
       recordTitle.dataset.mobileTitle=a.title.toUpperCase();
       setStaticTail(nextTail);
       return;
     }
 
-    recordTitle.classList.add("mobile-title-blur");
+    const forward=direction==="down";
+    const exitClass=forward?"mobile-title-exit-left":"mobile-title-exit-right";
+    const prepClass=forward?"mobile-title-prep-right":"mobile-title-prep-left";
+
+    recordTitle.classList.add(exitClass);
+
     window.setTimeout(()=>{
       if(token!==animToken)return;
+
+      recordTitle.classList.remove(exitClass);
+      recordTitle.classList.add(prepClass);
       recordTitle.dataset.mobileTitle=a.title.toUpperCase();
       setStaticTail(nextTail);
+
+      void recordTitle.offsetWidth;
       requestAnimationFrame(()=>requestAnimationFrame(()=>{
         if(token!==animToken)return;
-        recordTitle.classList.remove("mobile-title-blur");
+        recordTitle.classList.remove(prepClass);
       }));
-    },240);
+    },170);
     return;
   }
 
