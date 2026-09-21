@@ -1022,6 +1022,7 @@ const MOBILE_CREDITS_FINISH_MS=390;
 let activeAlbumIndex=-1;
 let animToken=0;
 let desktopTitleTimer=0;
+let desktopTitleSeq=0;
 let desktopTailText="ALL";
 
 function query(a){return encodeURIComponent("Grimorium Verum "+a.title)}
@@ -1060,6 +1061,7 @@ function setStaticTail(text){
     window.clearTimeout(desktopTitleTimer);
     desktopTitleTimer=0;
   }
+  desktopTitleSeq+=1;
   desktopTailText=text;
   recordTailWindow.innerHTML="";
   const span=document.createElement("span");
@@ -1110,13 +1112,44 @@ function animateTitle(a,direction,token){
     return;
   }
 
-  // Desktop slot-machine title must survive rapid album changes. Always
-  // normalize from the last logical title instead of reading concatenated DOM text.
+  const tablet=window.matchMedia("(min-width:721px) and (max-width:1180px)").matches;
+
+  if(tablet){
+    // Keep the tablet implementation exactly as-is: down means the new title
+    // enters from above and the old one exits below; up is the exact reverse.
+    const oldText=recordTailWindow.textContent.trim();
+    recordTailWindow.innerHTML="";
+
+    const oldSpan=document.createElement("span");
+    oldSpan.className=`record-tail-piece outgoing ${direction}`;
+    oldSpan.textContent=oldText;
+
+    const newSpan=document.createElement("span");
+    newSpan.className=`record-tail-piece incoming ${direction}`;
+    newSpan.textContent=nextTail;
+
+    recordTailWindow.append(oldSpan,newSpan);
+
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      oldSpan.classList.add("go");
+      newSpan.classList.add("go");
+    }));
+
+    window.setTimeout(()=>{
+      if(token!==animToken)return;
+      setStaticTail(nextTail);
+    },SWAP_MS+CASCADE_MAX_MS+40);
+    return;
+  }
+
+  // Desktop uses the exact same top/down and bottom/up geometry as tablet,
+  // but owns its title lifecycle so rapid clicks cannot cancel the title motion.
   if(desktopTitleTimer){
     window.clearTimeout(desktopTitleTimer);
     desktopTitleTimer=0;
   }
 
+  const seq=++desktopTitleSeq;
   const previousTail=activeAlbumIndex>=0
     ? tailFor(ALBUMS[activeAlbumIndex].title)
     : desktopTailText;
@@ -1134,16 +1167,17 @@ function animateTitle(a,direction,token){
   recordTailWindow.append(oldSpan,newSpan);
   desktopTailText=nextTail;
 
+  // Force the exact tablet start positions before switching to the "go" state.
   void recordTailWindow.offsetHeight;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    if(token!==animToken)return;
+    if(seq!==desktopTitleSeq)return;
     oldSpan.classList.add("go");
     newSpan.classList.add("go");
   }));
 
   desktopTitleTimer=window.setTimeout(()=>{
+    if(seq!==desktopTitleSeq)return;
     desktopTitleTimer=0;
-    if(token!==animToken)return;
     recordTailWindow.innerHTML="";
     const settled=document.createElement("span");
     settled.className="record-tail-piece current";
