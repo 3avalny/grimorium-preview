@@ -695,9 +695,8 @@ footer{
     position:static;grid-area:1/1;width:100%;
     transform:translateX(0);opacity:1;
     transition:
-      transform .48s cubic-bezier(.22,.78,.2,1),
-      opacity .48s ease;
-    will-change:transform,opacity
+      transform .30s cubic-bezier(.22,.78,.2,1),
+      opacity .24s ease
   }
   .credits-panel.current{transform:translateX(0);opacity:1}
   .credits-panel.incoming.down{transform:translateX(108%);opacity:.18}
@@ -707,7 +706,7 @@ footer{
   .credits-panel.outgoing.up.go{transform:translateX(108%);opacity:.08}
   .credits-panel.incoming.go{
     transform:translateX(0);opacity:1;
-    transition-delay:95ms
+    transition-delay:55ms
   }
   .credits-panel.outgoing.go{transition-delay:0ms}
   .live{padding:46px 18px}
@@ -1144,7 +1143,7 @@ function animateWindow(windowEl,newPanel,direction,token){
     newPanel.classList.add("go");
   }));
 
-  const delay=mobile?780:(SWAP_MS+CASCADE_MAX_MS+40);
+  const delay=mobile?390:(SWAP_MS+CASCADE_MAX_MS+40);
   window.setTimeout(()=>{
     if(token!==animToken)return;
     oldPanel.remove();
