@@ -1524,7 +1524,7 @@ function createParticleField(){
       const logoW=Math.min(state.width*.56,820);
       const aspect=source.naturalWidth/Math.max(1,source.naturalHeight);
       const logoH=logoW/aspect;
-      const sampleW=state.width<=720?320:(state.width<=1100?500:1100);
+      const sampleW=state.width<=720?320:(state.width<=1100?500:1600);
       const sampleH=Math.max(1,Math.round(sampleW/aspect));
       const off=document.createElement("canvas");
       off.width=sampleW;
@@ -1770,6 +1770,7 @@ function createParticleField(){
       particleCtx.globalCompositeOperation="source-over";
       particleCtx.globalAlpha=alpha*movingParticleAlpha;
       particleCtx.beginPath();
+      const bookHighlightPath=bgStart>.03 ? new Path2D() : null;
 
       let settleDistance=0;
       let settleSamples=0;
@@ -1860,9 +1861,25 @@ function createParticleField(){
         const r=particleMix(logoR,webR,bgStart);
         particleCtx.moveTo(p.x+r,p.y);
         particleCtx.arc(p.x,p.y,r,0,Math.PI*2);
+
+        if(bookHighlightPath && (web.glow??0)>.56){
+          const hr=Math.max(.14,r*(.42+.28*(web.glow??1)));
+          bookHighlightPath.moveTo(p.x+hr,p.y);
+          bookHighlightPath.arc(p.x,p.y,hr,0,Math.PI*2);
+        }
       }
 
       particleCtx.fill();
+
+      // Bright reference pixels get a warmer luminous core, matching the
+      // ivory spine/page edges and sparks in the supplied artwork.
+      if(bookHighlightPath){
+        particleCtx.save();
+        particleCtx.fillStyle="#f3ead8";
+        particleCtx.globalAlpha=alpha*movingParticleAlpha*bgStart*.46;
+        particleCtx.fill(bookHighlightPath);
+        particleCtx.restore();
+      }
 
       if(heroRaw<.12 && settleSamples){
         const avgDistance=settleDistance/settleSamples;
