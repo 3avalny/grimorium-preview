@@ -1448,7 +1448,7 @@ function createParticleField(){
     function desiredCount(){
       if(state.width<=720)return 820;
       if(state.width<=1100)return 1500;
-      return 24000;
+      return 36000;
     }
 
     function buildLogoPoints(){
@@ -1507,7 +1507,7 @@ function createParticleField(){
           seed,
           seed2:particleHash(i+971),
           seed3:particleHash(i+1877),
-          size:.58+particleHash(i+301)*.18
+          size:.48+particleHash(i+301)*.12
         });
       }
       if(state.particles.length>count)state.particles.length=count;
@@ -1589,17 +1589,15 @@ function createParticleField(){
       const leave=particleSmooth((heroRaw-.055)/.34);
       const bgStart=particleSmooth((heroRaw-.26)/.24);
 
-      // Keep the original logo as a very faint anti-alias undercoat only while
-      // the particle logo is fully assembled. It removes the scalloped particle
-      // edge, then disappears before the particles spread into the web.
-      const imageReveal=reducedMotionQuery.matches?1:particleSmooth((heroRaw-.06)/.20);
-      const edgeUndercoat=reducedMotionQuery.matches?0:.34*(1-particleSmooth(heroRaw/.085));
-      introBrandImg.style.opacity=Math.max(imageReveal,edgeUndercoat).toFixed(3);
+      // The assembled logo is particles only. The original PNG stays fully hidden
+      // until the particle logo has dispersed, then it can return as the small header mark.
+      const imageReveal=reducedMotionQuery.matches?1:particleSmooth((heroRaw-.38)/.10);
+      introBrandImg.style.opacity=imageReveal.toFixed(3);
 
       const heroAlpha=particleMix(.94,.18,particleSmooth(leave/.72));
       const bgPulse=.965+.035*Math.sin(now*.00022);
       const alpha=particleMix(heroAlpha,.165*bgPulse,bgStart);
-      const heroSize=particleMix(.96,.78,bgStart);
+      const heroSize=particleMix(.90,.78,bgStart);
       const response=1-Math.pow(.00075,dt/16.67);
 
       particleCtx.fillStyle="#f2f2ef";
@@ -1620,15 +1618,22 @@ function createParticleField(){
         let tx=particleMix(logo.x,web.x,leave)+Math.cos(angle)*arcRadius;
         let ty=particleMix(logo.y,web.y,leave)+Math.sin(angle)*arcRadius*.58;
 
-        // Even while fully assembled, the logo has a tiny organic particle drift.
-        // Keep it sub-pixel-to-~2px and fade it out as the logo begins to disperse.
+        // Small "bee swarm" drift: every particle makes its own tiny irregular
+        // orbit around the source pixel. The tether stays tight so the logo remains legible.
         const logoLive=1-particleSmooth(leave/.72);
+        const swarmT=now*.001;
+        const phase=p.seed*Math.PI*2;
+        const phase2=p.seed2*Math.PI*2;
+        const radius=.42+p.seed3*.78;
+        const speed=.62+p.seed2*.74;
         const logoDriftX=
-          Math.sin(now*.00023+p.seed*11.7+logo.y*.014)*1.15+
-          Math.sin(now*.00010+p.seed2*7.3)*.45;
+          Math.cos(swarmT*speed+phase)*radius+
+          Math.sin(swarmT*(1.72+p.seed*.76)+phase2)*.36+
+          Math.cos(swarmT*(3.05+p.seed2*.55)+phase*1.7)*.16;
         const logoDriftY=
-          Math.cos(now*.00020+p.seed2*12.9+logo.x*.011)*1.00+
-          Math.sin(now*.000085+p.seed*8.1)*.40;
+          Math.sin(swarmT*(speed*.91)+phase2)*radius*.92+
+          Math.cos(swarmT*(1.94+p.seed2*.69)+phase)*.34+
+          Math.sin(swarmT*(2.78+p.seed*.62)+phase2*1.5)*.15;
         tx+=logoDriftX*logoLive;
         ty+=logoDriftY*logoLive;
 
@@ -1647,7 +1652,7 @@ function createParticleField(){
         p.x+= (tx-p.x)*response;
         p.y+= (ty-p.y)*response;
 
-        const r=Math.max(.52,p.size*heroSize);
+        const r=Math.max(.38,p.size*heroSize);
         particleCtx.moveTo(p.x+r,p.y);
         particleCtx.arc(p.x,p.y,r,0,Math.PI*2);
       }
