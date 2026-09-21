@@ -1473,6 +1473,7 @@ function createParticleField(){
       webPoints:[],
       logoStamp:null,
       logoRender:null,
+      logoSettle:1,
       width:0,
       height:0,
       dpr:1,
@@ -1762,34 +1763,24 @@ function createParticleField(){
 
       const heroAlpha=particleMix(.94,.18,particleSmooth(leave/.72));
       const bgPulse=.965+.035*Math.sin(now*.00022);
-      const alpha=particleMix(heroAlpha,.165*bgPulse,bgStart);
+      const alpha=particleMix(heroAlpha,.30*bgPulse,bgStart);
       const heroSize=particleMix(.90,.42,bgStart);
       const response=1-Math.pow(.965,dt/16.67);
 
-      // At rest the logo is a dense field of pixel-sized particles. It is
-      // visually monolithic, but still generated from particle pixels rather
-      // than by compositing the original image.
-      const stampAlpha=1-particleSmooth((heroRaw-.015)/.105);
-      if(state.logoStamp && state.logoRender && stampAlpha>.001){
-        particleCtx.save();
-        particleCtx.globalAlpha=stampAlpha;
-        particleCtx.imageSmoothingEnabled=true;
-        particleCtx.imageSmoothingQuality="high";
-        particleCtx.drawImage(
-          state.logoStamp,
-          state.logoRender.x,
-          state.logoRender.y,
-          state.logoRender.w,
-          state.logoRender.h
-        );
-        particleCtx.restore();
-      }
+      // The dense particle stamp is only the final resting state. During reverse
+      // travel the moving particles stay fully visible until they have physically
+      // returned to the logo, so assembly is the true reverse of dispersal.
+      const nearTop=1-particleSmooth(heroRaw/.035);
+      const stampAlpha=nearTop*state.logoSettle;
+      const movingParticleAlpha=1-stampAlpha;
 
-      const movingParticleAlpha=particleSmooth((heroRaw-.012)/.095);
       particleCtx.fillStyle="#f2f2ef";
       particleCtx.globalCompositeOperation="source-over";
       particleCtx.globalAlpha=alpha*movingParticleAlpha;
       particleCtx.beginPath();
+
+      let settleDistance=0;
+      let settleSamples=0;
 
       const count=state.particles.length;
       for(let i=0;i<count;i++){
@@ -1852,17 +1843,50 @@ function createParticleField(){
         tx+=waveX*live;
         ty+=waveY*live;
 
-        p.x+= (tx-p.x)*response;
-        p.y+= (ty-p.y)*response;
+        const settleBoost=particleSmooth((localLeave-.88)/.12);
+        const followResponse=particleMix(response,.082,settleBoost);
+        p.x+= (tx-p.x)*followResponse;
+        p.y+= (ty-p.y)*followResponse;
+
+        // Sample the actual distance to the home logo. This drives the final
+        // particle-mask handoff only after reverse travel is nearly complete.
+        if(heroRaw<.12 && (i%180===0)){
+          settleDistance+=Math.hypot(p.x-logo.x,p.y-logo.y);
+          settleSamples+=1;
+        }
 
         const logoR=Math.max(.38,p.size*.90);
-        const webR=Math.max(.16,p.size*.30);
+        const webR=Math.max(.24,p.size*.38);
         const r=particleMix(logoR,webR,bgStart);
         particleCtx.moveTo(p.x+r,p.y);
         particleCtx.arc(p.x,p.y,r,0,Math.PI*2);
       }
 
       particleCtx.fill();
+
+      if(heroRaw<.12 && settleSamples){
+        const avgDistance=settleDistance/settleSamples;
+        const settledNow=1-particleSmooth((avgDistance-.65)/5.5);
+        state.logoSettle+= (settledNow-state.logoSettle)*.16;
+      }else{
+        state.logoSettle+=(0-state.logoSettle)*.18;
+      }
+
+      if(state.logoStamp && state.logoRender && stampAlpha>.001){
+        particleCtx.save();
+        particleCtx.globalAlpha=stampAlpha;
+        particleCtx.imageSmoothingEnabled=true;
+        particleCtx.imageSmoothingQuality="high";
+        particleCtx.drawImage(
+          state.logoStamp,
+          state.logoRender.x,
+          state.logoRender.y,
+          state.logoRender.w,
+          state.logoRender.h
+        );
+        particleCtx.restore();
+      }
+
       particleCtx.globalAlpha=1;
       state.raf=requestAnimationFrame(frame);
     }
