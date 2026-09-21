@@ -1589,15 +1589,17 @@ function createParticleField(){
       const leave=particleSmooth((heroRaw-.055)/.34);
       const bgStart=particleSmooth((heroRaw-.26)/.24);
 
-      // Keep the normal image available as the small header logo, but at the top
-      // the particle mask is the logo itself.
+      // Keep the original logo as a very faint anti-alias undercoat only while
+      // the particle logo is fully assembled. It removes the scalloped particle
+      // edge, then disappears before the particles spread into the web.
       const imageReveal=reducedMotionQuery.matches?1:particleSmooth((heroRaw-.06)/.20);
-      introBrandImg.style.opacity=imageReveal.toFixed(3);
+      const edgeUndercoat=reducedMotionQuery.matches?0:.34*(1-particleSmooth(heroRaw/.085));
+      introBrandImg.style.opacity=Math.max(imageReveal,edgeUndercoat).toFixed(3);
 
       const heroAlpha=particleMix(.94,.18,particleSmooth(leave/.72));
       const bgPulse=.965+.035*Math.sin(now*.00022);
       const alpha=particleMix(heroAlpha,.165*bgPulse,bgStart);
-      const heroSize=particleMix(1.08,.78,bgStart);
+      const heroSize=particleMix(.96,.78,bgStart);
       const response=1-Math.pow(.00075,dt/16.67);
 
       particleCtx.fillStyle="#f2f2ef";
