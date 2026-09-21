@@ -59,7 +59,24 @@ body{
   contain:paint
 }
 .site-light-layer,
-.site-rocks-layer{display:none;pointer-events:none}
+.site-rocks-layer{
+  display:block;position:fixed;left:50%;width:100vw;height:auto;max-width:none;
+  object-fit:contain;object-position:center bottom;
+  transform-origin:center bottom;
+  will-change:transform,opacity;
+  backface-visibility:hidden;
+  pointer-events:none;
+  opacity:0
+}
+.site-light-layer{
+  z-index:1;bottom:5vh;
+  transform:translate3d(-50%,140px,0)
+}
+.site-rocks-layer{
+  z-index:8;bottom:-5vh;
+  transform:translate3d(-50%,170px,0)
+}
+.hero-light,.hero-rocks{display:none!important}
 main,footer{position:relative;z-index:2}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none}
@@ -513,23 +530,6 @@ nav{display:none!important}
 
 @media(min-width:721px){
   .site-parallax-bg{display:none}
-  .site-light-layer,
-  .site-rocks-layer{
-    display:block;position:fixed;left:50%;width:100vw;height:auto;max-width:none;
-    object-fit:contain;object-position:center bottom;
-    transform-origin:center bottom;
-    will-change:transform;
-    backface-visibility:hidden
-  }
-  .site-light-layer{
-    z-index:1;bottom:5vh;opacity:1;
-    transform:translate3d(-50%,0,0)
-  }
-  .site-rocks-layer{
-    z-index:8;bottom:-5vh;
-    transform:translate3d(-50%,0,0)
-  }
-  .hero-light,.hero-rocks{display:none}
   .record,
   .bio{
     height:100vh;
@@ -1447,7 +1447,7 @@ function createParticleField(){
     function desiredCount(){
       if(state.width<=720)return 820;
       if(state.width<=1100)return 1500;
-      return 2600;
+      return 5000;
     }
 
     function buildLogoPoints(){
@@ -1672,8 +1672,11 @@ function createParticleField(){
         p.x+= (tx-p.x)*response;
         p.y+= (ty-p.y)*response;
 
-        // Individual shimmer is tiny so the background reads as a silhouette, not stars.
-        const shimmer=.78+p.seed3*.22;
+        // Outside the hero logo the particles should read as one material / one tone.
+        // Preserve only an almost imperceptible variance so the field does not look digitally flat.
+        const logoShimmer=.90+p.seed3*.10;
+        const backgroundShimmer=.985+p.seed3*.015;
+        const shimmer=particleMix(logoShimmer,backgroundShimmer,bgStart);
         particleCtx.globalAlpha=alpha*shimmer;
         const r=p.size*heroSize;
         particleCtx.fillRect(p.x-r*.5,p.y-r*.5,Math.max(.55,r),Math.max(.55,r));
@@ -1795,49 +1798,43 @@ function renderScenes(){
       introCopy.style.opacity="1";
       introCopy.style.transform="translate3d(0,0,0) scale(1)";
       introCopy.style.pointerEvents="auto";
-      if(introLight){
-        introLight.style.opacity="1";
-        introLight.style.transform="translate3d(-50%,0,0)";
-      }
-      if(introRocks){
-        introRocks.style.opacity="1";
-        introRocks.style.transform="translate3d(-50%,0,0)";
-      }
       introHero.querySelector(".hero-inner").style.visibility=isMobile?"visible":(raw>=.995?"hidden":"visible");
     }else{
       introBrand.style.transform=`translate(-50%,-50%) translate3d(0,${deltaY.toFixed(2)}px,0) scale(${scale.toFixed(4)})`;
-    const introCopyY=(1-revealIn)*24-(isMobile?0:desktopExit*42);
-    introCopy.style.opacity=reveal.toFixed(3);
-    introCopy.style.transform=`translate3d(0,${introCopyY.toFixed(2)}px,0) scale(${(.992+revealIn*.008).toFixed(4)})`;
-    introCopy.style.pointerEvents=reveal>.88?"auto":"none";
-    if(isMobile){
-      if(introLight){
-        introLight.style.opacity=(1-exit).toFixed(3);
-        introLight.style.transform="translate3d(-50%,0,0)";
-      }
-      if(introRocks){
-        introRocks.style.opacity=(1-exit).toFixed(3);
-        introRocks.style.transform="translate3d(-50%,0,0)";
-      }
-    }
+      const introCopyY=(1-revealIn)*24-(isMobile?0:desktopExit*42);
+      introCopy.style.opacity=reveal.toFixed(3);
+      introCopy.style.transform=`translate3d(0,${introCopyY.toFixed(2)}px,0) scale(${(.992+revealIn*.008).toFixed(4)})`;
+      introCopy.style.pointerEvents=reveal>.88?"auto":"none";
       introHero.style.setProperty("--intro-bg-opacity",bgReveal.toFixed(3));
       introHero.querySelector(".hero-inner").style.visibility=isMobile?"visible":(raw>=.995?"hidden":"visible");
     }
   }
 
-  if(parallaxLayer){
-    if(isMobile){
-      parallaxLayer.style.transform="translate3d(0,0,0) scale(1.10)";
-    }else{
-      const pageRange=Math.max(1,document.documentElement.scrollHeight-window.innerHeight);
-      const pageProgress=reducedMotion?0:clamp01(scrollY/pageRange);
-      if(siteLight){
-        siteLight.style.opacity="1";
-        siteLight.style.transform=`translate3d(-50%,${(pageProgress*29).toFixed(2)}px,0)`;
-      }
-      if(siteRocks){
-        siteRocks.style.transform=`translate3d(-50%,${(pageProgress*34).toFixed(2)}px,0)`;
-      }
+  if(parallaxLayer && isMobile){
+    parallaxLayer.style.transform="translate3d(0,0,0) scale(1.10)";
+  }
+
+  // Light + rocks exist only for Biography. They rise from below as the section enters,
+  // then move at slightly different rates to keep the depth/parallax effect.
+  if(parallaxBio && (siteLight || siteRocks)){
+    const bioRect=parallaxBio.getBoundingClientRect();
+    const vh=Math.max(1,window.innerHeight);
+    const revealDistance=vh*.62;
+    const bioReveal=reducedMotion
+      ? (bioRect.top<vh*.55?1:0)
+      : smoothstep((vh*.94-bioRect.top)/revealDistance);
+    const bioTravel=clamp01((vh-bioRect.top)/Math.max(1,vh+bioRect.height));
+    const rise=reducedMotion?0:(1-bioReveal);
+
+    if(siteLight){
+      const lightY=rise*150+(bioTravel-.5)*-24;
+      siteLight.style.opacity=(bioReveal*.92).toFixed(3);
+      siteLight.style.transform=`translate3d(-50%,${lightY.toFixed(2)}px,0)`;
+    }
+    if(siteRocks){
+      const rocksY=rise*190+(bioTravel-.5)*-38;
+      siteRocks.style.opacity=bioReveal.toFixed(3);
+      siteRocks.style.transform=`translate3d(-50%,${rocksY.toFixed(2)}px,0)`;
     }
   }
 }
