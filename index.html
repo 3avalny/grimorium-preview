@@ -1434,8 +1434,9 @@ function renderScenes(){
       introHero.querySelector(".hero-inner").style.visibility=isMobile?"visible":(raw>=.995?"hidden":"visible");
     }else{
       introBrand.style.transform=`translate(-50%,-50%) translate3d(0,${deltaY.toFixed(2)}px,0) scale(${scale.toFixed(4)})`;
+    const introCopyY=(1-revealIn)*24-(isMobile?0:exit*24);
     introCopy.style.opacity=reveal.toFixed(3);
-    introCopy.style.transform=`translate3d(0,${((1-revealIn)*24).toFixed(2)}px,0) scale(${(.992+revealIn*.008).toFixed(4)})`;
+    introCopy.style.transform=`translate3d(0,${introCopyY.toFixed(2)}px,0) scale(${(.992+revealIn*.008).toFixed(4)})`;
     introCopy.style.pointerEvents=reveal>.88?"auto":"none";
     if(isMobile){
       if(introLight){
