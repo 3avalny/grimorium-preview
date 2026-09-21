@@ -1447,7 +1447,7 @@ function createParticleField(){
     function desiredCount(){
       if(state.width<=720)return 820;
       if(state.width<=1100)return 1500;
-      return 5000;
+      return 10000;
     }
 
     function buildLogoPoints(){
@@ -1464,8 +1464,8 @@ function createParticleField(){
       octx.drawImage(source,0,0,sampleW,sampleH);
       const data=octx.getImageData(0,0,sampleW,sampleH).data;
       const candidates=[];
-      // Desktop needs a true 5k-point mask. The old step of 2 only exposed
-      // ~2.1k usable pixels from this logo, so the requested count was never reached.
+      // Desktop samples every mask pixel so the requested 10k points are real,
+      // not a nominal cap that gets cut down by a sparse scan.
       const scanStep=state.width<=1100?2:1;
 
       for(let y=0;y<sampleH;y+=scanStep){
@@ -1514,99 +1514,60 @@ function createParticleField(){
       document.documentElement.classList.add("particle-field-ready");
     }
 
-    function sigilPoint(setIndex,index,count){
+    function webPoint(index,count){
       const w=state.width,h=state.height;
-      const mobile=w<=720;
-      const groups=mobile?2:3;
-      const g=index%groups;
-      const j=Math.floor(index/groups);
-      const localCount=Math.ceil(count/groups);
-      const u=(j+.5)/localCount;
-      const seed=particleHash(index+setIndex*1709);
-      const seed2=particleHash(index+setIndex*3313+47);
+      const cx=w*.51;
+      const cy=h*.47;
+      const maxR=Math.hypot(Math.max(cx,w-cx),Math.max(cy,h-cy))*1.12;
+      const minR=Math.min(w,h)*.045;
 
-      const centers=mobile
-        ? [[.22,.30],[.76,.72]]
-        : [[.17,.28],[.78,.36],[.50,.78]];
-      const cx=centers[g][0]*w;
-      const cy=centers[g][1]*h;
-      const base=Math.min(w,h)*(mobile?.19:.205);
-      const scale=base*(.72+g*.12);
+      // Keep the web deterministic: the same point always belongs to the same
+      // strand, so scrolling between sections never changes the background shape.
+      const ringShare=.64;
+      const ringCount=Math.max(9,Math.round(Math.min(w,h)/58));
+      const spokeCount=Math.max(18,Math.round(w/76));
+      const ringPoints=Math.floor(count*ringShare);
 
-      let x=0,y=0;
-      const branch=Math.floor(u*6)%6;
-      const t=(u*6)%1;
-      const a=t*Math.PI*2;
+      let x,y;
 
-      if(setIndex%3===0){
-        // Broken ritual wheel: rings, a vertical spine and asymmetric horns.
-        if(branch<=1){
-          const r=scale*(branch===0?.88:.52);
-          x=Math.cos(a)*r;
-          y=Math.sin(a)*r*.92;
-        }else if(branch===2){
-          x=(seed-.5)*scale*.09;
-          y=(t-.5)*scale*2.05;
-        }else if(branch===3){
-          const s=t*2-1;
-          x=s*scale*.96;
-          y=-scale*.18-Math.abs(s)*scale*.42+Math.sin(s*Math.PI*2)*scale*.10;
-        }else if(branch===4){
-          const s=t*2-1;
-          x=s*scale*.78;
-          y=scale*.17+Math.abs(s)*scale*.56;
-        }else{
-          const s=t*2-1;
-          x=s*scale*.48;
-          y=s*scale*.78;
-        }
-      }else if(setIndex%3===1){
-        // Mirrored thorn / antler shape.
-        const side=(index&1)?1:-1;
-        const q=(u*3)%1;
-        const band=Math.floor(u*3);
-        if(band===0){
-          x=side*scale*(.10+q*.92);
-          y=-scale*.74+q*scale*1.28+Math.sin(q*Math.PI*2)*scale*.16;
-        }else if(band===1){
-          x=side*scale*(.05+Math.sin(q*Math.PI*.92)*.82);
-          y=scale*.65-q*scale*1.42;
-        }else{
-          x=side*scale*(.12+q*.63);
-          y=(q-.5)*scale*.35+Math.sin(q*Math.PI*3)*scale*.24;
-        }
+      if(index<ringPoints){
+        // Irregular concentric web loops.
+        const local=index/ringPoints;
+        const ring=Math.min(ringCount-1,Math.floor(local*ringCount));
+        const within=(local*ringCount)-ring;
+        const theta=within*Math.PI*2;
+        const radius=minR+(maxR-minR)*Math.pow((ring+1)/ringCount,.93);
+
+        // A few low-frequency bends make the loops organic instead of geometric.
+        const wobble=
+          Math.sin(theta*3+ring*.61)*radius*.016+
+          Math.sin(theta*7-ring*.37)*radius*.006;
+
+        const rx=(radius+wobble);
+        const ry=(radius+wobble)*(h/w)*1.13;
+        x=cx+Math.cos(theta)*rx;
+        y=cy+Math.sin(theta)*ry;
       }else{
-        // Tall rune: diamond/circle fragments with slashed arms.
-        if(branch===0){
-          x=(t-.5)*scale*.10;
-          y=(t-.5)*scale*2.15;
-        }else if(branch===1){
-          const r=scale*.62;
-          x=Math.cos(a)*r;
-          y=Math.sin(a)*r*.72;
-        }else if(branch===2){
-          const s=t*2-1;
-          x=s*scale*.82;
-          y=-Math.abs(s)*scale*.62;
-        }else if(branch===3){
-          const s=t*2-1;
-          x=s*scale*.72;
-          y=Math.abs(s)*scale*.68;
-        }else if(branch===4){
-          const ang=Math.PI*.25+t*Math.PI*.5;
-          x=Math.cos(ang)*scale*.62;
-          y=Math.sin(ang)*scale*.62;
-        }else{
-          x=(t-.5)*scale*1.05;
-          y=Math.sin(t*Math.PI*2)*scale*.10;
-        }
+        // Radial strands connecting all loops.
+        const local=(index-ringPoints)/Math.max(1,count-ringPoints);
+        const spoke=Math.min(spokeCount-1,Math.floor(local*spokeCount));
+        const along=(local*spokeCount)-spoke;
+        const baseTheta=(spoke/spokeCount)*Math.PI*2;
+        const radius=minR+(maxR-minR)*along;
+        const bend=Math.sin(along*Math.PI*2+spoke*.73)*.028+
+                   Math.sin(along*Math.PI*5+spoke*.19)*.009;
+        const theta=baseTheta+bend;
+
+        x=cx+Math.cos(theta)*radius;
+        y=cy+Math.sin(theta)*radius*(h/w)*1.13;
       }
 
-      // Make the geometry feel hand-drawn rather than CAD-perfect.
-      const rough=(mobile?2.4:3.4);
-      x+=(seed-.5)*rough;
-      y+=(seed2-.5)*rough;
-      return {x:cx+x,y:cy+y};
+      // Stable per-particle roughness prevents perfectly computer-clean lines.
+      const rough=1.35;
+      x+=(particleHash(index+1409)-.5)*rough;
+      y+=(particleHash(index+2903)-.5)*rough;
+
+      return {x,y};
     }
 
     function frame(now){
@@ -1626,26 +1587,15 @@ function createParticleField(){
       const leave=particleSmooth((heroRaw-.055)/.34);
       const bgStart=particleSmooth((heroRaw-.26)/.24);
 
-      // Once the logo has left, use page progress to continuously morph between sigils.
-      const maxScroll=Math.max(1,document.documentElement.scrollHeight-state.height);
-      const afterHero=particleClamp((scrollY-heroRange*.42)/Math.max(1,maxScroll-heroRange*.42));
-      const stage=afterHero*2.72;
-      const setA=Math.floor(stage)%3;
-      const setB=(setA+1)%3;
-      const stagePhase=stage-Math.floor(stage);
-      // Hold each sigil long enough to be clearly readable, then morph near
-      // the end of the segment instead of constantly staying between shapes.
-      const setMix=particleSmooth(particleClamp((stagePhase-.68)/.25));
-
       // Keep the normal image available as the small header logo, but at the top
       // the particle mask is the logo itself.
       const imageReveal=reducedMotionQuery.matches?1:particleSmooth((heroRaw-.06)/.20);
       introBrandImg.style.opacity=imageReveal.toFixed(3);
 
-      const heroAlpha=particleMix(.92,.13,particleSmooth(leave/.72));
-      const bgPulse=.94+.06*Math.sin(now*.00024);
-      const alpha=particleMix(heroAlpha,.115*bgPulse,bgStart);
-      const heroSize=particleMix(.86,1.10,bgStart);
+      const heroAlpha=particleMix(.94,.18,particleSmooth(leave/.72));
+      const bgPulse=.965+.035*Math.sin(now*.00022);
+      const alpha=particleMix(heroAlpha,.165*bgPulse,bgStart);
+      const heroSize=particleMix(.72,.94,bgStart);
       const response=1-Math.pow(.00075,dt/16.67);
 
       particleCtx.fillStyle="#f2f2ef";
@@ -1655,24 +1605,26 @@ function createParticleField(){
       for(let i=0;i<count;i++){
         const p=state.particles[i];
         const logo=state.logoPoints[i]||state.logoPoints[i%state.logoPoints.length];
-        const a=sigilPoint(setA,i,count);
-        const b=sigilPoint(setB,i,count);
-        const motif={
-          x:particleMix(a.x,b.x,setMix),
-          y:particleMix(a.y,b.y,setMix)
-        };
+        const web=webPoint(i,count);
 
-        // Curved dispersal path: strongest in the middle of the hero morph.
+        // Curved dispersal only while moving from the logo into the web.
         const arc=Math.sin(Math.PI*leave);
-        const angle=(p.seed*Math.PI*2)+(setA*.83);
-        const arcRadius=(44+p.seed2*190)*arc;
-        let tx=particleMix(logo.x,motif.x,leave)+Math.cos(angle)*arcRadius;
-        let ty=particleMix(logo.y,motif.y,leave)+Math.sin(angle)*arcRadius*.62;
+        const angle=p.seed*Math.PI*2;
+        const arcRadius=(28+p.seed2*150)*arc;
+        let tx=particleMix(logo.x,web.x,leave)+Math.cos(angle)*arcRadius;
+        let ty=particleMix(logo.y,web.y,leave)+Math.sin(angle)*arcRadius*.58;
 
-        // Tiny living drift. It is deliberately much smaller at the hero logo.
-        const driftAmount=particleMix(.35,3.4,bgStart);
-        tx+=Math.sin(now*.00034+p.seed*19+i*.013)*driftAmount;
-        ty+=Math.cos(now*.00029+p.seed2*23+i*.011)*driftAmount;
+        // The formed web stays in the same place on every section. Only a slow,
+        // low-amplitude distortion keeps it alive.
+        const live=bgStart;
+        const waveX=
+          Math.sin(now*.00018+web.y*.010+p.seed*4.2)*5.0+
+          Math.sin(now*.00011+web.x*.006)*2.4;
+        const waveY=
+          Math.cos(now*.00016+web.x*.008+p.seed2*4.7)*4.3+
+          Math.sin(now*.000095+web.y*.007)*2.0;
+        tx+=waveX*live;
+        ty+=waveY*live;
 
         p.x+= (tx-p.x)*response;
         p.y+= (ty-p.y)*response;
