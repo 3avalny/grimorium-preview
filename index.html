@@ -1057,35 +1057,6 @@ function animateTitle(a,direction,token){
   }
 
   if(!direction){
-      recordTitle.dataset.mobileTitle=a.title.toUpperCase();
-      setStaticTail(nextTail);
-      return;
-    }
-
-    const forward=direction==="down";
-    const exitClass=forward?"mobile-title-exit-left":"mobile-title-exit-right";
-    const prepClass=forward?"mobile-title-prep-right":"mobile-title-prep-left";
-
-    recordTitle.classList.add(exitClass);
-
-    window.setTimeout(()=>{
-      if(token!==animToken)return;
-
-      recordTitle.classList.remove(exitClass);
-      recordTitle.classList.add(prepClass);
-      recordTitle.dataset.mobileTitle=a.title.toUpperCase();
-      setStaticTail(nextTail);
-
-      void recordTitle.offsetWidth;
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        if(token!==animToken)return;
-        recordTitle.classList.remove(prepClass);
-      }));
-    },170);
-    return;
-  }
-
-  if(!direction){
     setStaticTail(nextTail);
     return;
   }
