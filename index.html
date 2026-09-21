@@ -449,21 +449,21 @@ nav{display:none!important}
 
 .bottom{
   position:relative;z-index:3;
-  display:block;background:#07090b;border-top:0
+  display:block;background:#000;border-top:0
 }
 .bottom:before{
-  content:"";position:absolute;z-index:0;left:0;right:0;top:-145px;height:145px;
+  content:"";position:absolute;z-index:0;left:0;right:0;top:-170px;height:170px;
   pointer-events:none;
   background:
     radial-gradient(
-      ellipse 90% 205% at 50% -126%,
-      rgba(7,9,11,0) 0%,
-      rgba(7,9,11,0) 76%,
-      rgba(7,9,11,.04) 82%,
-      rgba(7,9,11,.14) 87%,
-      rgba(7,9,11,.32) 92%,
-      rgba(7,9,11,.62) 97%,
-      #07090b 100%
+      ellipse 94% 220% at 50% -132%,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,0) 74%,
+      rgba(0,0,0,.025) 80%,
+      rgba(0,0,0,.08) 86%,
+      rgba(0,0,0,.20) 91%,
+      rgba(0,0,0,.45) 96%,
+      #000 100%
     )
 }
 .live{display:none!important}
@@ -477,7 +477,7 @@ nav{display:none!important}
 .live-inner,.contact-inner{width:min(var(--shell),100%);margin:auto}
 .live p,.contact p{font-family:var(--serif);font-size:16px;color:#999b97}
 .contact{
-  position:relative;z-index:2;min-height:118px;background:#07090b;
+  position:relative;z-index:2;min-height:118px;background:#000;
   padding:34px var(--pad) 12px;
   display:flex;align-items:flex-end;justify-content:center;
   overflow:visible
@@ -499,7 +499,7 @@ nav{display:none!important}
 
 footer{
   padding:20px var(--pad);display:flex;justify-content:center;text-align:center;
-  background:#07090b;border-top:0;
+  background:#000;border-top:0;
   font-size:8px;letter-spacing:.17em;text-transform:uppercase;color:#5f6568
 }
 
@@ -592,7 +592,7 @@ footer{
     background:url("assets/bio-background2.webp?v=3c75c6af") center center/cover no-repeat;
     opacity:var(--intro-bg-opacity,0)
   }
-  .bottom:before{top:-105px;height:105px}
+  .bottom:before{top:-120px;height:120px}
   html,body,main,.record,.bio{max-width:100%;overflow-x:hidden}
   .record>.shell:before{display:none}
   .record{touch-action:pan-y pinch-zoom;overscroll-behavior-x:none}
