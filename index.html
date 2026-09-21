@@ -78,7 +78,7 @@ header{
 nav{display:none!important}
 
 .hero{
-  position:relative;height:200vh;min-height:1320px;
+  position:relative;height:165vh;min-height:1100px;
   overflow:visible;
   background:rgba(0,0,0,var(--intro-black,1))
 }
@@ -93,9 +93,9 @@ nav{display:none!important}
 .hero-rocks{
   position:absolute;z-index:1;left:50%;bottom:0;
   width:100vw;height:auto;max-width:none;
-  transform:translate3d(-50%,24px,0);
+  transform:translate3d(-50%,0,0);
   transform-origin:center bottom;
-  opacity:0;
+  opacity:1;
   object-fit:contain;object-position:center bottom;
   will-change:transform,opacity;
   pointer-events:none
@@ -132,6 +132,7 @@ nav{display:none!important}
 
 .record{
   --disc-height:427px;
+  margin-top:-12vh;
   --album-size:62px;
   --album-gap:11px;
   position:relative;min-height:100vh;
@@ -615,7 +616,7 @@ footer{
   header{padding-inline:18px;height:72px;grid-template-columns:1fr auto 1fr}
   .brand{left:50%;top:50%}
   .brand img{width:min(76vw,390px);max-width:none;max-height:none}
-  .hero{height:190vh;min-height:1120px}
+  .hero{height:165vh;min-height:1000px}
   .hero-inner{height:100vh;padding:0 18px}
   .hero-rocks{
     width:145vw;
@@ -754,7 +755,7 @@ footer{
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 @supports(height:100dvh){
   .hero-inner{height:100dvh}
-  @media(max-width:720px){.hero{height:190dvh;min-height:1120px}}
+  @media(max-width:720px){.hero{height:165dvh;min-height:1000px}}
 }
 </style>
 </head>
@@ -1299,8 +1300,8 @@ function renderScenes(){
     const move=smoothstep(raw/.36);
     const revealIn=smoothstep((raw-.30)/.16);
     const bgReveal=smoothstep((raw-.46)/.24);
-    const revealOut=1-smoothstep((raw-.86)/.10);
-    const reveal=revealIn*revealOut;
+    const exit=smoothstep((raw-.80)/.16);
+    const reveal=revealIn*(1-exit);
     const layoutLogoWidth=Math.max(1,introBrandImg.offsetWidth);
     const finalLogoWidth=window.innerWidth<=720?155:Math.min(230,window.innerWidth*.15);
     const finalScale=Math.min(1,finalLogoWidth/layoutLogoWidth);
@@ -1313,8 +1314,9 @@ function renderScenes(){
     introCopy.style.transform=`translate3d(0,${((1-revealIn)*24).toFixed(2)}px,0) scale(${(.992+revealIn*.008).toFixed(4)})`;
     introCopy.style.pointerEvents=reveal>.88?"auto":"none";
     if(introRocks){
-      introRocks.style.opacity=reveal.toFixed(3);
-      introRocks.style.transform=`translate3d(-50%,${((1-revealIn)*24).toFixed(2)}px,0)`;
+      const rocksOpacity=1-exit;
+      introRocks.style.opacity=rocksOpacity.toFixed(3);
+      introRocks.style.transform="translate3d(-50%,0,0)";
     }
     introHero.style.setProperty("--intro-black",(1-bgReveal).toFixed(3));
     introHero.style.setProperty("--intro-bg-opacity",bgReveal.toFixed(3));
