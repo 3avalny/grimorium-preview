@@ -155,7 +155,7 @@ nav{display:none!important}
   display:inline-block;
   font-family:"Grimorium Carved",var(--album-display);
   font-weight:400;
-  font-size:1.32em;
+  font-size:2.64em;
   line-height:0;
   vertical-align:baseline
 }
@@ -351,11 +351,15 @@ nav{display:none!important}
 }
 .player{
   width:100%;height:100%;min-height:0;border:0;
-  border-radius:10px;overflow:hidden;background:#111
+  border-radius:10px;overflow:hidden;background:#111;
+  touch-action:pan-y;
+  overscroll-behavior:contain
 }
 .player iframe{
   display:block;width:100%;height:100%;min-height:100%;
-  border:0;background:#111
+  border:0;background:#111;
+  touch-action:pan-y;
+  overscroll-behavior:contain
 }
 .platforms{
   height:var(--disc-height);display:flex;flex-direction:column;
@@ -1387,6 +1391,9 @@ const reducedMotionQuery=window.matchMedia("(prefers-reduced-motion: reduce)");
 document.addEventListener("touchmove",e=>{
   if(e.touches && e.touches.length>1)e.preventDefault();
 },{passive:false});
+window.addEventListener("wheel",e=>{
+  if(e.ctrlKey)e.preventDefault();
+},{passive:false,capture:true});
 
 let sceneFrame=0;
 let introRange=1;
@@ -1694,7 +1701,11 @@ window.addEventListener("blur",()=>setSpotifyScrollLock(false));
 window.addEventListener("resize",()=>setSpotifyScrollLock(false),{passive:true});
 
 window.addEventListener("wheel",e=>{
-  if(window.innerWidth<=720 || e.ctrlKey)return;
+  if(window.innerWidth<=720)return;
+  if(e.ctrlKey){
+    e.preventDefault();
+    return;
+  }
 
   // Spotify owns scrolling inside its player. If its iframe reaches an
   // internal edge, block scroll chaining into the page and desktop snap.
