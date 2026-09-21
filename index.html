@@ -587,15 +587,15 @@ footer{
 }
 @media(max-width:720px){
   .site-parallax-bg{display:none}
-  .hero:before{
-    content:"";display:block;position:fixed;z-index:0;inset:0;pointer-events:none;
-    background:url("assets/bio-background2.webp?v=3c75c6af") center center/cover no-repeat;
-    opacity:var(--intro-bg-opacity,0)
-  }
+  .hero{background:#000}
+  .hero:before{content:none!important}
   .bottom:before{top:-120px;height:120px}
   html,body,main,.record,.bio{max-width:100%;overflow-x:hidden}
   .record>.shell:before{display:none}
-  .record{touch-action:pan-y pinch-zoom;overscroll-behavior-x:none}
+  .record{
+    touch-action:pan-y pinch-zoom;overscroll-behavior-x:none;
+    background:url("assets/bio-background2.webp?v=3c75c6af") center center/cover no-repeat
+  }
   :root{--pad:18px}
   .bio{
     min-height:auto;display:block;padding:0;overflow:hidden;
