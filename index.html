@@ -1533,12 +1533,9 @@ renderScenes();
 let desktopSnapAnimating=false;
 let desktopSnapIndex=0;
 let desktopSnapFrame=0;
-let desktopWheelLastAt=0;
-let desktopWheelLastAbs=0;
-let desktopWheelPeak=0;
-let desktopWheelTriggeredAt=0;
-let desktopWheelTailArmed=false;
-let desktopSnapLastDirection=0;
+let desktopWheelLocked=false;
+let desktopWheelUnlockTimer=0;
+const DESKTOP_WHEEL_GESTURE_GAP=180;
 
 function desktopSnapTargets(){
   const record=document.querySelector(".record");
@@ -1639,6 +1636,14 @@ function triggerDesktopSnap(direction){
   animateDesktopSnap(targets[desktopSnapIndex]);
 }
 
+function armDesktopWheelUnlock(){
+  if(desktopWheelUnlockTimer)window.clearTimeout(desktopWheelUnlockTimer);
+  desktopWheelUnlockTimer=window.setTimeout(()=>{
+    desktopWheelLocked=false;
+    desktopWheelUnlockTimer=0;
+  },DESKTOP_WHEEL_GESTURE_GAP);
+}
+
 window.addEventListener("wheel",e=>{
   if(window.innerWidth<=720 || e.ctrlKey)return;
   if(Math.abs(e.deltaX)>Math.abs(e.deltaY))return;
@@ -1646,44 +1651,16 @@ window.addEventListener("wheel",e=>{
   e.preventDefault();
 
   const direction=Math.sign(e.deltaY);
-  const amount=Math.abs(e.deltaY);
-  if(!direction || amount<.01)return;
+  if(!direction || Math.abs(e.deltaY)<.01)return;
 
-  const now=performance.now();
-  const gap=now-desktopWheelLastAt;
-  const directionChanged=desktopWheelLastAbs>0 && Math.sign(e.deltaY)!==Math.sign(desktopSnapLastDirection||direction);
+  // Every event belonging to the same physical wheel/trackpad gesture
+  // extends the lock. Only the first event may advance a section.
+  armDesktopWheelUnlock();
 
-  let newGesture=gap>72;
+  if(desktopWheelLocked)return;
 
-  if(!newGesture && desktopWheelTailArmed){
-    const burstFloor=Math.max(3.5,desktopWheelLastAbs*1.65);
-    if(amount>=burstFloor && now-desktopWheelTriggeredAt>110){
-      newGesture=true;
-    }
-  }
-
-  if(!newGesture && directionChanged && now-desktopWheelTriggeredAt>80){
-    newGesture=true;
-  }
-
-  if(newGesture){
-    desktopWheelPeak=amount;
-    desktopWheelTailArmed=false;
-    desktopWheelTriggeredAt=now;
-    triggerDesktopSnap(direction);
-  }else{
-    desktopWheelPeak=Math.max(desktopWheelPeak,amount);
-    if(
-      now-desktopWheelTriggeredAt>90 &&
-      amount<=Math.max(2.2,desktopWheelPeak*.32)
-    ){
-      desktopWheelTailArmed=true;
-    }
-  }
-
-  desktopSnapLastDirection=direction;
-  desktopWheelLastAbs=amount;
-  desktopWheelLastAt=now;
+  desktopWheelLocked=true;
+  triggerDesktopSnap(direction);
 },{passive:false});
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{
