@@ -1652,18 +1652,19 @@ function createParticleField(){
       // Match the reference composition to the viewport width. Slight vertical
       // lift keeps the open book behind the Renaissance title like the mockup.
       const refAspect=ref.naturalWidth/Math.max(1,ref.naturalHeight);
-      const dw=tw;
+      const dw=tw*1.075;
       const dh=dw/refAspect;
-      const dx=0;
-      const dy=(th-dh)*.47-th*.015;
+      const dx=(tw-dw)*.5;
+      const dy=(th-dh)*.50+th*.020;
       ctx.drawImage(ref,dx,dy,dw,dh);
 
       // The top mark is still built from particles, but sourced from the real logo.
-      const logoW=Math.min(tw*.19,190);
+      // It is brighter than before so it reads clearly like the reference mockup.
+      const logoW=Math.min(tw*.20,205);
       const logoH=logoW/(source.naturalWidth/Math.max(1,source.naturalHeight));
       ctx.save();
-      ctx.globalAlpha=.86;
-      ctx.drawImage(source,tw*.5-logoW*.5,th*.028,logoW,logoH);
+      ctx.globalAlpha=1;
+      ctx.drawImage(source,tw*.5-logoW*.5,th*.027,logoW,logoH);
       ctx.restore();
 
       const image=ctx.getImageData(0,0,tw,th);
@@ -1681,28 +1682,51 @@ function createParticleField(){
           if(a<=.01)continue;
 
           const lum=(r*.2126+g*.7152+b*.0722)*a;
-          if(lum<7.5)continue;
+          if(lum<14)continue;
 
           const inBook=x>bookLeft && x<bookRight && y>bookTop && y<bookBottom;
-          const topLogo=y<th*.17 && Math.abs(x-tw*.5)<tw*.13;
-          const glow=particleClamp((lum-6)/205,.06,1);
+          const topLogo=y<th*.17 && Math.abs(x-tw*.5)<tw*.14;
+          const spine=
+            Math.abs(x-tw*.5)<tw*.030 &&
+            y>th*.18 && y<th*.86;
+          const brightEdge=inBook && lum>92;
+          const midEdge=inBook && lum>42;
+
+          // Weak outer particles are intentionally thinned. This removes the
+          // grey fog while preserving long readable filaments.
+          if(!inBook && !topLogo && lum<34){
+            const keep=particleHash(x*0.173+y*0.619+331);
+            if(keep>.30)continue;
+          }
+
+          const glow=particleClamp((lum-12)/188,.04,1);
+          let tier=0;
+          if(topLogo || spine || lum>145)tier=2;
+          else if(lum>62 || brightEdge)tier=1;
+
           const point={
             x:x/tw*w,
             y:y/th*h,
-            motion:topLogo?.08:(inBook?.18:1),
-            glow
+            motion:topLogo?.07:(inBook?.15:1),
+            glow,
+            tier
           };
 
-          // Bright reference pixels receive more particles: this recreates the
-          // dense ivory spine/page edges while keeping dark web threads delicate.
-          candidates.push(point);
-          if(lum>26)candidates.push(point);
-          if(lum>58)candidates.push(point);
-          if(lum>105){candidates.push(point);candidates.push(point)}
-          if(lum>170){candidates.push(point);candidates.push(point)}
+          // Weighted density map:
+          // spine / brightest page edges > main page structure > outer filaments.
+          let weight=1;
+          if(topLogo)weight=5;
+          else if(spine)weight=10;
+          else if(lum>175)weight=8;
+          else if(lum>120)weight=6;
+          else if(brightEdge)weight=5;
+          else if(midEdge)weight=3;
+          else if(inBook)weight=2;
+          else if(lum>60)weight=2;
+
+          for(let n=0;n<weight;n++)candidates.push(point);
         }
       }
-
       if(!candidates.length){
         return Array.from({length:count},()=>({
           x:w*.5,y:h*.56,motion:.2,glow:1
@@ -1718,7 +1742,7 @@ function createParticleField(){
           Math.floor(((i*phi)%1)*candidates.length)
         );
         const p=candidates[idx];
-        points.push({x:p.x,y:p.y,motion:p.motion,glow:p.glow});
+        points.push({x:p.x,y:p.y,motion:p.motion,glow:p.glow,tier:p.tier||0});
       }
       return points;
     }
@@ -1751,7 +1775,7 @@ function createParticleField(){
 
       const heroAlpha=particleMix(.94,.18,particleSmooth(leave/.72));
       const bgPulse=.965+.035*Math.sin(now*.00022);
-      const alpha=particleMix(heroAlpha,.68*bgPulse,bgStart);
+      const alpha=particleMix(heroAlpha,.62*bgPulse,bgStart);
       const heroSize=particleMix(.90,.42,bgStart);
       const response=1-Math.pow(.965,dt/16.67);
 
@@ -1763,14 +1787,15 @@ function createParticleField(){
       const movingParticleAlpha=1-stampAlpha;
 
       const bookMix=bgStart;
-      const pr=Math.round(particleMix(242,224,bookMix));
-      const pg=Math.round(particleMix(242,215,bookMix));
-      const pb=Math.round(particleMix(239,196,bookMix));
+      const pr=Math.round(particleMix(242,211,bookMix));
+      const pg=Math.round(particleMix(242,198,bookMix));
+      const pb=Math.round(particleMix(239,174,bookMix));
       particleCtx.fillStyle=`rgb(${pr},${pg},${pb})`;
       particleCtx.globalCompositeOperation="source-over";
       particleCtx.globalAlpha=alpha*movingParticleAlpha;
       particleCtx.beginPath();
-      const bookHighlightPath=bgStart>.03 ? new Path2D() : null;
+      const bookMidPath=bgStart>.03 ? new Path2D() : null;
+      const bookHotPath=bgStart>.03 ? new Path2D() : null;
 
       let settleDistance=0;
       let settleSamples=0;
@@ -1829,12 +1854,12 @@ function createParticleField(){
         const live=bgStart;
         const motion=web.motion??.35;
         const waveX=(
-          Math.sin(now*.00022+web.y*.0105)*18.0+
-          Math.sin(now*.000095+web.x*.0052+web.y*.0031)*9.0
+          Math.sin(now*.00021+web.y*.0105)*21.0+
+          Math.sin(now*.000090+web.x*.0052+web.y*.0031)*10.5
         )*motion;
         const waveY=(
-          Math.cos(now*.00019+web.x*.0092)*15.0+
-          Math.sin(now*.000082+web.y*.0068-web.x*.0027)*7.5
+          Math.cos(now*.00018+web.x*.0092)*18.0+
+          Math.sin(now*.000078+web.y*.0068-web.x*.0027)*9.0
         )*motion;
         tx+=waveX*live;
         ty+=waveY*live;
@@ -1857,27 +1882,40 @@ function createParticleField(){
         }
 
         const logoR=Math.max(.38,p.size*.90);
-        const webR=Math.max(.22,p.size*(.34+.30*(web.glow??1)));
+        const webR=Math.max(.19,p.size*(.30+.27*(web.glow??1)));
         const r=particleMix(logoR,webR,bgStart);
         particleCtx.moveTo(p.x+r,p.y);
         particleCtx.arc(p.x,p.y,r,0,Math.PI*2);
 
-        if(bookHighlightPath && (web.glow??0)>.56){
-          const hr=Math.max(.14,r*(.42+.28*(web.glow??1)));
-          bookHighlightPath.moveTo(p.x+hr,p.y);
-          bookHighlightPath.arc(p.x,p.y,hr,0,Math.PI*2);
+        const tier=web.tier||0;
+        if(bookMidPath && tier>=1){
+          const mr=Math.max(.13,r*(.45+.20*(web.glow??1)));
+          bookMidPath.moveTo(p.x+mr,p.y);
+          bookMidPath.arc(p.x,p.y,mr,0,Math.PI*2);
+        }
+        if(bookHotPath && tier>=2){
+          const hr=Math.max(.15,r*(.58+.24*(web.glow??1)));
+          bookHotPath.moveTo(p.x+hr,p.y);
+          bookHotPath.arc(p.x,p.y,hr,0,Math.PI*2);
         }
       }
 
       particleCtx.fill();
 
-      // Bright reference pixels get a warmer luminous core, matching the
-      // ivory spine/page edges and sparks in the supplied artwork.
-      if(bookHighlightPath){
+      // Three-level light hierarchy:
+      // base ivory field -> brighter page structure -> near-white hot spine/edges.
+      if(bookMidPath){
         particleCtx.save();
-        particleCtx.fillStyle="#f3ead8";
-        particleCtx.globalAlpha=alpha*movingParticleAlpha*bgStart*.46;
-        particleCtx.fill(bookHighlightPath);
+        particleCtx.fillStyle="#e8dcc2";
+        particleCtx.globalAlpha=alpha*movingParticleAlpha*bgStart*.34;
+        particleCtx.fill(bookMidPath);
+        particleCtx.restore();
+      }
+      if(bookHotPath){
+        particleCtx.save();
+        particleCtx.fillStyle="#fff4df";
+        particleCtx.globalAlpha=alpha*movingParticleAlpha*bgStart*.72;
+        particleCtx.fill(bookHotPath);
         particleCtx.restore();
       }
 
