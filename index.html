@@ -1620,6 +1620,18 @@ function createParticleField(){
         let tx=particleMix(logo.x,web.x,leave)+Math.cos(angle)*arcRadius;
         let ty=particleMix(logo.y,web.y,leave)+Math.sin(angle)*arcRadius*.58;
 
+        // Even while fully assembled, the logo has a tiny organic particle drift.
+        // Keep it sub-pixel-to-~2px and fade it out as the logo begins to disperse.
+        const logoLive=1-particleSmooth(leave/.72);
+        const logoDriftX=
+          Math.sin(now*.00023+p.seed*11.7+logo.y*.014)*1.15+
+          Math.sin(now*.00010+p.seed2*7.3)*.45;
+        const logoDriftY=
+          Math.cos(now*.00020+p.seed2*12.9+logo.x*.011)*1.00+
+          Math.sin(now*.000085+p.seed*8.1)*.40;
+        tx+=logoDriftX*logoLive;
+        ty+=logoDriftY*logoLive;
+
         // The formed web stays in the same place on every section. Only a slow,
         // low-amplitude distortion keeps it alive.
         const live=bgStart;
