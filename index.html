@@ -660,17 +660,13 @@ footer{
   .disc-content-panel.incoming.go .stage-cover{transition-delay:0ms}
   .disc-content-panel.incoming.go .stage-year{transition-delay:18ms}
   .disc-content-panel.incoming.go .stage-platforms{transition-delay:42ms}
-  .disc-content-panel.incoming.go .stage-stream{transition-delay:55ms}
+  .disc-content-panel.incoming.go .stage-stream{transition-delay:110ms}
   .disc-content-panel.outgoing.go .cascade-stage{transition-delay:0ms}
 
-  .disc-content-panel.incoming.down .stage-stream,
-  .disc-content-panel.incoming.up .stage-stream,
   .disc-content-panel.outgoing.down.go .stage-stream,
-  .disc-content-panel.outgoing.up.go .stage-stream,
-  .disc-content-panel.incoming.go .stage-stream{
-    transform:none
-  }
-  .stage-stream{
+  .disc-content-panel.outgoing.up.go .stage-stream{
+    transform:none;
+    opacity:0;
     transition:opacity .18s ease!important
   }
   .track-col{display:none!important}
