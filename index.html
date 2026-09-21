@@ -17,17 +17,10 @@
   font-weight:400;
   font-display:swap;
 }
-@font-face{
-  font-family:"GrimoriumCarved";
-  src:url("assets/GrimoriumCarved-Regular.woff2") format("woff2");
-  font-style:normal;
-  font-weight:400;
-  font-display:swap;
-}
 :root{
   --bg:#07090b;--bg2:#0a0d10;--ink:#dddcd5;--soft:#a6a6a0;--dim:#6f7477;
   --line:rgba(223,224,218,.13);--line-strong:rgba(223,224,218,.32);--red:#8b1e23;
-  --serif:"Cormorant Garamond",Georgia,serif;--sans:"Manrope",Arial,sans-serif;--album-display:"Cattedrale-Demo",var(--serif);--disc-album-display:"GrimoriumCarved",var(--album-display);
+  --serif:"Cormorant Garamond",Georgia,serif;--sans:"Manrope",Arial,sans-serif;--album-display:"Cattedrale-Demo",var(--serif);
   --pad:clamp(20px,4.7vw,72px);--shell:1380px
 }
 *{box-sizing:border-box}
@@ -71,14 +64,15 @@ header{
 }
 .brand{
   grid-column:2;justify-self:center;display:inline-flex;align-items:center;width:max-content;
-  transform:translate3d(0,calc(50vh - 46px),0) scale(3.4);
+  transform:translate3d(0,calc(50vh - 46px),0) scale(1);
   transform-origin:center center;
   will-change:transform;
   backface-visibility:hidden;
   pointer-events:auto
 }
 .brand img{
-  width:clamp(168px,15vw,230px);height:auto;max-height:72px;object-fit:contain;object-position:center;
+  width:min(56vw,820px);height:auto;max-height:none;object-fit:contain;object-position:center;
+  image-rendering:auto;
   mix-blend-mode:normal;filter:drop-shadow(0 5px 20px rgba(0,0,0,.52))
 }
 nav{display:none!important}
@@ -156,7 +150,7 @@ nav{display:none!important}
 .record-head{position:relative;z-index:2;margin-bottom:30px}
 .record-title-slot{
   display:flex;align-items:flex-start;margin:0;
-  font-family:var(--disc-album-display);font-weight:400;
+  font-family:var(--album-display);font-weight:400;
   font-size:clamp(40px,5vw,66px);line-height:1;
   letter-spacing:.13em;text-transform:uppercase;color:var(--ink);
   white-space:nowrap
@@ -447,13 +441,6 @@ nav{display:none!important}
   display:flex;align-items:flex-end;justify-content:center;
   overflow:visible
 }
-.contact:before{
-  content:"";position:absolute;z-index:0;left:0;right:0;top:-250px;height:270px;
-  pointer-events:none;
-  background:
-    radial-gradient(ellipse 78% 82% at 50% 100%,rgba(7,9,11,.98) 0%,rgba(7,9,11,.92) 38%,rgba(7,9,11,.56) 64%,rgba(7,9,11,0) 100%),
-    linear-gradient(to bottom,rgba(7,9,11,0) 0%,rgba(7,9,11,.22) 46%,rgba(7,9,11,.88) 88%,#07090b 100%)
-}
 .contact-inner{position:relative;z-index:1;width:100%;margin:auto}
 .socials{display:flex;flex-wrap:wrap;gap:18px}
 .contact-socials{justify-content:center;align-items:center;margin:0}
@@ -484,24 +471,10 @@ footer{
     border-top:0
   }
   .record{overflow:hidden}
-  .bio{
-    box-shadow:inset 0 -110px 90px -72px rgba(7,9,11,.92)
-  }
-
   .record:before,
-  .bio:before{
-    content:"";position:absolute;z-index:0;inset:0;pointer-events:none;
-    background:rgba(4,6,8,.34)
-  }
-
   .record:after,
-  .bio:after{
-    content:"";position:absolute;z-index:0;inset:0;pointer-events:none;
-    opacity:.12;
-    background-image:url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.55' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='64' height='64' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E");
-    background-size:64px 64px;
-    background-repeat:repeat
-  }
+  .bio:before,
+  .bio:after{content:none!important}
 
   .record-title-slot,
   .track,
@@ -556,7 +529,6 @@ footer{
 }
 @media(max-width:720px){
   .site-parallax-bg{display:none}
-  .contact:before{display:none}
   html,body,main,.record,.bio{max-width:100%;overflow-x:hidden}
   .record>.shell:before{display:none}
   .record{touch-action:pan-y pinch-zoom;overscroll-behavior-x:none}
@@ -565,17 +537,8 @@ footer{
     min-height:auto;display:block;padding:0;overflow:hidden;
     background:url("assets/bio-background.webp") center center/cover no-repeat
   }
-  .bio:before{
-    content:"";position:absolute;z-index:1;inset:0;pointer-events:none;
-    background:rgba(4,6,8,.68)
-  }
-  .bio:after{
-    content:"";position:absolute;z-index:2;inset:0;pointer-events:none;
-    opacity:.12;
-    background-image:url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.55' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='64' height='64' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E");
-    background-size:64px 64px;
-    background-repeat:repeat
-  }
+  .bio:before,
+  .bio:after{content:none!important}
   .bio-side-label{display:none}
   .bio-desktop{display:none}
   .bio-mobile{
@@ -626,9 +589,9 @@ footer{
   header{padding-inline:18px;height:72px;grid-template-columns:1fr auto 1fr}
   .brand{
     grid-column:2;justify-self:center;
-    transform:translate3d(0,calc(50vh - 36px),0) scale(1.9)
+    transform:translate3d(0,calc(50vh - 36px),0) scale(1)
   }
-  .brand img{width:155px;max-width:55vw;max-height:58px}
+  .brand img{width:min(76vw,390px);max-width:none;max-height:none}
   .hero{height:175vh;min-height:1050px}
   .hero-inner{height:100vh;padding:0 18px}
   .hero-copy{width:calc(100% - 36px)}
@@ -1291,14 +1254,12 @@ function renderIntro(){
   if(!introHero || !introHeader || !introBrand || !introBrandImg || !introCopy)return;
 
   const raw=clamp01(window.scrollY/introRange);
-  const move=smoothstep(raw);
-  const reveal=smoothstep((raw-.28)/.48);
-  const finalLogoWidth=Math.max(1,introBrandImg.offsetWidth);
-  const targetWidth=window.innerWidth<=720
-    ? Math.min(window.innerWidth*.76,390)
-    : Math.min(window.innerWidth*.56,820);
-  const startScale=Math.max(1,targetWidth/finalLogoWidth);
-  const scale=startScale+(1-startScale)*move;
+  const move=smoothstep(raw/.72);
+  const reveal=smoothstep((raw-.76)/.20);
+  const layoutLogoWidth=Math.max(1,introBrandImg.offsetWidth);
+  const finalLogoWidth=window.innerWidth<=720?155:Math.min(230,window.innerWidth*.15);
+  const finalScale=Math.min(1,finalLogoWidth/layoutLogoWidth);
+  const scale=1+(finalScale-1)*move;
   const headerCenter=introHeader.offsetHeight/2;
   const y=(window.innerHeight/2-headerCenter)*(1-move);
 
