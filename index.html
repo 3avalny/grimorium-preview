@@ -504,6 +504,7 @@ footer{
 }
 
 @media(min-width:721px){
+  .site-parallax-bg{display:none}
   .site-light-layer,
   .site-rocks-layer{
     display:block;position:fixed;left:50%;width:100vw;height:auto;max-width:none;
@@ -1384,18 +1385,14 @@ function renderScenes(){
     if(window.innerWidth<=720){
       parallaxLayer.style.transform="translate3d(0,0,0) scale(1.10)";
     }else{
-      const travel=Math.max(0,Math.min(scrollY-parallaxStart,parallaxRange));
-      const offset=-travel*.035;
-      parallaxLayer.style.transform=`translate3d(0,${offset.toFixed(2)}px,0) scale(1.10)`;
-
       const pageRange=Math.max(1,document.documentElement.scrollHeight-window.innerHeight);
       const pageProgress=clamp01(scrollY/pageRange);
       if(siteLight){
         siteLight.style.opacity="1";
-        siteLight.style.transform=`translate3d(-50%,${(pageProgress*4).toFixed(2)}px,0)`;
+        siteLight.style.transform=`translate3d(-50%,${(pageProgress*29).toFixed(2)}px,0)`;
       }
       if(siteRocks){
-        siteRocks.style.transform=`translate3d(-50%,${(pageProgress*28).toFixed(2)}px,0)`;
+        siteRocks.style.transform=`translate3d(-50%,${(pageProgress*34).toFixed(2)}px,0)`;
       }
     }
   }
