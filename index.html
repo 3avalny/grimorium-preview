@@ -1652,17 +1652,17 @@ function createParticleField(){
       // Match the reference composition to the viewport width. Slight vertical
       // lift keeps the open book behind the Renaissance title like the mockup.
       const refAspect=ref.naturalWidth/Math.max(1,ref.naturalHeight);
-      const dw=tw;
+      const dw=tw*1.025;
       const dh=dw/refAspect;
-      const dx=0;
-      const dy=(th-dh)*.47-th*.015;
+      const dx=(tw-dw)*.5;
+      const dy=(th-dh)*.485-th*.004;
       ctx.drawImage(ref,dx,dy,dw,dh);
 
       // The top mark is still built from particles, but sourced from the real logo.
       const logoW=Math.min(tw*.19,190);
       const logoH=logoW/(source.naturalWidth/Math.max(1,source.naturalHeight));
       ctx.save();
-      ctx.globalAlpha=.86;
+      ctx.globalAlpha=1;
       ctx.drawImage(source,tw*.5-logoW*.5,th*.028,logoW,logoH);
       ctx.restore();
 
@@ -1751,7 +1751,7 @@ function createParticleField(){
 
       const heroAlpha=particleMix(.94,.18,particleSmooth(leave/.72));
       const bgPulse=.965+.035*Math.sin(now*.00022);
-      const alpha=particleMix(heroAlpha,.68*bgPulse,bgStart);
+      const alpha=particleMix(heroAlpha,.71*bgPulse,bgStart);
       const heroSize=particleMix(.90,.42,bgStart);
       const response=1-Math.pow(.965,dt/16.67);
 
@@ -1771,6 +1771,7 @@ function createParticleField(){
       particleCtx.globalAlpha=alpha*movingParticleAlpha;
       particleCtx.beginPath();
       const bookHighlightPath=bgStart>.03 ? new Path2D() : null;
+      const bookHotPath=bgStart>.03 ? new Path2D() : null;
 
       let settleDistance=0;
       let settleSamples=0;
@@ -1842,7 +1843,7 @@ function createParticleField(){
         const settleBoost=particleSmooth((localLeave-.88)/.12);
         const outwardResponse=particleMix(response,.082,settleBoost);
         // Reverse assembly is intentionally faster than dispersal.
-        const returnResponse=particleMix(.115,.19,1-localLeave);
+        const returnResponse=particleMix(.175,.285,1-localLeave);
         const followResponse=returningToLogo
           ? Math.max(outwardResponse,returnResponse)
           : outwardResponse;
@@ -1862,29 +1863,41 @@ function createParticleField(){
         particleCtx.moveTo(p.x+r,p.y);
         particleCtx.arc(p.x,p.y,r,0,Math.PI*2);
 
-        if(bookHighlightPath && (web.glow??0)>.56){
-          const hr=Math.max(.14,r*(.42+.28*(web.glow??1)));
+        const glow=web.glow??0;
+        if(bookHighlightPath && glow>.52){
+          const hr=Math.max(.14,r*(.44+.28*glow));
           bookHighlightPath.moveTo(p.x+hr,p.y);
           bookHighlightPath.arc(p.x,p.y,hr,0,Math.PI*2);
+        }
+        if(bookHotPath && glow>.80){
+          const sr=Math.max(.13,r*(.36+.18*glow));
+          bookHotPath.moveTo(p.x+sr,p.y);
+          bookHotPath.arc(p.x,p.y,sr,0,Math.PI*2);
         }
       }
 
       particleCtx.fill();
 
-      // Bright reference pixels get a warmer luminous core, matching the
-      // ivory spine/page edges and sparks in the supplied artwork.
+      // Preserve every reference filament, but locally strengthen the light hierarchy.
       if(bookHighlightPath){
         particleCtx.save();
-        particleCtx.fillStyle="#f3ead8";
-        particleCtx.globalAlpha=alpha*movingParticleAlpha*bgStart*.46;
+        particleCtx.fillStyle="#efe2c8";
+        particleCtx.globalAlpha=alpha*movingParticleAlpha*bgStart*.60;
         particleCtx.fill(bookHighlightPath);
+        particleCtx.restore();
+      }
+      if(bookHotPath){
+        particleCtx.save();
+        particleCtx.fillStyle="#fff6e5";
+        particleCtx.globalAlpha=alpha*movingParticleAlpha*bgStart*.76;
+        particleCtx.fill(bookHotPath);
         particleCtx.restore();
       }
 
       if(heroRaw<.12 && settleSamples){
         const avgDistance=settleDistance/settleSamples;
         const settledNow=1-particleSmooth((avgDistance-.65)/5.5);
-        state.logoSettle+= (settledNow-state.logoSettle)*.30;
+        state.logoSettle+= (settledNow-state.logoSettle)*.44;
       }else{
         state.logoSettle+=(0-state.logoSettle)*.18;
       }
