@@ -18,6 +18,13 @@
   font-weight:400;
   font-display:swap;
 }
+@font-face{
+  font-family:"Grimorium Carved";
+  src:url("assets/GrimoriumCarved-Regular.woff2") format("woff2");
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+}
 :root{
   --bg:#000;--bg2:#0a0d10;--ink:#dddcd5;--soft:#a6a6a0;--dim:#6f7477;
   --line:rgba(223,224,218,.13);--line-strong:rgba(223,224,218,.32);--red:#8b1e23;
@@ -26,6 +33,11 @@
   --mobile-album-motion:.32s;--mobile-album-opacity:.24s
 }
 *{box-sizing:border-box}
+*,*::before,*::after{
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  -webkit-touch-callout:none
+}
 html{
   scroll-behavior:smooth;background:var(--bg);
   width:100%;max-width:100%;overflow-x:hidden
@@ -55,7 +67,7 @@ img{
   -webkit-user-select:none;user-select:none;
   -webkit-user-drag:none;user-drag:none
 }
-::selection{background:#dddcd5;color:#000}
+::selection{background:transparent;color:inherit}
 a:focus-visible,
 button:focus-visible{
   outline:1px solid rgba(221,220,213,.92);
@@ -137,6 +149,12 @@ nav{display:none!important}
   margin:0;font-family:var(--album-display);font-weight:400;
   font-size:clamp(54px,8.5vw,124px);line-height:.86;letter-spacing:.075em;text-transform:uppercase;
   text-shadow:0 8px 42px rgba(0,0,0,.86);white-space:nowrap
+}
+.hero-carved-s{
+  font-family:"Grimorium Carved",var(--album-display);
+  font-weight:400;
+  font-size:1em;
+  line-height:inherit
 }
 .hero-sub{
   margin-top:26px;font-family:var(--serif);font-size:clamp(16px,1.7vw,27px);
@@ -368,8 +386,7 @@ nav{display:none!important}
   text-transform:uppercase;color:#62686b;padding-top:3px
 }
 .credits-text-window{
-  position:relative;min-height:104px;overflow:hidden;
-  -webkit-user-select:text!important;user-select:text!important
+  position:relative;min-height:104px;overflow:hidden
 }
 .credits-panel{
   position:absolute;left:0;top:0;width:100%;
@@ -378,15 +395,8 @@ nav{display:none!important}
   transition:
     transform .42s cubic-bezier(.22,.78,.2,1) 360ms,
     opacity .42s ease 360ms;
-  will-change:transform,opacity;
-  -webkit-user-select:text!important;user-select:text!important
+  will-change:transform,opacity
 }
-.credits-panel,
-.credits-panel *{
-  -webkit-user-select:text!important;user-select:text!important
-}
-.credits-panel::selection,
-.credits-panel *::selection{background:#dddcd5;color:#07090b}
 .credit-people strong{
   font-weight:600;color:#b8bab5
 }
@@ -828,7 +838,7 @@ nav{display:none!important}
     <img class="hero-light" src="assets/light.webp?v=0680db37" alt="" aria-hidden="true">
     <img class="hero-rocks" src="assets/rocks.webp?v=8f46a97b" alt="" aria-hidden="true">
     <div class="hero-copy">
-      <h1>Renaissance</h1>
+      <h1>Renai<span class="hero-carved-s">s</span>sance</h1>
       <div class="hero-sub">New album — 2026</div>
       <div class="services" aria-label="Listen on streaming platforms">
         <a href="https://open.spotify.com/artist/65nL8HSKtOigMf9h8d4rUK" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify">
