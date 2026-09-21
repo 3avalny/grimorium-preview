@@ -1424,6 +1424,8 @@ function createParticleField(){
       particles:[],
       logoPoints:[],
       webPoints:[],
+      logoStamp:null,
+      logoRender:null,
       width:0,
       height:0,
       dpr:1,
@@ -1465,8 +1467,53 @@ function createParticleField(){
       octx.drawImage(source,0,0,sampleW,sampleH);
       const data=octx.getImageData(0,0,sampleW,sampleH).data;
       const candidates=[];
-      // Desktop uses a much denser source mask so the particle version reads
-      // almost like the original solid logo from normal viewing distance.
+
+      // Build a dense particle stamp from the native logo pixels. Every visible
+      // source pixel becomes a tiny white particle with source-derived alpha.
+      // This gives the assembled state a truly continuous edge without drawing
+      // the original PNG itself.
+      if(state.width>1100){
+        const nativeW=source.naturalWidth;
+        const nativeH=source.naturalHeight;
+        const native=document.createElement("canvas");
+        native.width=nativeW;
+        native.height=nativeH;
+        const nctx=native.getContext("2d",{willReadFrequently:true});
+        nctx.clearRect(0,0,nativeW,nativeH);
+        nctx.drawImage(source,0,0,nativeW,nativeH);
+        const src=nctx.getImageData(0,0,nativeW,nativeH);
+        const out=nctx.createImageData(nativeW,nativeH);
+        const sd=src.data, od=out.data;
+
+        for(let k=0;k<sd.length;k+=4){
+          const a=sd[k+3]/255;
+          const lum=(sd[k]+sd[k+1]+sd[k+2])/765;
+          const particleAlpha=a*particleClamp((lum-.08)/.92);
+          if(particleAlpha>.01){
+            od[k]=242;
+            od[k+1]=242;
+            od[k+2]=239;
+            od[k+3]=Math.round(particleAlpha*255);
+          }
+        }
+
+        const stamp=document.createElement("canvas");
+        stamp.width=nativeW;
+        stamp.height=nativeH;
+        stamp.getContext("2d").putImageData(out,0,0);
+        state.logoStamp=stamp;
+        state.logoRender={
+          x:state.width*.5-logoW*.5,
+          y:state.height*.5-logoH*.5,
+          w:logoW,
+          h:logoH
+        };
+      }else{
+        state.logoStamp=null;
+        state.logoRender=null;
+      }
+      // Moving particles use a sampled mask; the resting hero uses the dense
+      // native-resolution particle stamp above for a perfectly smooth contour.
       const scanStep=state.width<=1100?2:1;
 
       for(let y=0;y<sampleH;y+=scanStep){
@@ -1600,9 +1647,29 @@ function createParticleField(){
       const heroSize=particleMix(.90,.78,bgStart);
       const response=1-Math.pow(.00075,dt/16.67);
 
+      // At rest the logo is a dense field of pixel-sized particles. It is
+      // visually monolithic, but still generated from particle pixels rather
+      // than by compositing the original image.
+      const stampAlpha=1-particleSmooth((heroRaw-.018)/.105);
+      if(state.logoStamp && state.logoRender && stampAlpha>.001){
+        particleCtx.save();
+        particleCtx.globalAlpha=stampAlpha;
+        particleCtx.imageSmoothingEnabled=true;
+        particleCtx.imageSmoothingQuality="high";
+        particleCtx.drawImage(
+          state.logoStamp,
+          state.logoRender.x,
+          state.logoRender.y,
+          state.logoRender.w,
+          state.logoRender.h
+        );
+        particleCtx.restore();
+      }
+
+      const movingParticleAlpha=particleSmooth((heroRaw-.025)/.11);
       particleCtx.fillStyle="#f2f2ef";
       particleCtx.globalCompositeOperation="source-over";
-      particleCtx.globalAlpha=alpha;
+      particleCtx.globalAlpha=alpha*movingParticleAlpha;
       particleCtx.beginPath();
 
       const count=state.particles.length;
@@ -1617,25 +1684,6 @@ function createParticleField(){
         const arcRadius=(28+p.seed2*150)*arc;
         let tx=particleMix(logo.x,web.x,leave)+Math.cos(angle)*arcRadius;
         let ty=particleMix(logo.y,web.y,leave)+Math.sin(angle)*arcRadius*.58;
-
-        // Small "bee swarm" drift: every particle makes its own tiny irregular
-        // orbit around the source pixel. The tether stays tight so the logo remains legible.
-        const logoLive=1-particleSmooth(leave/.72);
-        const swarmT=now*.001;
-        const phase=p.seed*Math.PI*2;
-        const phase2=p.seed2*Math.PI*2;
-        const radius=.42+p.seed3*.78;
-        const speed=.62+p.seed2*.74;
-        const logoDriftX=
-          Math.cos(swarmT*speed+phase)*radius+
-          Math.sin(swarmT*(1.72+p.seed*.76)+phase2)*.36+
-          Math.cos(swarmT*(3.05+p.seed2*.55)+phase*1.7)*.16;
-        const logoDriftY=
-          Math.sin(swarmT*(speed*.91)+phase2)*radius*.92+
-          Math.cos(swarmT*(1.94+p.seed2*.69)+phase)*.34+
-          Math.sin(swarmT*(2.78+p.seed*.62)+phase2*1.5)*.15;
-        tx+=logoDriftX*logoLive;
-        ty+=logoDriftY*logoLive;
 
         // The formed web stays in the same place on every section. Only a slow,
         // low-amplitude distortion keeps it alive.
