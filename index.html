@@ -529,6 +529,27 @@ nav{display:none!important}
 .credit-person-link:hover{color:#fff}
 
 @media(min-width:721px){
+  .record-title-slot{align-items:flex-start}
+  .record-prefix{line-height:1.24}
+  .record-tail-window{
+    height:1.58em;
+    line-height:1.24;
+    margin-bottom:-.34em;
+    overflow:hidden
+  }
+  .record-tail-piece{
+    line-height:1.24;
+    transform:translate3d(0,0,0);
+    backface-visibility:hidden
+  }
+  .record-tail-piece.current{transform:translate3d(0,0,0);opacity:1}
+  .record-tail-piece.incoming.down{transform:translate3d(0,-118%,0);opacity:.12}
+  .record-tail-piece.incoming.up{transform:translate3d(0,118%,0);opacity:.12}
+  .record-tail-piece.outgoing{transform:translate3d(0,0,0);opacity:1}
+  .record-tail-piece.outgoing.down.go{transform:translate3d(0,118%,0);opacity:.08}
+  .record-tail-piece.outgoing.up.go{transform:translate3d(0,-118%,0);opacity:.08}
+  .record-tail-piece.incoming.go{transform:translate3d(0,0,0);opacity:1}
+
   .site-parallax-bg{display:none}
   .record,
   .bio{
@@ -1021,6 +1042,8 @@ const MOBILE_PANEL_FINISH_MS=430;
 const MOBILE_CREDITS_FINISH_MS=390;
 let activeAlbumIndex=-1;
 let animToken=0;
+let desktopTitleTimer=0;
+let desktopTailText="ALL";
 
 function query(a){return encodeURIComponent("Grimorium Verum "+a.title)}
 
@@ -1054,6 +1077,11 @@ function tailFor(title){
 }
 
 function setStaticTail(text){
+  if(desktopTitleTimer){
+    window.clearTimeout(desktopTitleTimer);
+    desktopTitleTimer=0;
+  }
+  desktopTailText=text;
   recordTailWindow.innerHTML="";
   const span=document.createElement("span");
   span.className="record-tail-piece current";
@@ -1103,28 +1131,47 @@ function animateTitle(a,direction,token){
     return;
   }
 
-  const oldText=recordTailWindow.textContent.trim();
+  // Desktop slot-machine title must survive rapid album changes. Always
+  // normalize from the last logical title instead of reading concatenated DOM text.
+  if(desktopTitleTimer){
+    window.clearTimeout(desktopTitleTimer);
+    desktopTitleTimer=0;
+  }
+
+  const previousTail=activeAlbumIndex>=0
+    ? tailFor(ALBUMS[activeAlbumIndex].title)
+    : desktopTailText;
+
   recordTailWindow.innerHTML="";
 
   const oldSpan=document.createElement("span");
   oldSpan.className=`record-tail-piece outgoing ${direction}`;
-  oldSpan.textContent=oldText;
+  oldSpan.textContent=previousTail;
 
   const newSpan=document.createElement("span");
   newSpan.className=`record-tail-piece incoming ${direction}`;
   newSpan.textContent=nextTail;
 
   recordTailWindow.append(oldSpan,newSpan);
+  desktopTailText=nextTail;
 
+  void recordTailWindow.offsetHeight;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(token!==animToken)return;
     oldSpan.classList.add("go");
     newSpan.classList.add("go");
   }));
 
-  window.setTimeout(()=>{
+  desktopTitleTimer=window.setTimeout(()=>{
+    desktopTitleTimer=0;
     if(token!==animToken)return;
-    setStaticTail(nextTail);
-  },SWAP_MS+CASCADE_MAX_MS+40);
+    recordTailWindow.innerHTML="";
+    const settled=document.createElement("span");
+    settled.className="record-tail-piece current";
+    settled.textContent=nextTail;
+    recordTailWindow.appendChild(settled);
+    desktopTailText=nextTail;
+  },SWAP_MS+80);
 }
 
 function currentDiscHeight(){
