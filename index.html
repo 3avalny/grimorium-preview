@@ -56,49 +56,56 @@ img{
 .rule{width:52px;height:1px;background:var(--red)}
 
 header{
-  position:absolute;z-index:20;inset:0 0 auto;height:92px;
+  position:fixed;z-index:20;inset:0 0 auto;height:92px;
   display:grid;grid-template-columns:1fr auto 1fr;
   align-items:center;padding-inline:var(--pad);
-  border-bottom:1px solid rgba(255,255,255,.05);
-  background:linear-gradient(180deg,rgba(5,7,8,.58),rgba(5,7,8,0))
+  border:0;background:transparent;
+  pointer-events:none
 }
-.brand{grid-column:2;justify-self:center;display:inline-flex;align-items:center;width:max-content}
+.brand{
+  grid-column:2;justify-self:center;display:inline-flex;align-items:center;width:max-content;
+  transform:translate3d(0,calc(50vh - 46px),0) scale(3.4);
+  transform-origin:center center;
+  will-change:transform;
+  backface-visibility:hidden;
+  pointer-events:auto
+}
 .brand img{
-  width:clamp(168px,15vw,230px);height:auto;max-height:72px;object-fit:contain;object-position:left center;
-  mix-blend-mode:normal;filter:drop-shadow(0 3px 16px rgba(0,0,0,.45))
+  width:clamp(168px,15vw,230px);height:auto;max-height:72px;object-fit:contain;object-position:center;
+  mix-blend-mode:normal;filter:drop-shadow(0 5px 20px rgba(0,0,0,.52))
 }
-nav{grid-column:3;justify-self:end;display:flex;gap:clamp(22px,2.6vw,38px)}
-nav a{font-family:var(--serif);font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:#bdbdb6}
-nav a:hover{color:#fff}
+nav{display:none!important}
 
-.hero{height:100svh;min-height:720px;max-height:100vh;min-height:100vh;position:relative;overflow:hidden;background:#07090b}
-.hero-art{
-  position:absolute;inset:0;
-  background:
-    linear-gradient(90deg,rgba(4,6,7,.77) 0%,rgba(4,6,7,.48) 27%,rgba(4,6,7,.13) 58%,rgba(4,6,7,.12) 77%,rgba(4,6,7,.34) 100%),
-    linear-gradient(0deg,#07090b 0%,rgba(7,9,11,.25) 17%,transparent 38%),
-    url("assets/renaissance-hero-2026.png") center center/cover no-repeat;
-  filter:saturate(.82) contrast(1.04) brightness(.9);
-  transform:scale(1.01)
+.hero{
+  position:relative;height:180vh;min-height:1200px;
+  overflow:visible;background:#000
 }
-.hero:after{
-  content:"";position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(ellipse at 62% 44%,transparent 0 31%,rgba(0,0,0,.13) 58%,rgba(0,0,0,.48) 100%)
+.hero:after{display:none}
+.hero-inner{
+  position:sticky;z-index:3;top:0;height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 var(--pad);overflow:hidden
 }
-.hero-inner{position:relative;z-index:3;height:100%;padding:0 var(--pad)}
 .hero-copy{
-  position:absolute;left:var(--pad);top:80%;
-  transform:translateY(-50%);
-  width:min(730px,67vw);margin:0;min-width:0
+  position:relative;left:auto;top:auto;
+  width:min(900px,90vw);margin:0;
+  text-align:center;
+  opacity:0;
+  transform:translate3d(0,34px,0) scale(.985);
+  will-change:transform,opacity;
+  pointer-events:none
 }
 .hero h1{
   margin:0;font-family:var(--album-display);font-weight:400;
-  font-size:clamp(50px,8.2vw,120px);line-height:.82;letter-spacing:.075em;text-transform:uppercase;
-  text-shadow:0 6px 40px rgba(0,0,0,.85);white-space:nowrap
+  font-size:clamp(54px,8.5vw,124px);line-height:.86;letter-spacing:.075em;text-transform:uppercase;
+  text-shadow:0 8px 42px rgba(0,0,0,.86);white-space:nowrap
 }
-.hero-sub{margin-top:24px;font-family:var(--serif);font-size:clamp(16px,1.7vw,27px);letter-spacing:.2em;text-transform:uppercase;color:#d0cec7}
+.hero-sub{
+  margin-top:26px;font-family:var(--serif);font-size:clamp(16px,1.7vw,27px);
+  letter-spacing:.2em;text-transform:uppercase;color:#d0cec7
+}
 .services{
-  display:flex;align-items:center;gap:14px;margin-top:38px
+  display:flex;align-items:center;justify-content:center;gap:14px;margin-top:34px
 }
 .services a{
   width:42px;height:42px;display:grid;place-items:center;
@@ -610,15 +617,17 @@ footer{
   }
 
   header{padding-inline:18px;height:72px;grid-template-columns:1fr auto 1fr}
-  .brand{grid-column:2;justify-self:center}
-  .brand img{width:155px;max-width:55vw}
-  .hero{min-height:100vh}
-  .hero-art{background-position:center center;filter:saturate(.9) contrast(1.03) brightness(.9)}
-  .hero-inner{padding:0 18px}
-  .hero-copy{left:18px;top:80%;transform:translateY(-50%);width:calc(100% - 36px);margin:0}
-  .hero h1{font-size:clamp(37px,11.3vw,68px);letter-spacing:.038em;white-space:nowrap}
+  .brand{
+    grid-column:2;justify-self:center;
+    transform:translate3d(0,calc(50vh - 36px),0) scale(1.9)
+  }
+  .brand img{width:155px;max-width:55vw;max-height:58px}
+  .hero{height:175vh;min-height:1050px}
+  .hero-inner{height:100vh;padding:0 18px}
+  .hero-copy{width:calc(100% - 36px)}
+  .hero h1{font-size:clamp(38px,11.3vw,68px);letter-spacing:.038em;white-space:nowrap}
   .hero-sub{font-size:14px;line-height:1.35;letter-spacing:.13em}
-  .services{gap:14px}
+  .services{gap:14px;margin-top:28px}
 
   .record{min-height:auto;display:block;padding:46px 0 62px;--disc-height:auto}
   .record-side-label{display:none}
@@ -744,19 +753,20 @@ footer{
   .stream-col,.player,.player iframe{height:152px;min-height:152px}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
-@supports(height:100dvh){.hero{height:100dvh;min-height:100dvh}}
+@supports(height:100dvh){
+  .hero-inner{height:100dvh}
+  @media(max-width:720px){.hero{height:175dvh;min-height:1050px}}
+}
 </style>
 </head>
 <body>
 <div class="site-parallax-bg" aria-hidden="true"></div>
 <header>
-  <a class="brand" href="#top" aria-label="Grimorium Verum home"><img src="assets/grimorium-logo.png" alt="Grimorium Verum"></a>
-  <nav><a href="#music">Music</a><a href="#biography">Biography</a></nav>
+  <a class="brand" href="#top" aria-label="Grimorium Verum home"><img src="assets/GV%20logo.png" alt="Grimorium Verum"></a>
 </header>
 
 <main id="top">
 <section class="hero">
-  <div class="hero-art"></div>
   <div class="hero-inner">
     <div class="hero-copy">
       <h1>Renaissance</h1>
@@ -1251,6 +1261,64 @@ if(mobileRecord){
 
   mobileRecord.addEventListener("touchcancel",()=>{swipeTracking=false},{passive:true});
 }
+
+const introHero=document.querySelector(".hero");
+const introHeader=document.querySelector("header");
+const introBrand=document.querySelector(".brand");
+const introBrandImg=introBrand?.querySelector("img");
+const introCopy=document.querySelector(".hero-copy");
+
+let introFrame=0;
+let introRange=1;
+
+function clamp01(v){return Math.max(0,Math.min(1,v))}
+function smoothstep(v){v=clamp01(v);return v*v*(3-2*v)}
+
+function measureIntro(){
+  if(!introHero)return;
+  introRange=Math.max(1,introHero.offsetHeight-window.innerHeight);
+}
+
+function renderIntro(){
+  introFrame=0;
+  if(!introHero || !introHeader || !introBrand || !introBrandImg || !introCopy)return;
+
+  const raw=clamp01(window.scrollY/introRange);
+  const move=smoothstep(raw);
+  const reveal=smoothstep((raw-.28)/.48);
+  const finalLogoWidth=Math.max(1,introBrandImg.offsetWidth);
+  const targetWidth=window.innerWidth<=720
+    ? Math.min(window.innerWidth*.76,390)
+    : Math.min(window.innerWidth*.56,820);
+  const startScale=Math.max(1,targetWidth/finalLogoWidth);
+  const scale=startScale+(1-startScale)*move;
+  const headerCenter=introHeader.offsetHeight/2;
+  const y=(window.innerHeight/2-headerCenter)*(1-move);
+
+  introBrand.style.transform=`translate3d(0,${y.toFixed(2)}px,0) scale(${scale.toFixed(4)})`;
+  introCopy.style.opacity=reveal.toFixed(3);
+  introCopy.style.transform=`translate3d(0,${((1-reveal)*34).toFixed(2)}px,0) scale(${(.985+reveal*.015).toFixed(4)})`;
+  introCopy.style.pointerEvents=reveal>.92?"auto":"none";
+}
+
+function requestIntro(){
+  if(introFrame)return;
+  introFrame=requestAnimationFrame(renderIntro);
+}
+
+function refreshIntro(){
+  measureIntro();
+  requestIntro();
+}
+
+window.addEventListener("scroll",requestIntro,{passive:true});
+window.addEventListener("resize",refreshIntro,{passive:true});
+window.addEventListener("load",refreshIntro,{once:true});
+if(introBrandImg && !introBrandImg.complete){
+  introBrandImg.addEventListener("load",refreshIntro,{once:true});
+}
+measureIntro();
+renderIntro();
 
 const parallaxRecord=document.querySelector(".record");
 const parallaxBio=document.querySelector(".bio");
