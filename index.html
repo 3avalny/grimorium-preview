@@ -529,27 +529,6 @@ nav{display:none!important}
 .credit-person-link:hover{color:#fff}
 
 @media(min-width:721px){
-  .record-title-slot{align-items:flex-start}
-  .record-prefix{line-height:1.24}
-  .record-tail-window{
-    height:1.58em;
-    line-height:1.24;
-    margin-bottom:-.34em;
-    overflow:hidden
-  }
-  .record-tail-piece{
-    line-height:1.24;
-    transform:translate3d(0,0,0);
-    backface-visibility:hidden
-  }
-  .record-tail-piece.current{transform:translate3d(0,0,0);opacity:1}
-  .record-tail-piece.incoming.down{transform:translate3d(0,-118%,0);opacity:.12}
-  .record-tail-piece.incoming.up{transform:translate3d(0,118%,0);opacity:.12}
-  .record-tail-piece.outgoing{transform:translate3d(0,0,0);opacity:1}
-  .record-tail-piece.outgoing.down.go{transform:translate3d(0,118%,0);opacity:.08}
-  .record-tail-piece.outgoing.up.go{transform:translate3d(0,-118%,0);opacity:.08}
-  .record-tail-piece.incoming.go{transform:translate3d(0,0,0);opacity:1}
-
   .site-parallax-bg{display:none}
   .record,
   .bio{
@@ -1171,7 +1150,7 @@ function animateTitle(a,direction,token){
     settled.textContent=nextTail;
     recordTailWindow.appendChild(settled);
     desktopTailText=nextTail;
-  },SWAP_MS+80);
+  },SWAP_MS+20);
 }
 
 function currentDiscHeight(){
