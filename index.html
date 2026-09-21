@@ -90,8 +90,18 @@ nav{display:none!important}
   padding:0 var(--pad);overflow:hidden;
   pointer-events:none
 }
+.hero-rocks{
+  position:absolute;z-index:1;left:50%;bottom:0;
+  width:100vw;height:auto;max-width:none;
+  transform:translate3d(-50%,24px,0);
+  transform-origin:center bottom;
+  opacity:0;
+  object-fit:contain;object-position:center bottom;
+  will-change:transform,opacity;
+  pointer-events:none
+}
 .hero-copy{
-  position:relative;left:auto;top:auto;
+  position:relative;z-index:2;left:auto;top:auto;
   width:min(900px,90vw);margin:0;
   text-align:center;
   opacity:0;
@@ -607,6 +617,12 @@ footer{
   .brand img{width:min(76vw,390px);max-width:none;max-height:none}
   .hero{height:190vh;min-height:1120px}
   .hero-inner{height:100vh;padding:0 18px}
+  .hero-rocks{
+    width:145vw;
+    max-height:42vh;
+    object-fit:contain;
+    object-position:center bottom
+  }
   .hero-copy{width:calc(100% - 36px)}
   .hero h1{font-size:clamp(38px,11.3vw,68px);letter-spacing:.038em;white-space:nowrap}
   .hero-sub{font-size:14px;line-height:1.35;letter-spacing:.13em}
@@ -751,6 +767,7 @@ footer{
 <main id="top">
 <section class="hero">
   <div class="hero-inner">
+    <img class="hero-rocks" src="assets/rocks.webp" alt="" aria-hidden="true">
     <div class="hero-copy">
       <h1>Renaissance</h1>
       <div class="hero-sub">New album — 2026</div>
@@ -1250,6 +1267,7 @@ const introHeader=document.querySelector("header");
 const introBrand=document.querySelector(".brand");
 const introBrandImg=introBrand?.querySelector("img");
 const introCopy=document.querySelector(".hero-copy");
+const introRocks=document.querySelector(".hero-rocks");
 const parallaxRecord=document.querySelector(".record");
 const parallaxBio=document.querySelector(".bio");
 const parallaxLayer=document.querySelector(".site-parallax-bg");
@@ -1294,6 +1312,10 @@ function renderScenes(){
     introCopy.style.opacity=reveal.toFixed(3);
     introCopy.style.transform=`translate3d(0,${((1-revealIn)*24).toFixed(2)}px,0) scale(${(.992+revealIn*.008).toFixed(4)})`;
     introCopy.style.pointerEvents=reveal>.88?"auto":"none";
+    if(introRocks){
+      introRocks.style.opacity=reveal.toFixed(3);
+      introRocks.style.transform=`translate3d(-50%,${((1-revealIn)*24).toFixed(2)}px,0)`;
+    }
     introHero.style.setProperty("--intro-black",(1-bgReveal).toFixed(3));
     introHero.style.setProperty("--intro-bg-opacity",bgReveal.toFixed(3));
     introHero.querySelector(".hero-inner").style.visibility=raw>=.995?"hidden":"visible";
