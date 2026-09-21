@@ -1538,7 +1538,7 @@ function createParticleField(){
     function desiredCount(){
       if(state.width<=720)return 820;
       if(state.width<=1100)return 1500;
-      return 60000;
+      return 70000;
     }
 
     function buildLogoPoints(){
@@ -1676,18 +1676,18 @@ function createParticleField(){
       // Match the reference composition to the viewport width. Slight vertical
       // lift keeps the open book behind the Renaissance title like the mockup.
       const refAspect=ref.naturalWidth/Math.max(1,ref.naturalHeight);
-      const dw=tw*1.025;
+      const dw=tw*1.08;
       const dh=dw/refAspect;
       const dx=(tw-dw)*.5;
       const dy=(th-dh)*.485-th*.004;
       ctx.drawImage(ref,dx,dy,dw,dh);
 
       // The top mark is still built from particles, but sourced from the real logo.
-      const logoW=Math.min(tw*.19,190);
+      const logoW=Math.min(tw*.195,198);
       const logoH=logoW/(source.naturalWidth/Math.max(1,source.naturalHeight));
       ctx.save();
       ctx.globalAlpha=1;
-      ctx.drawImage(source,tw*.5-logoW*.5,th*.028,logoW,logoH);
+      ctx.drawImage(source,tw*.5-logoW*.5,th*.008,logoW,logoH);
       ctx.restore();
 
       const image=ctx.getImageData(0,0,tw,th);
@@ -1708,18 +1708,25 @@ function createParticleField(){
           if(lum<7.5)continue;
 
           const inBook=x>bookLeft && x<bookRight && y>bookTop && y<bookBottom;
-          const topLogo=y<th*.17 && Math.abs(x-tw*.5)<tw*.13;
+          const topLogo=y<th*.155 && Math.abs(x-tw*.5)<tw*.145;
           const glow=particleClamp((lum-6)/205,.06,1);
           const point={
             x:x/tw*w,
             y:y/th*h,
-            motion:topLogo?.08:(inBook?.18:1),
+            // Logo: absolutely fixed. Book: only a couple of pixels of life.
+            // Everything outside the book envelope is treated as a filament.
+            motion:topLogo?0:(inBook?.075:1),
+            zone:topLogo?2:(inBook?1:0),
             glow
           };
 
-          // Bright reference pixels receive more particles: this recreates the
-          // dense ivory spine/page edges while keeping dark web threads delicate.
+          // Bright reference pixels receive more particles. The top logo is
+          // intentionally over-sampled so it stays crisp and independent.
           candidates.push(point);
+          if(topLogo){
+            candidates.push(point,point,point,point,point);
+            if(lum>72)candidates.push(point,point,point);
+          }
           if(lum>26)candidates.push(point);
           if(lum>58)candidates.push(point);
           if(lum>105){candidates.push(point);candidates.push(point)}
@@ -1742,7 +1749,7 @@ function createParticleField(){
           Math.floor(((i*phi)%1)*candidates.length)
         );
         const p=candidates[idx];
-        points.push({x:p.x,y:p.y,motion:p.motion,glow:p.glow});
+        points.push({x:p.x,y:p.y,motion:p.motion,zone:p.zone||0,glow:p.glow});
       }
       // Target ordering must be unrelated to source ordering. Otherwise a
       // contiguous source region can visibly travel toward one target region.
@@ -1858,17 +1865,34 @@ function createParticleField(){
         // The book stays anchored while the surrounding filaments visibly breathe.
         // Nearby target points share the same spatial waves, so threads bend coherently.
         const live=bgStart;
-        const motion=web.motion??.35;
-        const waveX=(
-          Math.sin(now*.00022+web.y*.0105)*18.0+
-          Math.sin(now*.000095+web.x*.0052+web.y*.0031)*9.0
-        )*motion;
-        const waveY=(
-          Math.cos(now*.00019+web.x*.0092)*15.0+
-          Math.sin(now*.000082+web.y*.0068-web.x*.0027)*7.5
-        )*motion;
-        tx+=waveX*live;
-        ty+=waveY*live;
+        const zone=web.zone||0;
+        const motion=web.motion??0;
+        let waveX=0;
+        let waveY=0;
+
+        if(zone===0){
+          // Outer filaments: broad coherent bends plus a slower secondary sway,
+          // reading more like tentacles than vibrating dust.
+          waveX=
+            Math.sin(now*.00019+web.y*.0092)*20.0+
+            Math.sin(now*.000072+web.x*.0041+web.y*.0025)*10.5+
+            Math.cos(now*.000041+web.y*.0021)*4.0;
+          waveY=
+            Math.cos(now*.00017+web.x*.0081)*17.0+
+            Math.sin(now*.000067+web.y*.0057-web.x*.0022)*8.8+
+            Math.sin(now*.000038+web.x*.0020)*3.5;
+        }else if(zone===1){
+          // The book itself only breathes by a couple of pixels around anchors.
+          waveX=
+            Math.sin(now*.00013+web.y*.0070)*18.0+
+            Math.sin(now*.000061+web.x*.0038)*7.0;
+          waveY=
+            Math.cos(now*.00012+web.x*.0064)*16.0+
+            Math.sin(now*.000057+web.y*.0041)*6.0;
+        }
+        // zone===2 (top logo) intentionally stays at exactly its anchor.
+        tx+=waveX*motion*live;
+        ty+=waveY*motion*live;
 
         const settleBoost=particleSmooth((localLeave-.88)/.12);
         const outwardResponse=particleMix(response,.082,settleBoost);
