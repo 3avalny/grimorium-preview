@@ -1620,123 +1620,272 @@ function createParticleField(){
         });
       }
       if(state.particles.length>count)state.particles.length=count;
-      state.webPoints=Array.from({length:count},(_,i)=>webPoint(i,count));
+      state.webPoints=buildBookTarget(count);
       state.ready=true;
       document.documentElement.classList.add("particle-field-ready");
     }
 
-    function webPoint(index,count){
+    function buildBookTarget(count){
       const w=state.width,h=state.height;
+      const mask=document.createElement("canvas");
+      mask.width=Math.max(1,Math.round(w));
+      mask.height=Math.max(1,Math.round(h));
+      const ctx=mask.getContext("2d",{willReadFrequently:true});
+      ctx.clearRect(0,0,w,h);
+      ctx.strokeStyle="#fff";
+      ctx.fillStyle="#fff";
+      ctx.lineCap="round";
+      ctx.lineJoin="round";
 
-      function orbPoint(localIndex,localCount,cx,cy,reachScale,seedBase){
-        const minR=Math.min(w,h)*(.012+.010*reachScale);
-        const spokeCount=Math.max(26,Math.round(30+reachScale*24));
-        const radialShare=.31;
-        const captureShare=.63;
-        const radialPoints=Math.floor(localCount*radialShare);
-        const capturePoints=Math.floor(localCount*captureShare);
+      const cx=w*.5;
+      const cy=h*.565;
+      const bw=Math.min(w*.72,1120);
+      const bh=Math.min(h*.54,560);
+      const half=bw*.5;
 
-        function spokeAngle(spoke){
-          const base=(spoke/spokeCount)*Math.PI*2-.20;
-          const jitter=(particleHash(seedBase+spoke*97+13)-.5)*.125;
-          return base+jitter;
-        }
-
-        function edgeRadius(theta){
-          const cos=Math.cos(theta);
-          const sin=Math.sin(theta);
-          const rx=Math.abs(cos)<.0001?1e9:(cos>0?(w-cx)/cos:(0-cx)/cos);
-          const ry=Math.abs(sin)<.0001?1e9:(sin>0?(h-cy)/sin:(0-cy)/sin);
-          return Math.max(minR,Math.min(Math.abs(rx),Math.abs(ry))*reachScale);
-        }
-
-        let x=cx,y=cy;
-
-        if(localIndex<radialPoints){
-          // Numerous fine load-bearing spokes with slight natural bow.
-          const local=localIndex/Math.max(1,radialPoints);
-          const spoke=Math.min(spokeCount-1,Math.floor(local*spokeCount));
-          const along=(local*spokeCount)-spoke;
-          const theta0=spokeAngle(spoke);
-          const reach=edgeRadius(theta0)*(1+(particleHash(seedBase+spoke*43+7)-.5)*.075);
-          const bow=
-            Math.sin(along*Math.PI)*(.010+particleHash(seedBase+spoke*19+3)*.018)+
-            Math.sin(along*Math.PI*3+spoke*.41)*.0045;
-          const theta=theta0+bow;
-          const radius=minR+(reach-minR)*Math.pow(along,.96);
-
-          x=cx+Math.cos(theta)*radius;
-          y=cy+Math.sin(theta)*radius;
-        }else if(localIndex<radialPoints+capturePoints){
-          // Dense irregular capture spiral: many more turns means much finer,
-          // thinner-looking cells like a real orb web.
-          const local=(localIndex-radialPoints)/Math.max(1,capturePoints);
-          const turns=16+Math.round(reachScale*10);
-          const thetaBase=local*Math.PI*2*turns-.42;
-          const turn=Math.floor(local*turns);
-          const theta=
-            thetaBase+
-            Math.sin(local*Math.PI*2*4.0+seedBase*.01)*.014+
-            Math.sin(local*Math.PI*2*11.0+1.7)*.0055;
-
-          const edge=edgeRadius(theta)*.985;
-          const growth=Math.pow(local,.79);
-          let radius=minR+(edge-minR)*growth;
-
-          const normalized=((theta+.20)/(Math.PI*2))*spokeCount;
-          const cellPhase=normalized-Math.floor(normalized);
-          const sag=Math.sin(cellPhase*Math.PI);
-          radius+=
-            (particleHash(seedBase+turn*73+5)-.5)*radius*.022+
-            Math.sin(theta*2.4+turn*.63)*radius*.006+
-            sag*radius*(.006+.010*particleHash(seedBase+turn*41+17));
-
-          x=cx+Math.cos(theta)*radius;
-          y=cy+Math.sin(theta)*radius;
-
-          // Sparse imperfect/broken cells.
-          const cell=Math.floor(normalized);
-          const broken=particleHash(seedBase+turn*911+cell*37+29)<.035;
-          if(broken && cellPhase>.28 && cellPhase<.72){
-            const nudge=(cellPhase-.5)*Math.min(w,h)*.012;
-            x+=Math.cos(theta+Math.PI*.5)*nudge;
-            y+=Math.sin(theta+Math.PI*.5)*nudge;
-          }
-        }else{
-          // Repair / anchor threads add the irregular secondary structure
-          // characteristic of an actual web.
-          const repairLocal=(localIndex-radialPoints-capturePoints)/
-            Math.max(1,localCount-radialPoints-capturePoints);
-          const repairCount=Math.max(8,Math.round(8+reachScale*8));
-          const strand=Math.min(repairCount-1,Math.floor(repairLocal*repairCount));
-          const t=(repairLocal*repairCount)-strand;
-
-          const a0=spokeAngle((strand*3+2)%spokeCount);
-          const a1=spokeAngle((strand*5+7+Math.floor(particleHash(seedBase+strand+9)*5))%spokeCount);
-          const r0=edgeRadius(a0)*(.18+.56*particleHash(seedBase+strand*11+1));
-          const r1=edgeRadius(a1)*(.24+.60*particleHash(seedBase+strand*17+5));
-
-          const x0=cx+Math.cos(a0)*r0;
-          const y0=cy+Math.sin(a0)*r0;
-          const x1=cx+Math.cos(a1)*r1;
-          const y1=cy+Math.sin(a1)*r1;
-          const mx=(x0+x1)*.5+(particleHash(seedBase+strand*23+3)-.5)*w*.045;
-          const my=(y0+y1)*.5+(particleHash(seedBase+strand*29+7)-.5)*h*.045;
-
-          const omt=1-t;
-          x=omt*omt*x0+2*omt*t*mx+t*t*x1;
-          y=omt*omt*y0+2*omt*t*my+t*t*y1;
-        }
-
-        const rough=.42;
-        x+=(particleHash(seedBase+localIndex+1409)-.5)*rough;
-        y+=(particleHash(seedBase+localIndex+2903)-.5)*rough;
-        return {x,y};
+      function strokePath(draw,width=1,alpha=1){
+        ctx.save();
+        ctx.globalAlpha=alpha;
+        ctx.lineWidth=width;
+        ctx.beginPath();
+        draw(ctx);
+        ctx.stroke();
+        ctx.restore();
       }
 
-      // One large organic web centre. All particles contribute to the same
-      // structure, so the web reads as a single coherent real web.
-      return orbPoint(index,count,w*.49,h*.44,1.14,101);
+      function bezier(x0,y0,x1,y1,x2,y2,x3,y3,width=1,alpha=1){
+        strokePath(g=>{
+          g.moveTo(x0,y0);
+          g.bezierCurveTo(x1,y1,x2,y2,x3,y3);
+        },width,alpha);
+      }
+
+      // --- open book silhouette / page architecture ---
+      const spineTop=cy-bh*.43;
+      const spineBottom=cy+bh*.36;
+      const leftOuter=cx-half*.96;
+      const rightOuter=cx+half*.96;
+      const upperY=cy-bh*.31;
+      const lowerY=cy+bh*.24;
+
+      // Central illuminated spine and long axis.
+      bezier(cx,spineTop-bh*.22,cx-4,cy-bh*.15,cx+4,cy+bh*.18,cx,spineBottom+bh*.18,2.1,1);
+      bezier(cx-3,spineTop-bh*.10,cx-9,cy-bh*.08,cx-7,cy+bh*.16,cx-2,spineBottom,1.0,.9);
+      bezier(cx+3,spineTop-bh*.10,cx+9,cy-bh*.08,cx+7,cy+bh*.16,cx+2,spineBottom,1.0,.9);
+
+      // Outer covers / main page fans.
+      bezier(cx-8,spineTop,cx-half*.28,cy-bh*.48,leftOuter+half*.06,upperY,leftOuter,cy+bh*.10,2.3,.98);
+      bezier(leftOuter,cy+bh*.10,leftOuter+half*.08,lowerY,cx-half*.25,cy+bh*.36,cx-8,spineBottom,2.3,.98);
+      bezier(cx+8,spineTop,cx+half*.28,cy-bh*.48,rightOuter-half*.06,upperY,rightOuter,cy+bh*.10,2.3,.98);
+      bezier(rightOuter,cy+bh*.10,rightOuter-half*.08,lowerY,cx+half*.25,cy+bh*.36,cx+8,spineBottom,2.3,.98);
+
+      // Stacked page contours.
+      for(let j=0;j<15;j++){
+        const t=(j+1)/16;
+        const lift=(j-7)*1.35;
+        const edgeInset=half*(.025+j*.010);
+        const a=.42+j*.018;
+        const lw=.62+(j%4===0?.38:0);
+
+        bezier(
+          cx-5,spineTop+bh*(.018+j*.004),
+          cx-half*(.19+.08*t),cy-bh*(.42-.035*t)+lift,
+          leftOuter+edgeInset,upperY+bh*(.018*t)+lift,
+          leftOuter+edgeInset*.30,cy+bh*(.10+.010*j),
+          lw,a
+        );
+        bezier(
+          leftOuter+edgeInset*.30,cy+bh*(.10+.010*j),
+          leftOuter+edgeInset,lowerY-bh*(.006*j)+lift,
+          cx-half*(.22+.04*t),cy+bh*(.31-.003*j),
+          cx-5,spineBottom-bh*(.006*j),
+          lw,a
+        );
+
+        bezier(
+          cx+5,spineTop+bh*(.018+j*.004),
+          cx+half*(.19+.08*t),cy-bh*(.42-.035*t)+lift,
+          rightOuter-edgeInset,upperY+bh*(.018*t)+lift,
+          rightOuter-edgeInset*.30,cy+bh*(.10+.010*j),
+          lw,a
+        );
+        bezier(
+          rightOuter-edgeInset*.30,cy+bh*(.10+.010*j),
+          rightOuter-edgeInset,lowerY-bh*(.006*j)+lift,
+          cx+half*(.22+.04*t),cy+bh*(.31-.003*j),
+          cx+5,spineBottom-bh*(.006*j),
+          lw,a
+        );
+      }
+
+      // Fine "writing" / etched lines across both pages.
+      for(let row=0;row<39;row++){
+        const t=(row+.7)/40;
+        const y=spineTop+bh*(.11+t*.58);
+        const spread=half*(.30+.58*Math.sin(t*Math.PI*.78));
+        const inward=half*(.035+.03*Math.sin(t*Math.PI));
+        const wobble=Math.sin(row*.91)*4.2;
+        const alpha=.27+(row%5===0?.12:0);
+        const lw=.42+(row%7===0?.18:0);
+
+        bezier(
+          cx-inward,y,
+          cx-spread*.28,y-10+wobble,
+          cx-spread*.68,y+6-wobble*.4,
+          cx-spread,y+Math.sin(row*.63)*7,
+          lw,alpha
+        );
+        bezier(
+          cx+inward,y,
+          cx+spread*.28,y-10-wobble,
+          cx+spread*.68,y+6+wobble*.4,
+          cx+spread,y-Math.sin(row*.63)*7,
+          lw,alpha
+        );
+      }
+
+      // Page ribs radiating out from the spine.
+      for(let k=0;k<22;k++){
+        const t=k/21;
+        const yy=spineTop+bh*(.07+t*.70);
+        const edgeY=upperY+(lowerY-upperY)*t+Math.sin(k*.74)*10;
+        const alpha=.22+(k%4===0?.18:0);
+        bezier(cx-4,yy,cx-half*.24,yy-24,leftOuter+half*.20,edgeY,leftOuter+half*.05,edgeY+7,.48,alpha);
+        bezier(cx+4,yy,cx+half*.24,yy-24,rightOuter-half*.20,edgeY,rightOuter-half*.05,edgeY+7,.48,alpha);
+      }
+
+      // --- web / filament canopy around the book ---
+      const hubX=cx;
+      const hubY=cy-bh*.48;
+
+      // Long radial threads from above/around the book to screen edges.
+      const radialCount=44;
+      for(let r=0;r<radialCount;r++){
+        const u=r/(radialCount-1);
+        const angle=-Math.PI*.93+u*Math.PI*1.86;
+        const ex=cx+Math.cos(angle)*w*.70;
+        const ey=hubY+Math.sin(angle)*h*.78;
+        const bend=(particleHash(r+901)-.5)*w*.10;
+        const sway=(particleHash(r+1401)-.5)*h*.08;
+        bezier(
+          hubX,hubY,
+          cx+Math.cos(angle)*w*.18+bend,hubY+Math.sin(angle)*h*.18+sway,
+          cx+Math.cos(angle)*w*.42-bend*.25,hubY+Math.sin(angle)*h*.46-sway*.35,
+          ex,ey,
+          .44+(r%9===0?.22:0),
+          .30+(r%7===0?.16:0)
+        );
+      }
+
+      // Large irregular capture-web arcs behind and around the book.
+      for(let ring=0;ring<18;ring++){
+        const rr=(ring+2)/20;
+        const rx=w*(.16+rr*.48);
+        const ry=h*(.08+rr*.49);
+        const phase=(particleHash(ring+3001)-.5)*.12;
+        strokePath(g=>{
+          const segs=82;
+          for(let s=0;s<=segs;s++){
+            const a=-Math.PI*.96+(s/segs)*Math.PI*1.92;
+            const scallop=Math.sin(a*22+ring*.72)*(5+ring*.28);
+            const x=cx+Math.cos(a+phase)*(rx+scallop);
+            const y=hubY+Math.sin(a)*(ry+scallop*.35);
+            if(s===0)g.moveTo(x,y); else g.lineTo(x,y);
+          }
+        },.34+(ring%5===0?.12:0),.20+(ring%4===0?.08:0));
+      }
+
+      // Tangled filaments erupting from the outer book corners.
+      for(let side of [-1,1]){
+        const sx=cx+side*half*.83;
+        const sy=cy-bh*.16;
+        for(let q=0;q<38;q++){
+          const seed=q+(side>0?8000:6000);
+          const ex=cx+side*(half*(.80+particleHash(seed)*.55));
+          const ey=cy-bh*(.55+particleHash(seed+1)*.42)+
+            (particleHash(seed+2)-.5)*h*.26;
+          const c1x=sx+side*(40+particleHash(seed+3)*170);
+          const c1y=sy+(particleHash(seed+4)-.5)*160;
+          const c2x=ex-side*(20+particleHash(seed+5)*150);
+          const c2y=ey+(particleHash(seed+6)-.5)*140;
+          bezier(sx,sy,c1x,c1y,c2x,c2y,ex,ey,.38+(q%9===0?.18:0),.28+(q%6===0?.13:0));
+        }
+      }
+
+      // Small sparks concentrated around the page edges.
+      ctx.save();
+      for(let s=0;s<720;s++){
+        const side=particleHash(s+12001)<.5?-1:1;
+        const rx=half*(.28+particleHash(s+13001)*.82);
+        const ry=(particleHash(s+14001)-.5)*bh*.90;
+        const x=cx+side*rx+(particleHash(s+15001)-.5)*34;
+        const y=cy+ry;
+        const rad=.35+particleHash(s+16001)*1.15;
+        ctx.globalAlpha=.28+particleHash(s+17001)*.65;
+        ctx.beginPath();
+        ctx.arc(x,y,rad,0,Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Central occult-star accents.
+      strokePath(g=>{
+        const starY=hubY-h*.055;
+        g.moveTo(cx,starY-18);g.lineTo(cx,starY+18);
+        g.moveTo(cx-9,starY);g.lineTo(cx+9,starY);
+        g.moveTo(cx-5,starY-5);g.lineTo(cx+5,starY+5);
+        g.moveTo(cx+5,starY-5);g.lineTo(cx-5,starY+5);
+      },.85,.9);
+
+      // Small particle-built band logo at the top, matching the reference layout.
+      if(source && source.naturalWidth){
+        const logoW=Math.min(250,w*.18);
+        const logoH=logoW/(source.naturalWidth/Math.max(1,source.naturalHeight));
+        ctx.save();
+        ctx.globalAlpha=.78;
+        ctx.drawImage(source,cx-logoW*.5,h*.035,logoW,logoH);
+        ctx.restore();
+      }
+
+      // Sample the rendered mask into deterministic particle targets.
+      const data=ctx.getImageData(0,0,mask.width,mask.height).data;
+      const candidates=[];
+      const step=w>1500?2:1;
+      for(let y=0;y<mask.height;y+=step){
+        for(let x=0;x<mask.width;x+=step){
+          const a=data[(y*mask.width+x)*4+3];
+          if(a>18){
+            // Book body is steadier; outer filaments are allowed more visible drift.
+            const inBook=
+              y>cy-bh*.49 && y<cy+bh*.43 &&
+              Math.abs(x-cx)<half*1.06;
+            const topLogo=y<h*.18 && Math.abs(x-cx)<w*.16;
+            candidates.push({
+              x,y,
+              motion:topLogo?.16:(inBook?.28:1),
+              glow:a/255
+            });
+          }
+        }
+      }
+
+      if(!candidates.length){
+        return Array.from({length:count},()=>({x:cx,y:cy,motion:.2,glow:1}));
+      }
+
+      const points=[];
+      const stride=candidates.length/count;
+      for(let i=0;i<count;i++){
+        const idx=Math.min(candidates.length-1,Math.floor(i*stride));
+        const p=candidates[idx];
+        points.push({
+          x:p.x,
+          y:p.y,
+          motion:p.motion,
+          glow:p.glow
+        });
+      }
+      return points;
     }
 
     function frame(now){
@@ -1760,12 +1909,14 @@ function createParticleField(){
 
       // The assembled logo is particles only. The original PNG stays fully hidden
       // until the particle logo has dispersed, then it can return as the small header mark.
-      const imageReveal=reducedMotionQuery.matches?1:particleSmooth((heroRaw-.50)/.10);
+      const imageReveal=reducedMotionQuery.matches
+        ? 1
+        : (state.width>1100?0:particleSmooth((heroRaw-.50)/.10));
       introBrandImg.style.opacity=imageReveal.toFixed(3);
 
       const heroAlpha=particleMix(.94,.18,particleSmooth(leave/.72));
       const bgPulse=.965+.035*Math.sin(now*.00022);
-      const alpha=particleMix(heroAlpha,.44*bgPulse,bgStart);
+      const alpha=particleMix(heroAlpha,.52*bgPulse,bgStart);
       const heroSize=particleMix(.90,.42,bgStart);
       const response=1-Math.pow(.965,dt/16.67);
 
@@ -1788,7 +1939,7 @@ function createParticleField(){
       for(let i=0;i<count;i++){
         const p=state.particles[i];
         const logo=state.logoPoints[i]||state.logoPoints[i%state.logoPoints.length];
-        const web=state.webPoints[i]||webPoint(i,count);
+        const web=state.webPoints[i]||{x:state.width*.5,y:state.height*.56,motion:.2,glow:1};
 
         // Start by visibly bending/twisting the logo itself. The deformation
         // grows before the particle has fully committed to the flight path.
@@ -1833,15 +1984,18 @@ function createParticleField(){
         tx+=Math.sin(localLeave*5.0+p.seed*47.0)*cross*24;
         ty+=Math.cos(localLeave*6.0+p.seed3*43.0)*cross*20;
 
-        // Visible, coherent web drift: slow spatial waves move whole nearby
-        // thread segments together instead of turning them into fuzzy noise.
+        // The book stays anchored while the surrounding filaments visibly breathe.
+        // Nearby target points share the same spatial waves, so threads bend coherently.
         const live=bgStart;
-        const waveX=
-          Math.sin(now*.000105+web.y*.0062)*6.8+
-          Math.sin(now*.000061+web.x*.0038+web.y*.0024)*3.4;
-        const waveY=
-          Math.cos(now*.000094+web.x*.0055)*6.0+
-          Math.sin(now*.000058+web.y*.0042-web.x*.0020)*3.0;
+        const motion=web.motion??.35;
+        const waveX=(
+          Math.sin(now*.00022+web.y*.0105)*11.5+
+          Math.sin(now*.000095+web.x*.0052+web.y*.0031)*5.8
+        )*motion;
+        const waveY=(
+          Math.cos(now*.00019+web.x*.0092)*9.8+
+          Math.sin(now*.000082+web.y*.0068-web.x*.0027)*5.0
+        )*motion;
         tx+=waveX*live;
         ty+=waveY*live;
 
@@ -1863,7 +2017,7 @@ function createParticleField(){
         }
 
         const logoR=Math.max(.38,p.size*.90);
-        const webR=Math.max(.34,p.size*.58);
+        const webR=Math.max(.31,p.size*(.48+.22*(web.glow??1)));
         const r=particleMix(logoR,webR,bgStart);
         particleCtx.moveTo(p.x+r,p.y);
         particleCtx.arc(p.x,p.y,r,0,Math.PI*2);
