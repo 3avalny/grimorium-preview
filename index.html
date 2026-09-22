@@ -251,6 +251,19 @@ nav{display:none!important}
   letter-spacing:.30em;text-transform:uppercase;color:#73787b;
   will-change:opacity
 }
+/* TEMP: particle-scene inspection — keep Discography DOM intact, just hide it */
+.record{
+  background:transparent!important;
+  border-top-color:transparent!important
+}
+.record>.shell,
+.record-side-label{
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important
+}
+.record>.shell:before{display:none!important}
+
 .record-head{position:relative;z-index:2;margin-bottom:30px}
 .record-title-slot{
   display:flex;align-items:flex-start;margin:0;
