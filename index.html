@@ -1811,15 +1811,15 @@ function createParticleField(){
     "  vec2 trailClosest=u_pointerPrev+pointerTrail*trailT;",
     "  vec2 smokeDelta=pos-trailClosest;",
     "  float smokeDist=max(.001,length(smokeDelta));",
-    "  float smokeRadius=mix(58.0,118.0,u_pointer.w);",
-    "  float smokeFalloff=1.0-smoother(smokeDist/smokeRadius);",
+    "  float smokeRadius=mix(44.0,82.0,u_pointer.w)+min(16.0,trailLen*.028);",
+    "  float smokeFalloff=pow(1.0-smoother(smokeDist/smokeRadius),1.18);",
     "  float smoke=smokeFalloff*logoInteract;",
     "  vec2 smokeDir=smokeDelta/smokeDist;",
     "  vec2 smokeTangent=vec2(-smokeDir.y,smokeDir.x);",
     "  float smokeCurl=sin(u_time*.0045+a_seed.x*13.0+a_seed.z*7.0);",
-    "  pos+=smokeDir*smoke*(5.0+20.0*u_pointer.w)*(.32+a_seed.y*.68);",
-    "  pos+=smokeTangent*smoke*smokeCurl*(8.0+28.0*u_pointer.w)*(.28+a_seed.w*.72);",
-    "  pos+=trailDir*smoke*(3.0+16.0*u_pointer.w)*(a_seed.z-.18);",
+    "  pos+=smokeDir*smoke*(4.0+17.0*u_pointer.w)*(.30+a_seed.y*.70);",
+    "  pos+=smokeTangent*smoke*smokeCurl*(10.0+32.0*u_pointer.w)*(.24+a_seed.w*.76);",
+    "  pos+=trailDir*smoke*(6.0+22.0*u_pointer.w)*(a_seed.z-.12);",
     "",
 
     "  // Continuous displacement preserves neighbouring strands and architecture.",
@@ -1880,7 +1880,8 @@ function createParticleField(){
     "  targetR*=classRadius;",
     "  float radius=mix(logoR,targetR,u_material);",
     "",
-    "  vec3 initialColor=mix(vec3(.48,.45,.40),vec3(1.0,.965,.90),smoothstep(.012,.32,logoGlow));",
+    "  float logoHot=smoothstep(.58,1.0,logoGlow);",
+    "  vec3 initialColor=mix(vec3(.80,.76,.68),vec3(1.0,.965,.90),logoHot*.18);",
     "  vec3 targetColor=activeColor;",
     "  float hot=smoothstep(.58,1.0,glow);",
     "  if(zone<1.5){",
@@ -3294,11 +3295,28 @@ function createParticleField(){
 
     const dt=state.lastFrameAt?now-state.lastFrameAt:0;
     state.lastFrameAt=now;
-    if(dt>0&&state.pointerStrength>0){
+    if(dt>0&&state.pointerInitialized){
       const idleFor=now-state.pointerLastAt;
-      if(idleFor>18){
-        state.pointerStrength*=Math.exp(-dt/430);
-        state.pointerSpeed*=Math.exp(-dt/260);
+      const tailDx=state.pointerX-state.pointerPrevX;
+      const tailDy=state.pointerY-state.pointerPrevY;
+      const tailDist=Math.hypot(tailDx,tailDy);
+
+      // The wake anchor deliberately lags behind the real cursor.
+      const tailTau=idleFor<34?720:1180;
+      const follow=1-Math.exp(-dt/tailTau);
+      state.pointerPrevX+=tailDx*follow;
+      state.pointerPrevY+=tailDy*follow;
+
+      // Keep very fast swipes bounded so one event cannot create a screen-wide line.
+      if(tailDist>300){
+        const keep=300/tailDist;
+        state.pointerPrevX=state.pointerX-tailDx*keep;
+        state.pointerPrevY=state.pointerY-tailDy*keep;
+      }
+
+      if(state.pointerStrength>0&&idleFor>24){
+        state.pointerStrength*=Math.exp(-dt/1450);
+        state.pointerSpeed*=Math.exp(-dt/920);
         if(state.pointerStrength<.003)state.pointerStrength=0;
       }
     }
@@ -3534,14 +3552,15 @@ function createParticleField(){
     const eventDt=Math.max(8,now-state.pointerLastAt);
     const speed=Math.hypot(dx,dy)/eventDt;
 
-    state.pointerPrevX=state.pointerX;
-    state.pointerPrevY=state.pointerY;
     state.pointerX=x;
     state.pointerY=y;
-    state.pointerSpeed=particleClamp(speed/1.25);
+    state.pointerSpeed=Math.max(
+      state.pointerSpeed,
+      particleClamp(speed/1.10)
+    );
     state.pointerStrength=Math.max(
       state.pointerStrength,
-      particleClamp(.20+speed*.78)
+      particleClamp(.26+speed*.92)
     );
     state.pointerLastAt=now;
   },{passive:true});
