@@ -1510,8 +1510,6 @@ function createParticleField(){
       particles:[],
       logoPoints:[],
       webPoints:[],
-      settledBookLayer:null,
-      settledLogoLayer:null,
       logoStamp:null,
       logoRender:null,
       logoSettle:1,
@@ -1652,7 +1650,6 @@ function createParticleField(){
       }
       if(state.particles.length>count)state.particles.length=count;
       state.webPoints=buildBookTarget(count);
-      buildSettledParticleLayers();
       state.ready=true;
       document.documentElement.classList.add("particle-field-ready");
     }
@@ -1679,7 +1676,7 @@ function createParticleField(){
       // Match the reference composition to the viewport width. Slight vertical
       // lift keeps the open book behind the Renaissance title like the mockup.
       const refAspect=ref.naturalWidth/Math.max(1,ref.naturalHeight);
-      const dw=tw*1.188;
+      const dw=tw*1.08;
       const dh=dw/refAspect;
       const dx=(tw-dw)*.5;
       const dy=(th-dh)*.485-th*.004;
@@ -1696,10 +1693,10 @@ function createParticleField(){
       const image=ctx.getImageData(0,0,tw,th);
       const data=image.data;
       const candidates=[];
-      const bookLeft=tw*.085;
-      const bookRight=tw*.915;
-      const bookTop=th*.145;
-      const bookBottom=th*.895;
+      const bookLeft=tw*.17;
+      const bookRight=tw*.83;
+      const bookTop=th*.20;
+      const bookBottom=th*.83;
 
       for(let y=0;y<th;y++){
         for(let x=0;x<tw;x++){
@@ -1718,7 +1715,7 @@ function createParticleField(){
             y:y/th*h,
             // Logo: absolutely fixed. Book: only a couple of pixels of life.
             // Everything outside the book envelope is treated as a filament.
-            motion:topLogo?0:(inBook?0:1),
+            motion:topLogo?0:(inBook?.075:1),
             zone:topLogo?2:(inBook?1:0),
             glow
           };
@@ -1758,77 +1755,6 @@ function createParticleField(){
       // contiguous source region can visibly travel toward one target region.
       particleShuffle(points,0xc2b2ae35);
       return points;
-    }
-
-    function buildSettledParticleLayers(){
-      const makeLayer=()=>{
-        const canvas=document.createElement("canvas");
-        canvas.width=Math.max(1,Math.round(state.width*state.dpr));
-        canvas.height=Math.max(1,Math.round(state.height*state.dpr));
-        const ctx=canvas.getContext("2d",{alpha:true});
-        ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
-        ctx.lineCap="round";
-        ctx.lineJoin="round";
-        return {canvas,ctx};
-      };
-
-      const book=makeLayer();
-      const logo=makeLayer();
-
-      const bookBase=new Path2D();
-      const bookMid=new Path2D();
-      const bookHot=new Path2D();
-      const logoBase=new Path2D();
-      const logoHot=new Path2D();
-
-      for(let i=0;i<state.webPoints.length;i++){
-        const web=state.webPoints[i];
-        if(!web || web.zone===0)continue;
-        const p=state.particles[i]||state.particles[i%state.particles.length];
-        if(!p)continue;
-
-        const glow=web.glow??0;
-        const r=Math.max(.22,p.size*(.34+.30*glow));
-        const base=web.zone===2?logoBase:bookBase;
-        base.moveTo(web.x+r,web.y);
-        base.arc(web.x,web.y,r,0,Math.PI*2);
-
-        if(web.zone===1 && glow>.52){
-          const mr=Math.max(.14,r*(.44+.28*glow));
-          bookMid.moveTo(web.x+mr,web.y);
-          bookMid.arc(web.x,web.y,mr,0,Math.PI*2);
-        }
-        if(web.zone===1 && glow>.80){
-          const hr=Math.max(.13,r*(.36+.18*glow));
-          bookHot.moveTo(web.x+hr,web.y);
-          bookHot.arc(web.x,web.y,hr,0,Math.PI*2);
-        }
-        if(web.zone===2 && glow>.40){
-          const lr=Math.max(.14,r*(.52+.18*glow));
-          logoHot.moveTo(web.x+lr,web.y);
-          logoHot.arc(web.x,web.y,lr,0,Math.PI*2);
-        }
-      }
-
-      book.ctx.fillStyle="rgb(224,215,196)";
-      book.ctx.globalAlpha=.71;
-      book.ctx.fill(bookBase);
-      book.ctx.fillStyle="#efe2c8";
-      book.ctx.globalAlpha=.43;
-      book.ctx.fill(bookMid);
-      book.ctx.fillStyle="#fff6e5";
-      book.ctx.globalAlpha=.70;
-      book.ctx.fill(bookHot);
-
-      logo.ctx.fillStyle="#e8ddc6";
-      logo.ctx.globalAlpha=.92;
-      logo.ctx.fill(logoBase);
-      logo.ctx.fillStyle="#fff7e8";
-      logo.ctx.globalAlpha=.82;
-      logo.ctx.fill(logoHot);
-
-      state.settledBookLayer=book.canvas;
-      state.settledLogoLayer=logo.canvas;
     }
 
     function frame(now){
@@ -1876,20 +1802,10 @@ function createParticleField(){
       const pb=Math.round(particleMix(239,196,bookMix));
       particleCtx.fillStyle=`rgb(${pr},${pg},${pb})`;
       particleCtx.globalCompositeOperation="source-over";
-      const finalTargetLocked=
-        !returningToLogo &&
-        heroRaw>.34 &&
-        bgStart>.72 &&
-        state.settledBookLayer &&
-        state.settledLogoLayer;
-
       particleCtx.globalAlpha=alpha*movingParticleAlpha;
       particleCtx.beginPath();
-
-      // Extra highlight paths are only needed while morphing. Once settled,
-      // the book/logo are cached particle layers.
-      const bookHighlightPath=!finalTargetLocked && bgStart>.03 ? new Path2D() : null;
-      const bookHotPath=!finalTargetLocked && bgStart>.03 ? new Path2D() : null;
+      const bookHighlightPath=bgStart>.03 ? new Path2D() : null;
+      const bookHotPath=bgStart>.03 ? new Path2D() : null;
 
       let settleDistance=0;
       let settleSamples=0;
@@ -1898,23 +1814,13 @@ function createParticleField(){
       for(let i=0;i<count;i++){
         const p=state.particles[i];
         const logo=state.logoPoints[i]||state.logoPoints[i%state.logoPoints.length];
-        const web=state.webPoints[i]||{x:state.width*.5,y:state.height*.56,motion:.2,zone:0,glow:1};
-
-        if(finalTargetLocked && (web.zone||0)>=1){
-          p.x=web.x;
-          p.y=web.y;
-          continue;
-        }
+        const web=state.webPoints[i]||{x:state.width*.5,y:state.height*.56,motion:.2,glow:1};
 
         // Start by visibly bending/twisting the logo itself. The deformation
         // grows before the particle has fully committed to the flight path.
         const particleStart=.018+p.seed4*.105;
         const particleDuration=.245+p.seed5*.145;
-        const baseLeave=particleSmooth((heroRaw-particleStart)/particleDuration);
-        const zone=web.zone||0;
-        const localLeave=zone>=1
-          ? particleSmooth(particleClamp(baseLeave*1.72))
-          : baseLeave;
+        const localLeave=particleSmooth((heroRaw-particleStart)/particleDuration);
 
         const logoCx=state.width*.5;
         const logoCy=state.height*.5;
@@ -1959,38 +1865,37 @@ function createParticleField(){
         // The book stays anchored while the surrounding filaments visibly breathe.
         // Nearby target points share the same spatial waves, so threads bend coherently.
         const live=bgStart;
+        const zone=web.zone||0;
         const motion=web.motion??0;
         let waveX=0;
         let waveY=0;
 
         if(zone===0){
-          // Each filament particle gets independent seeded phases/speeds.
-          // This breaks the "whole web breathes together" look and makes the
-          // outgoing strands behave like separate tentacles.
-          const t=now*.001;
-          const s1=.085+p.seed4*.080;
-          const s2=.035+p.seed5*.055;
-          const ph1=p.seed*Math.PI*2;
-          const ph2=p.seed3*Math.PI*2;
+          // Outer filaments: broad coherent bends plus a slower secondary sway,
+          // reading more like tentacles than vibrating dust.
           waveX=
-            Math.sin(t*s1+ph1)*20.0+
-            Math.sin(t*s2+ph2)*10.0+
-            Math.cos(t*(s2*.63)+ph1*1.7)*4.0;
+            Math.sin(now*.00019+web.y*.0092)*20.0+
+            Math.sin(now*.000072+web.x*.0041+web.y*.0025)*10.5+
+            Math.cos(now*.000041+web.y*.0021)*4.0;
           waveY=
-            Math.cos(t*(s1*.91)+ph2)*17.0+
-            Math.sin(t*(s2*1.17)+ph1)*8.5+
-            Math.sin(t*(s1*.37)+ph2*1.4)*3.5;
+            Math.cos(now*.00017+web.x*.0081)*17.0+
+            Math.sin(now*.000067+web.y*.0057-web.x*.0022)*8.8+
+            Math.sin(now*.000038+web.x*.0020)*3.5;
+        }else if(zone===1){
+          // The book itself only breathes by a couple of pixels around anchors.
+          waveX=
+            Math.sin(now*.00013+web.y*.0070)*18.0+
+            Math.sin(now*.000061+web.x*.0038)*7.0;
+          waveY=
+            Math.cos(now*.00012+web.x*.0064)*16.0+
+            Math.sin(now*.000057+web.y*.0041)*6.0;
         }
-        // Book and top logo do not move at particle level once assembled.
+        // zone===2 (top logo) intentionally stays at exactly its anchor.
         tx+=waveX*motion*live;
         ty+=waveY*motion*live;
 
-        const settleBoost=particleSmooth((localLeave-.82)/.18);
-        const outwardResponse=particleMix(
-          response,
-          zone>=1?.22:.082,
-          settleBoost
-        );
+        const settleBoost=particleSmooth((localLeave-.88)/.12);
+        const outwardResponse=particleMix(response,.082,settleBoost);
         // Reverse assembly is intentionally faster than dispersal.
         const returnResponse=particleMix(.175,.285,1-localLeave);
         const followResponse=returningToLogo
@@ -2026,27 +1931,6 @@ function createParticleField(){
       }
 
       particleCtx.fill();
-
-      if(finalTargetLocked){
-        particleCtx.save();
-        particleCtx.globalAlpha=alpha*movingParticleAlpha;
-
-        // The whole book can breathe by at most a couple of pixels, while
-        // the top logo is completely independent and perfectly static.
-        const bookDriftX=Math.sin(now*.00011)*1.35;
-        const bookDriftY=Math.cos(now*.000095)*.85;
-        particleCtx.drawImage(
-          state.settledBookLayer,
-          bookDriftX,bookDriftY,
-          state.width,state.height
-        );
-        particleCtx.drawImage(
-          state.settledLogoLayer,
-          0,0,
-          state.width,state.height
-        );
-        particleCtx.restore();
-      }
 
       // Preserve every reference filament, but locally strengthen the light hierarchy.
       if(bookHighlightPath){
