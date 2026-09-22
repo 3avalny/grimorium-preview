@@ -609,7 +609,7 @@ nav{display:none!important}
   opacity:0;
   filter:blur(12px);
   transform:translate3d(0,-11px,0);
-  transition-duration:.20s,.25s,.25s;
+  transition-duration:.28s,.34s,.34s;
   transition-delay:var(--bio-exit-delay,0ms)
 }
 .bio-copy,.bio-copy *{
@@ -1681,14 +1681,14 @@ function layoutBiographyWords(){
   });
 
   bodyLines.forEach((line,lineIndex)=>{
-    const exitDelay=(bodyLines.length-1-lineIndex)*38;
+    const exitDelay=(bodyLines.length-1-lineIndex)*55;
     line.words.forEach(word=>{
       word.style.setProperty("--bio-exit-delay",`${exitDelay}ms`);
       word.dataset.bioLine=String(lineIndex);
     });
   });
 
-  const bodyExitEnd=Math.max(0,(bodyLines.length-1)*38)+250;
+  const bodyExitEnd=Math.max(0,(bodyLines.length-1)*55)+340;
   const ruleExitDelay=bodyExitEnd+35;
   const eyebrowExitDelay=ruleExitDelay+175;
 
@@ -1769,7 +1769,7 @@ function setBiographyTextActive(active,{immediate=false}={}){
     if(immediate||reducedMotionQuery.matches){
       biographyCopy.classList.add("bio-text-visible");
     }else{
-      biographyEnterTimer=window.setTimeout(reveal,500);
+      biographyEnterTimer=window.setTimeout(reveal,2000);
     }
   }else{
     if(!biographyCopy.classList.contains("bio-text-visible")){
@@ -2114,7 +2114,7 @@ function createParticleField(){
     "  );",
     "  float bioMotionEnergy=mix(.10,1.70,smoother((bioEnergy-.025)/.56));",
     "  float bioBrightFire=smoother((bioEnergy-.40)/.34)*smoother((a_bioMeta.x-.42)/.34);",
-    "  float bioBrightFireBoost=mix(1.0,4.0,bioBrightFire);",
+    "  float bioBrightFireBoost=mix(1.0,8.0,bioBrightFire);",
     "  bioDrift*=vec2(bioAmpX,bioAmpY)*3.60*bioAmpBreath*bioMotionEnergy*bioBrightFireBoost;",
     "  pos+=bioDrift*bioLifeGate;",
     "",
