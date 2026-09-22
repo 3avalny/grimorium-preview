@@ -1655,6 +1655,7 @@ function createParticleField(){
     "uniform float u_alpha;",
     "uniform float u_pass;",
     "uniform float u_renderScale;",
+    "uniform vec4 u_topLogoField;",
     "uniform vec4 u_smoke[3];",
     "varying vec3 v_color;",
     "varying float v_alpha;",
@@ -1849,6 +1850,20 @@ function createParticleField(){
     "  float bioDriftGate=u_bio*u_material*localLeave*(1.0-isTop);",
     "  pos+=bioFlow*1.35*bioDriftGate;",
     "",
+    "  // Soft magnetic keep-out around the persistent GV mark. Scene particles",
+    "  // bend around it instead of being cut away, so there is no rectangular hole.",
+    "  float topLogoField=0.0;",
+    "  if(isTop<.5&&u_material>.001){",
+    "    vec2 fieldRadius=max(u_topLogoField.zw,vec2(1.0));",
+    "    vec2 fieldLocal=(pos-u_topLogoField.xy)/fieldRadius;",
+    "    float fieldD=length(fieldLocal);",
+    "    topLogoField=1.0-smoother((fieldD-.58)/.82);",
+    "    vec2 fieldDir=normalize(fieldLocal+vec2(.0001));",
+    "    vec2 fieldPxDir=normalize(fieldDir*fieldRadius);",
+    "    float fieldPush=topLogoField*mix(4.0,19.0,topLogoField);",
+    "    pos+=fieldPxDir*fieldPush;",
+    "  }",
+    "",
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
     "  gl_Position=vec4(clip,0.0,1.0);",
     "",
@@ -1939,6 +1954,7 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.055,bioWeb);",
     "  bloomGain*=mix(1.0,.72,bioSpark);",
     "  float passAlpha=u_alpha*bioBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
+    "  passAlpha*=mix(1.0,.68,topLogoField*(1.0-isTop));",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
     "  float forwardTopAlpha=max(topSourceFade,topCrystal);",
@@ -2000,7 +2016,7 @@ function createParticleField(){
     "    visible=reconstructionWeight*materialKeep;",
     "    passRadius=reconstructionMeta.z*mix(.86,.68,materialDetail);",
     "    color=mix(reconstructionColor,reconstructionColor*1.12,materialDetail);",
-    "    passAlpha=materialToneAlpha*bookSpineTone;",
+    "    passAlpha=materialToneAlpha*bookSpineTone*mix(1.0,.68,topLogoField);",
     "  }",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
     "  v_color=color;",
@@ -2132,6 +2148,7 @@ function createParticleField(){
     alpha:gl.getUniformLocation(particleProgram,"u_alpha"),
     pass:gl.getUniformLocation(particleProgram,"u_pass"),
     renderScale:gl.getUniformLocation(particleProgram,"u_renderScale"),
+    topLogoField:gl.getUniformLocation(particleProgram,"u_topLogoField"),
     smoke:gl.getUniformLocation(particleProgram,"u_smoke[0]")
   };
   const blurLoc={
@@ -2342,7 +2359,8 @@ function createParticleField(){
 
         if(excludeSourceLogo){
           const sourceLogoRegion=u>.385&&u<.615&&v<.155;
-          if(sourceLogoRegion)continue;
+          const sourceLogoInk=sourceLogoRegion&&lum>.085;
+          if(sourceLogoInk)continue;
         }
 
         if(sceneId==="book"){
@@ -3412,6 +3430,18 @@ function createParticleField(){
     gl.uniform1f(pLoc.alpha,alpha);
     gl.uniform1f(pLoc.renderScale,renderScale);
     gl.uniform1f(pLoc.pass,pass);
+    if(state.topLogoHit){
+      const hit=state.topLogoHit;
+      gl.uniform4f(
+        pLoc.topLogoField,
+        hit.left+hit.width*.5,
+        hit.top+hit.height*.5,
+        hit.width*.56+24,
+        hit.height*.72+16
+      );
+    }else{
+      gl.uniform4f(pLoc.topLogoField,state.width*.5,36,120,42);
+    }
     gl.uniform4fv(pLoc.smoke,state.smokeUniformData);
   }
 
