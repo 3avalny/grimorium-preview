@@ -1628,7 +1628,7 @@ function createParticleField(){
   let resizeTimer=0;
 
   const particleVS=[
-    "attribute vec2 a_logo;",
+    "attribute vec4 a_logo;",
     "attribute vec2 a_target;",
     "attribute vec2 a_albumTarget;",
     "attribute vec2 a_nextAlbumTarget;",
@@ -1655,6 +1655,8 @@ function createParticleField(){
     "uniform float u_alpha;",
     "uniform float u_pass;",
     "uniform float u_renderScale;",
+    "uniform vec4 u_pointer;",
+    "uniform vec2 u_pointerPrev;",
     "varying vec3 v_color;",
     "varying float v_alpha;",
     "varying float v_albumSharp;",
@@ -1749,7 +1751,7 @@ function createParticleField(){
     "  float transition=sin(PI*localLeave);",
     "",
     "  vec2 logoCenter=u_resolution*.5;",
-    "  vec2 d=a_logo-logoCenter;",
+    "  vec2 d=a_logo.xy-logoCenter;",
     "  float radial=sat(length(d)/max(1.0,u_resolution.x*.34));",
     "  float spinSign=step(.5,a_seed.x)*2.0-1.0;",
     "  float twist=transition*spinSign*(.20+radial*.66)*(.72+a_seed.z*.58);",
@@ -1795,8 +1797,29 @@ function createParticleField(){
     "  // crystallize in place after the book is essentially formed.",
     "  float forwardTop=u_direction*isTop;",
     "  float topTeleport=step(.26,u_morph);",
-    "  vec2 forwardTopPos=mix(a_logo,target,topTeleport);",
+    "  vec2 forwardTopPos=mix(a_logo.xy,target,topTeleport);",
     "  pos=mix(pos,forwardTopPos,forwardTop);",
+    "",
+    "  // Large-logo interaction: dragging the pointer through the mark behaves",
+    "  // like a finger through smoke. The field is temporary, so particles",
+    "  // continuously relax back to their exact reference positions.",
+    "  float logoInteract=(1.0-smoother(u_morph/.16))*u_pointer.z;",
+    "  vec2 pointerTrail=u_pointer.xy-u_pointerPrev;",
+    "  float trailLen=max(1.0,length(pointerTrail));",
+    "  vec2 trailDir=pointerTrail/trailLen;",
+    "  float trailT=clamp(dot(pos-u_pointerPrev,pointerTrail)/max(1.0,dot(pointerTrail,pointerTrail)),0.0,1.0);",
+    "  vec2 trailClosest=u_pointerPrev+pointerTrail*trailT;",
+    "  vec2 smokeDelta=pos-trailClosest;",
+    "  float smokeDist=max(.001,length(smokeDelta));",
+    "  float smokeRadius=mix(58.0,118.0,u_pointer.w);",
+    "  float smokeFalloff=1.0-smoother(smokeDist/smokeRadius);",
+    "  float smoke=smokeFalloff*logoInteract;",
+    "  vec2 smokeDir=smokeDelta/smokeDist;",
+    "  vec2 smokeTangent=vec2(-smokeDir.y,smokeDir.x);",
+    "  float smokeCurl=sin(u_time*.0045+a_seed.x*13.0+a_seed.z*7.0);",
+    "  pos+=smokeDir*smoke*(5.0+20.0*u_pointer.w)*(.32+a_seed.y*.68);",
+    "  pos+=smokeTangent*smoke*smokeCurl*(8.0+28.0*u_pointer.w)*(.28+a_seed.w*.72);",
+    "  pos+=trailDir*smoke*(3.0+16.0*u_pointer.w)*(a_seed.z-.18);",
     "",
 
     "  // Continuous displacement preserves neighbouring strands and architecture.",
@@ -1828,7 +1851,8 @@ function createParticleField(){
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
     "  gl_Position=vec4(clip,0.0,1.0);",
     "",
-    "  float logoR=max(.28,pSize*.68);",
+    "  float logoGlow=a_logo.w;",
+    "  float logoR=max(.090,a_logo.z);",
     "  float targetR=max(.090,pSize*(.152+.182*glow));",
     "  float classRadius=1.0;",
     "  classRadius*=mix(1.0,.38,spine);",
@@ -1856,7 +1880,7 @@ function createParticleField(){
     "  targetR*=classRadius;",
     "  float radius=mix(logoR,targetR,u_material);",
     "",
-    "  vec3 initialColor=vec3(.80,.76,.68);",
+    "  vec3 initialColor=mix(vec3(.48,.45,.40),vec3(1.0,.965,.90),smoothstep(.012,.32,logoGlow));",
     "  vec3 targetColor=activeColor;",
     "  float hot=smoothstep(.58,1.0,glow);",
     "  if(zone<1.5){",
@@ -1935,9 +1959,20 @@ function createParticleField(){
     "    passAlpha=visible*zoneAlpha*bloomGain*(.11+.19*glow);",
     "  }",
     "",
+    "  float logoReconstructionWeight=1.0-u_material;",
     "  float reconstructionWeight=u_material*(1.0-isTop);",
+    "  passAlpha*=1.0-logoReconstructionWeight;",
     "  passAlpha*=1.0-reconstructionWeight;",
-    "  if(u_pass>4.5){",
+    "  if(u_pass>5.5){",
+    "    // Large GV mark uses the same sharp particle reconstruction as albums.",
+    "    float logoKeep=1.0-step(.82,a_seed.x);",
+    "    float logoToneAlpha=mix(.22,.98,smoothstep(.012,.17,logoGlow));",
+    "    float logoDetail=smoothstep(.055,.28,logoGlow);",
+    "    visible=logoReconstructionWeight*logoKeep;",
+    "    passRadius=a_logo.z*mix(.86,.68,logoDetail);",
+    "    color=mix(initialColor,initialColor*1.12,logoDetail);",
+    "    passAlpha=logoToneAlpha;",
+    "  }else if(u_pass>4.5){",
     "    // Final top-logo overlay pass.",
     "    visible=isTop*u_material;",
     "    passRadius=max(.34,a_meta.z*.72);",
@@ -2090,7 +2125,9 @@ function createParticleField(){
     dpr:gl.getUniformLocation(particleProgram,"u_dpr"),
     alpha:gl.getUniformLocation(particleProgram,"u_alpha"),
     pass:gl.getUniformLocation(particleProgram,"u_pass"),
-    renderScale:gl.getUniformLocation(particleProgram,"u_renderScale")
+    renderScale:gl.getUniformLocation(particleProgram,"u_renderScale"),
+    pointer:gl.getUniformLocation(particleProgram,"u_pointer"),
+    pointerPrev:gl.getUniformLocation(particleProgram,"u_pointerPrev")
   };
   const blurLoc={
     position:gl.getAttribLocation(blurProgram,"a_position"),
@@ -2205,7 +2242,15 @@ function createParticleField(){
     bloomScale:.36,
     bloomA:null,
     bloomB:null,
-    topLogoHit:null
+    topLogoHit:null,
+    pointerX:0,
+    pointerY:0,
+    pointerPrevX:0,
+    pointerPrevY:0,
+    pointerStrength:0,
+    pointerSpeed:0,
+    pointerLastAt:0,
+    pointerInitialized:false
   };
 
   function desiredCount(){
@@ -2235,32 +2280,16 @@ function createParticleField(){
   }
 
   function prepareLogoCandidates(){
-    const aspect=source.naturalWidth/Math.max(1,source.naturalHeight);
-    const sampleW=2400;
-    const sampleH=Math.max(1,Math.round(sampleW/aspect));
-    const off=document.createElement("canvas");
-    off.width=sampleW;
-    off.height=sampleH;
-    const ctx=off.getContext("2d",{willReadFrequently:true});
-    ctx.clearRect(0,0,sampleW,sampleH);
-    ctx.drawImage(source,0,0,sampleW,sampleH);
-    const data=ctx.getImageData(0,0,sampleW,sampleH).data;
-    const list=[];
-    let minU=1,minV=1,maxU=0,maxV=0;
-    for(let y=0;y<sampleH;y++){
-      for(let x=0;x<sampleW;x++){
-        const k=(y*sampleW+x)*4;
-        const a=data[k+3]/255;
-        const lum=(data[k]+data[k+1]+data[k+2])/3;
-        if(a>.14&&lum>64){
-          const u=x/sampleW,v=y/sampleH;
-          list.push({u,v});
-          minU=Math.min(minU,u);minV=Math.min(minV,v);
-          maxU=Math.max(maxU,u);maxV=Math.max(maxV,v);
-        }
-      }
-    }
+    // Use the original transparent PNG at native resolution, exactly like an
+    // album reference. No fixed-width thumbnail and no binary white threshold.
+    const list=prepareDiscSceneCandidates(source,false,"logo");
     state.logoCandidates=list;
+
+    let minU=1,minV=1,maxU=0,maxV=0;
+    for(const p of list){
+      minU=Math.min(minU,p.u);minV=Math.min(minV,p.v);
+      maxU=Math.max(maxU,p.u);maxV=Math.max(maxV,p.v);
+    }
     if(list.length)state.logoBounds={minU,minV,maxU,maxV};
   }
 
@@ -2489,22 +2518,24 @@ function createParticleField(){
     const logoAspect=source.naturalWidth/Math.max(1,source.naturalHeight);
     const sourceLogoW=Math.min(w*.56,820);
     const sourceLogoH=sourceLogoW/logoAspect;
+    const sourceLogoScale=sourceLogoW/Math.max(1,source.naturalWidth);
 
     const logoShare=w>1100?.085:(w>720?.13:.12);
     const topLogoCount=Math.max(1,Math.round(count*logoShare));
     const refCount=Math.max(1,count-topLogoCount);
 
-    const sourcePoints=sampleLowDiscrepancy(state.logoCandidates,count,0x91e10da5);
+    const sourcePoints=sampleAlbumPoints(state.logoCandidates,count,source);
     const refPoints=sampleAlbumPoints(state.referenceCandidates,refCount,state.bookReference);
     const albumPointsById={};
     for(const [id,ref] of Object.entries(state.albumReferences)){
       albumPointsById[id]=sampleAlbumPoints(state.albumCandidatesById[id],refCount,ref);
     }
     const bioPoints=sampleAlbumPoints(state.bioCandidates,refCount,state.bioReference);
-    const topPoints=sampleLowDiscrepancy(state.logoCandidates,topLogoCount,0x7f4a7c15);
+    const topPoints=sampleAlbumPoints(state.logoCandidates,topLogoCount,source);
 
     const topLogoW=Math.min(w*.215,360);
     const topLogoH=topLogoW/logoAspect;
+    const topLogoScale=topLogoW/Math.max(1,source.naturalWidth);
     const topLogoX=w*.5-topLogoW*.5;
     const topLogoY=-topLogoH*.18;
 
@@ -2561,9 +2592,10 @@ function createParticleField(){
         x:topLogoX+p.u*topLogoW,
         y:topLogoY+p.v*topLogoH,
         zone:2,
-        glow:.50,
+        glow:p.glow,
         structure:0,
-        r:.80,g:.76,b:.68
+        radius:p.radius*topLogoScale,
+        r:p.r,g:p.g,b:p.b
       });
     });
     particleShuffle(targets,0x4cf5ad43);
@@ -2626,7 +2658,7 @@ function createParticleField(){
       };
     });
 
-    const logoData=new Float32Array(count*2);
+    const logoData=new Float32Array(count*4);
     const targetData=new Float32Array(count*2);
     const bioTargetData=new Float32Array(count*2);
     const seedData=new Float32Array(count*4);
@@ -2640,8 +2672,10 @@ function createParticleField(){
       const tp=targets[i];
       const bp=bioTargets[i];
 
-      logoData[i*2]=w*.5+(lp.u-.5)*sourceLogoW;
-      logoData[i*2+1]=h*.5+(lp.v-.5)*sourceLogoH;
+      logoData[i*4]=w*.5+(lp.u-.5)*sourceLogoW;
+      logoData[i*4+1]=h*.5+(lp.v-.5)*sourceLogoH;
+      logoData[i*4+2]=lp.radius*sourceLogoScale;
+      logoData[i*4+3]=lp.glow;
 
       targetData[i*2]=tp.x;
       targetData[i*2+1]=tp.y;
@@ -2836,7 +2870,7 @@ function createParticleField(){
       gl.enableVertexAttribArray(location);
       gl.vertexAttribPointer(location,size,gl.FLOAT,false,0,0);
     };
-    bind(buffers.logo,pLoc.logo,2);
+    bind(buffers.logo,pLoc.logo,4);
     bind(buffers.target,pLoc.target,2);
     bind(buffers.albumTarget,pLoc.albumTarget,2);
     bind(buffers.revenantTarget,pLoc.revenantTarget,2);
@@ -3173,6 +3207,14 @@ function createParticleField(){
     gl.uniform1f(pLoc.alpha,alpha);
     gl.uniform1f(pLoc.renderScale,renderScale);
     gl.uniform1f(pLoc.pass,pass);
+    gl.uniform4f(
+      pLoc.pointer,
+      state.pointerX,
+      state.pointerY,
+      state.pointerStrength,
+      state.pointerSpeed
+    );
+    gl.uniform2f(pLoc.pointerPrev,state.pointerPrevX,state.pointerPrevY);
   }
 
   function bindQuad(program,positionLocation){
@@ -3252,6 +3294,14 @@ function createParticleField(){
 
     const dt=state.lastFrameAt?now-state.lastFrameAt:0;
     state.lastFrameAt=now;
+    if(dt>0&&state.pointerStrength>0){
+      const idleFor=now-state.pointerLastAt;
+      if(idleFor>18){
+        state.pointerStrength*=Math.exp(-dt/430);
+        state.pointerSpeed*=Math.exp(-dt/260);
+        if(state.pointerStrength<.003)state.pointerStrength=0;
+      }
+    }
     adaptPerformance(dt);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);
@@ -3340,6 +3390,12 @@ function createParticleField(){
         gl.drawArrays(gl.POINTS,0,state.count);
 
         setParticleUniforms(now,material,bloom,alpha,1,2);
+        gl.drawArrays(gl.POINTS,0,state.count);
+      }
+
+      if(state.morph<.72){
+        gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
+        setParticleUniforms(now,material,bloom,alpha,1,6);
         gl.drawArrays(gl.POINTS,0,state.count);
       }
 
@@ -3457,6 +3513,41 @@ function createParticleField(){
   window.addEventListener("resize",()=>{
     window.clearTimeout(resizeTimer);
     resizeTimer=window.setTimeout(rebuild,120);
+  },{passive:true});
+
+  window.addEventListener("pointermove",e=>{
+    if(e.pointerType==="touch")return;
+    const now=performance.now();
+    const x=e.clientX;
+    const y=e.clientY;
+
+    if(!state.pointerInitialized){
+      state.pointerX=x;state.pointerY=y;
+      state.pointerPrevX=x;state.pointerPrevY=y;
+      state.pointerInitialized=true;
+      state.pointerLastAt=now;
+      return;
+    }
+
+    const dx=x-state.pointerX;
+    const dy=y-state.pointerY;
+    const eventDt=Math.max(8,now-state.pointerLastAt);
+    const speed=Math.hypot(dx,dy)/eventDt;
+
+    state.pointerPrevX=state.pointerX;
+    state.pointerPrevY=state.pointerY;
+    state.pointerX=x;
+    state.pointerY=y;
+    state.pointerSpeed=particleClamp(speed/1.25);
+    state.pointerStrength=Math.max(
+      state.pointerStrength,
+      particleClamp(.20+speed*.78)
+    );
+    state.pointerLastAt=now;
+  },{passive:true});
+
+  window.addEventListener("pointerleave",()=>{
+    state.pointerLastAt=performance.now()-40;
   },{passive:true});
 
   document.addEventListener("visibilitychange",()=>{
