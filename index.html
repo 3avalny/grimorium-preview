@@ -1552,7 +1552,7 @@ function createParticleField(){
     "  float pSize=a_meta.z;",
     "  float structure=a_meta.w;",
     "  float spine=step(.5,structure)*(1.0-step(1.5,structure));",
-    "  float pageEdge=step(1.5,structure);"
+    "  float pageEdge=step(1.5,structure);",
     "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
     "  float stagger=a_seed.w*.060;",
     "  float rawLeave=smoother((u_morph-stagger)/(1.0-stagger));",
@@ -1611,7 +1611,7 @@ function createParticleField(){
     "  float zoneRadius=zone<.5?.40:(zone>1.5?.88:1.0);",
     "  targetR*=zoneRadius;",
     "  targetR*=mix(1.0,.54,spine);",
-    "  targetR*=mix(1.0,1.08,pageEdge);"
+    "  targetR*=mix(1.0,1.08,pageEdge);",
     "  float radius=mix(logoR,targetR,u_material);",
     "",
     "  vec3 initialColor=vec3(.80,.76,.68);",
@@ -1625,23 +1625,23 @@ function createParticleField(){
     "  float zoneAlpha=zone<.5?.46:(zone>1.5?.60:1.0);",
     "  float structuralAlpha=mix(1.0,.72+.22*glow,spine);",
     "  structuralAlpha*=mix(1.0,1.10,pageEdge);",
-    "  float passAlpha=u_alpha*zoneAlpha*structuralAlpha*mix(1.0,mix(.58,1.0,glow),u_material);"
+    "  float passAlpha=u_alpha*zoneAlpha*structuralAlpha*mix(1.0,mix(.58,1.0,glow),u_material);",
     "",
     "  if(u_pass>.5&&u_pass<1.5){",
     "    visible=step(.44,glow)*u_material*(1.0-step(1.5,zone));",
     "    passRadius=radius*(1.06+.24*glow)*mix(1.0,.74,spine);",
     "    color=mix(targetColor,vec3(1.0,.95,.84),.30);",
-    "    passAlpha=u_alpha*visible*zoneAlpha*(.12+.18*glow)*mix(1.0,1.18,pageEdge);"
+    "    passAlpha=u_alpha*visible*zoneAlpha*(.12+.18*glow)*mix(1.0,1.18,pageEdge);",
     "  }else if(u_pass>1.5&&u_pass<2.5){",
     "    visible=step(.76,glow)*u_material*(1.0-step(1.5,zone));",
     "    passRadius=radius*(.40+.10*glow)*mix(1.0,.68,spine);",
     "    color=vec3(1.0,.975,.92);",
-    "    passAlpha=u_alpha*visible*zoneAlpha*(.44+.24*glow);"
+    "    passAlpha=u_alpha*visible*zoneAlpha*(.44+.24*glow);",
     "  }else if(u_pass>2.5){",
     "    visible=step(.58,glow)*u_bloom*(1.0-step(1.5,zone));",
     "    passRadius=radius*(.62+.14*glow)*mix(1.0,.72,spine);",
     "    color=mix(targetColor,vec3(1.0,.96,.87),.50);",
-    "    passAlpha=visible*zoneAlpha*(.16+.26*glow);"
+    "    passAlpha=visible*zoneAlpha*(.16+.26*glow);",
     "  }",
     "",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
