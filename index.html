@@ -1659,18 +1659,23 @@ function createParticleField(){
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
     "  gl_Position=vec4(clip,0.0,1.0);",
     "",
-    "  float logoR=max(.29,pSize*.70);",
-    "  float targetR=max(.105,pSize*(.185+.215*glow));",
+    "  float logoR=max(.28,pSize*.68);",
+    "  float targetR=max(.094,pSize*(.165+.195*glow));",
     "  float classRadius=1.0;",
-    "  classRadius*=mix(1.0,.50,spine);",
-    "  classRadius*=mix(1.0,.73,innerPage);",
-    "  classRadius*=mix(1.0,.76,pageStack);",
-    "  classRadius*=mix(1.0,.68,outerEdge);",
-    "  classRadius*=mix(1.0,.34,filament);",
-    "  classRadius*=mix(1.0,.25,dust);",
+    "  classRadius*=mix(1.0,.42,spine);",
+    "  classRadius*=mix(1.0,.67,innerPage);",
+    "  classRadius*=mix(1.0,.70,pageStack);",
+    "  classRadius*=mix(1.0,.61,outerEdge);",
+    "  classRadius*=mix(1.0,.29,filament);",
+    "  classRadius*=mix(1.0,.19,dust);"
     "  classRadius*=mix(1.0,.86,step(1.5,zone));",
+    "  float targetU=a_target.x/max(1.0,u_resolution.x);",
+    "  float targetV=a_target.y/max(1.0,u_resolution.y);",
+    "  float centerBand=1.0-smoothstep(.012,.052,abs(targetU-.5));",
+    "  float upperCenter=(1.0-smoothstep(.18,.54,targetV))*centerBand*(1.0-spine);",
+    "  classRadius*=mix(1.0,.62,upperCenter);",
     "  targetR*=classRadius;",
-    "  float radius=mix(logoR,targetR,u_material);",
+    "  float radius=mix(logoR,targetR,u_material);"
     "",
     "  vec3 initialColor=vec3(.80,.76,.68);",
     "  vec3 targetColor=a_color;",
@@ -1681,26 +1686,29 @@ function createParticleField(){
     "  float visible=1.0;",
     "  float passRadius=radius;",
     "  float zoneAlpha=zone>1.5?.60:1.0;",
-    "  zoneAlpha*=mix(1.0,.30,filament);",
-    "  zoneAlpha*=mix(1.0,.12,dust);",
+    "  zoneAlpha*=mix(1.0,.24,filament);",
+    "  zoneAlpha*=mix(1.0,.065,dust);",
     "  float structuralAlpha=1.0;",
-    "  structuralAlpha*=mix(1.0,.92,spine);",
-    "  structuralAlpha*=mix(1.0,1.17,innerPage);",
-    "  structuralAlpha*=mix(1.0,1.22,pageStack);",
-    "  structuralAlpha*=mix(1.0,1.08,outerEdge);",
-    "  float effectiveGlow=glow+spine*.16+innerPage*.055+pageStack*.10+outerEdge*.025;",
+    "  structuralAlpha*=mix(1.0,1.02,spine);",
+    "  structuralAlpha*=mix(1.0,1.24,innerPage);",
+    "  structuralAlpha*=mix(1.0,1.36,pageStack);",
+    "  structuralAlpha*=mix(1.0,.96,outerEdge);",
+    "  structuralAlpha*=mix(1.0,.58,upperCenter);",
+    "  float effectiveGlow=glow+spine*.20+innerPage*.060+pageStack*.12+outerEdge*.012;",
     "  float highlightGain=1.0;",
-    "  highlightGain*=mix(1.0,1.32,spine);",
-    "  highlightGain*=mix(1.0,1.20,innerPage);",
-    "  highlightGain*=mix(1.0,1.28,pageStack);",
-    "  highlightGain*=mix(1.0,.28,filament);",
-    "  highlightGain*=mix(1.0,.06,dust);",
+    "  highlightGain*=mix(1.0,1.45,spine);",
+    "  highlightGain*=mix(1.0,1.18,innerPage);",
+    "  highlightGain*=mix(1.0,1.34,pageStack);",
+    "  highlightGain*=mix(1.0,.88,outerEdge);",
+    "  highlightGain*=mix(1.0,.18,filament);",
+    "  highlightGain*=mix(1.0,.025,dust);",
     "  float bloomGain=1.0;",
-    "  bloomGain*=mix(1.0,1.42,spine);",
-    "  bloomGain*=mix(1.0,.72,innerPage);",
-    "  bloomGain*=mix(1.0,1.08,pageStack);",
-    "  bloomGain*=mix(1.0,.16,filament);",
-    "  bloomGain*=mix(1.0,.03,dust);",
+    "  bloomGain*=mix(1.0,1.58,spine);",
+    "  bloomGain*=mix(1.0,.48,innerPage);",
+    "  bloomGain*=mix(1.0,.94,pageStack);",
+    "  bloomGain*=mix(1.0,.42,outerEdge);",
+    "  bloomGain*=mix(1.0,.075,filament);",
+    "  bloomGain*=mix(1.0,.008,dust);"
     "  float passAlpha=u_alpha*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
@@ -1719,9 +1727,9 @@ function createParticleField(){
     "    passAlpha=u_alpha*visible*zoneAlpha*highlightGain*(.38+.22*glow);",
     "  }else if(u_pass>2.5){",
     "    visible=step(.60,effectiveGlow)*u_bloom*(1.0-step(1.5,zone));",
-    "    passRadius=radius*(.56+.12*glow)*mix(1.0,.68,spine);",
-    "    color=mix(targetColor,vec3(1.0,.96,.87),.48);",
-    "    passAlpha=visible*zoneAlpha*bloomGain*(.13+.22*glow);",
+    "    passRadius=radius*(.48+.10*glow)*mix(1.0,.58,spine);",
+    "    color=mix(targetColor,vec3(1.0,.96,.87),.46);",
+    "    passAlpha=visible*zoneAlpha*bloomGain*(.11+.19*glow);"
     "  }",
     "",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
@@ -2000,11 +2008,11 @@ function createParticleField(){
         const edge=particleClamp((dx+dy)/86,0,1);
         const d=Math.abs(u-.5);
 
-        const spine=zone===1 && d<.024 && v>.17 && v<.84;
-        const pageStack=zone===1 && !spine && v>.57 && v<.82 && d>.045 && d<.405 && edge>.075;
-        const innerPage=zone===1 && !spine && !pageStack && d<.315 && v>.265 && v<.76 && edge>.13;
-        const outerEdge=zone===1 && !spine && !pageStack && !innerPage && d>=.285 && edge>.19;
-        const filament=zone===0 && edge>.105;
+        const spine=zone===1 && d<.017 && v>.17 && v<.84;
+        const pageStack=zone===1 && !spine && v>.555 && v<.835 && d>.036 && d<.415 && edge>.060;
+        const innerPage=zone===1 && !spine && !pageStack && d<.325 && v>.245 && v<.775 && edge>.105;
+        const outerEdge=zone===1 && !spine && !pageStack && !innerPage && d>=.275 && edge>.175;
+        const filament=zone===0 && edge>.075;
         const dust=zone===0 && !filament;
 
         // Visual classes:
@@ -2026,24 +2034,25 @@ function createParticleField(){
         let copies=1;
 
         if(structure===1){
-          // Dense but narrow center fold.
-          copies=lum>100?4:3;
+          // More density in a much narrower fold, so it reads as a line, not a cone.
+          copies=lum>96?5:4;
         }else if(structure===2){
-          // Internal page lines are the most important missing detail.
-          copies=3+(edge>.42?1:0)+(lum>115?1:0);
+          // Strongly prioritize real inner-page edges from the reference.
+          copies=5+(edge>.34?1:0)+(lum>105?1:0);
         }else if(structure===3){
-          // Bottom stack thickness should clearly read as multiple pages.
-          copies=4+(edge>.34?1:0)+(lum>125?1:0);
+          // Page-stack thickness gets the highest structural density.
+          copies=7+(edge>.28?1:0)+(lum>112?1:0);
         }else if(structure===4){
-          copies=2+(lum>130?1:0);
+          // Keep the silhouette, but stop letting it dominate the interior.
+          copies=1+(lum>145?1:0);
         }else if(structure===5){
-          // Many distant filaments, but never make them thick.
-          copies=lum<52?2:1;
-          if(edge>.34)copies+=1;
+          // Preserve many long/faint filaments; shader keeps them very thin/dim.
+          copies=lum<60?3:2;
+          if(edge>.28)copies+=1;
         }else if(structure===6){
-          // Sparse ambient dust only.
+          // Ambient dust is now genuinely sparse.
           const keep=particleHash(x*131071+y*524287);
-          if(keep>.30)continue;
+          if(keep>.16)continue;
           copies=1;
         }else{
           if(lum>58)copies+=1;
