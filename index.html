@@ -264,6 +264,38 @@ nav{display:none!important}
 }
 .record>.shell:before{display:none!important}
 
+/* TEMP: working album switcher for particle-scene inspection */
+.particle-album-debug{
+  position:absolute;z-index:8;
+  left:50%;bottom:24px;transform:translateX(-50%);
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  width:max-content;max-width:calc(100% - 40px);
+  padding:10px 16px;
+  font-family:var(--sans);font-size:10px;line-height:1;
+  letter-spacing:.18em;text-transform:uppercase;
+  background:rgba(0,0,0,.42);
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px)
+}
+.particle-album-debug button{
+  appearance:none;border:0;background:none;padding:5px 0;margin:0;
+  font:inherit;letter-spacing:inherit;text-transform:inherit;
+  color:#777;cursor:pointer;
+  transition:color .16s ease,opacity .16s ease
+}
+.particle-album-debug button:hover{color:#d2d0c8}
+.particle-album-debug button.active{color:#f0eee7}
+@media(max-width:720px){
+  .particle-album-debug{
+    position:fixed;bottom:12px;z-index:30;
+    gap:10px;padding:9px 12px;
+    max-width:calc(100% - 24px);
+    overflow-x:auto;justify-content:flex-start;
+    font-size:8px;white-space:nowrap
+  }
+}
+
 .record-head{position:relative;z-index:2;margin-bottom:30px}
 .record-title-slot{
   display:flex;align-items:flex-start;margin:0;
@@ -936,6 +968,8 @@ nav{display:none!important}
       <div class="credits-text-window" id="creditsTextWindow"></div>
     </div>
   </div>
+
+  <nav class="particle-album-debug" id="particleAlbumDebug" aria-label="Temporary album particle switcher"></nav>
 </section>
 
 
@@ -1035,6 +1069,7 @@ const recordTitle=document.getElementById("recordTitle");
 const recordTailWindow=document.getElementById("recordTailWindow");
 const discContentWindow=document.getElementById("discContentWindow");
 const creditsTextWindow=document.getElementById("creditsTextWindow");
+const particleAlbumDebug=document.getElementById("particleAlbumDebug");
 
 const SWAP_MS=420;
 const CASCADE_MAX_MS=360;
@@ -1048,6 +1083,16 @@ let desktopTitleSeq=0;
 let desktopTailText="ALL";
 
 function query(a){return encodeURIComponent("Grimorium Verum "+a.title)}
+
+function renderParticleDebug(){
+  if(!particleAlbumDebug)return;
+  particleAlbumDebug.innerHTML=ALBUMS.map(a=>`
+    <button type="button" data-id="${a.id}" aria-label="Preview ${a.title} particles">${a.title}</button>
+  `).join("");
+  particleAlbumDebug.querySelectorAll("button").forEach(button=>{
+    button.addEventListener("click",()=>selectAlbum(button.dataset.id));
+  });
+}
 
 function renderTabs(){
   tabs.innerHTML=ALBUMS.map((a,i)=>`
@@ -1415,6 +1460,12 @@ function selectAlbum(id){
     b.tabIndex=selected?0:-1;
   });
 
+  particleAlbumDebug?.querySelectorAll("button").forEach(button=>{
+    const selected=button.dataset.id===id;
+    button.classList.toggle("active",selected);
+    button.setAttribute("aria-pressed",selected?"true":"false");
+  });
+
   ensureSpotifyLoaded(newPanel);
   animateTitle(a,direction,token);
   animateDiscWindow(newPanel,oldPanel,direction,token);
@@ -1426,6 +1477,7 @@ function selectAlbum(id){
 }
 
 renderTabs();
+renderParticleDebug();
 renderDiscPanels();
 selectAlbum("reall");
 
