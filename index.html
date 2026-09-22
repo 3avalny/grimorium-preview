@@ -1604,7 +1604,7 @@ function createParticleField(){
     "  gl_Position=vec4(clip,0.0,1.0);",
     "",
     "  float logoR=max(.31,pSize*.76);",
-    "  float targetR=max(.15,pSize*(.255+.30*glow));"
+    "  float targetR=max(.15,pSize*(.255+.30*glow));",
     "  float zoneRadius=zone<.5?.52:(zone>1.5?.90:1.0);",
     "  targetR*=zoneRadius;",
     "  float radius=mix(logoR,targetR,u_material);",
@@ -1613,24 +1613,24 @@ function createParticleField(){
     "  vec3 targetColor=a_color;",
     "  float hot=smoothstep(.58,1.0,glow);",
     "  if(zone<1.5)targetColor=mix(targetColor,vec3(1.0,.965,.90),hot*.18);",
-    "  else targetColor=vec3(.80,.76,.68);"
+    "  else targetColor=vec3(.80,.76,.68);",
     "  vec3 color=mix(initialColor,targetColor,u_material);",
     "  float visible=1.0;",
     "  float passRadius=radius;",
     "  float passAlpha=u_alpha*mix(1.0,mix(.60,1.0,glow),u_material);",
     "",
     "  if(u_pass>.5&&u_pass<1.5){",
-    "    visible=step(.44,glow)*u_material*(1.0-step(1.5,zone));"
+    "    visible=step(.44,glow)*u_material*(1.0-step(1.5,zone));",
     "    passRadius=radius*(1.18+.32*glow);",
     "    color=mix(targetColor,vec3(1.0,.95,.84),.32);",
     "    passAlpha=u_alpha*visible*(.16+.21*glow);",
     "  }else if(u_pass>1.5&&u_pass<2.5){",
-    "    visible=step(.76,glow)*u_material*(1.0-step(1.5,zone));"
+    "    visible=step(.76,glow)*u_material*(1.0-step(1.5,zone));",
     "    passRadius=radius*(.54+.15*glow);",
     "    color=vec3(1.0,.975,.92);",
     "    passAlpha=u_alpha*visible*(.48+.28*glow);",
     "  }else if(u_pass>2.5){",
-    "    visible=step(.58,glow)*u_bloom*(1.0-step(1.5,zone));"
+    "    visible=step(.58,glow)*u_bloom*(1.0-step(1.5,zone));",
     "    passRadius=radius*(.92+.24*glow);",
     "    color=mix(targetColor,vec3(1.0,.96,.87),.50);",
     "    passAlpha=visible*(.20+.32*glow);",
