@@ -2361,8 +2361,8 @@ function createParticleField(){
           // Remove the narrow hanging ornament directly above the tall inner-right
           // candle. Keep the flame/smoke and the surrounding dust untouched.
           const hangingAboveRightCandle=
-            u>.672&&u<.686&&
-            v>.025&&v<.275;
+            u>.648&&u<.724&&
+            v<.282;
           if(hangingAboveRightCandle)continue;
         }
 
@@ -3741,6 +3741,22 @@ function createParticleField(){
       state.morphDuration=1950;
     };
 
+    state.setBiographyActive=active=>{
+      const desired=active?1:0;
+      if(state.bioMorphInitialized&&desired===state.bioMorphTo)return;
+
+      const now=performance.now();
+      if(desired>.5){
+        applyBiographyMappingForCurrentAlbum();
+      }
+
+      state.bioMorphInitialized=true;
+      state.bioMorphFrom=state.bioMorph;
+      state.bioMorphTo=desired;
+      state.bioMorphStartedAt=now;
+      state.bioMorphDuration=1950;
+    };
+
     if(particleLogoHit&&!particleLogoHit.dataset.bound){
       particleLogoHit.dataset.bound="1";
       particleLogoHit.tabIndex=-1;
@@ -4176,6 +4192,10 @@ function triggerDesktopSnap(direction){
   const leavingLogo=desktopSnapKey==="logo" && direction>0;
 
   desktopSnapKey=next.key;
+
+  // Start particle reconstruction immediately with the wheel/trackpad gesture.
+  // Do not wait for the viewport to finish snapping into Biography.
+  particleField?.setBiographyActive?.(next.key==="biography");
 
   if(leavingLogo){
     // The large-logo screen exists only once per page load.
