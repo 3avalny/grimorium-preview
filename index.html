@@ -1421,6 +1421,7 @@ function selectAlbum(id){
   animateWindow(creditsTextWindow,makeCreditsPanel(a),direction,token);
 
   activeAlbumIndex=nextIndex;
+  particleField?.setAlbumScene?.(id);
   preloadSpotifyNeighbor(nextIndex);
 }
 
@@ -1536,6 +1537,10 @@ const particleAlbumReference=new Image();
 particleAlbumReference.decoding="async";
 particleAlbumReference.src="assets/album-particles-desktop.png";
 
+const particleRevenantReference=new Image();
+particleRevenantReference.decoding="async";
+particleRevenantReference.src="assets/wings.webp";
+
 const particleBioReference=new Image();
 particleBioReference.decoding="async";
 particleBioReference.src="assets/biography_candles.webp";
@@ -1563,18 +1568,22 @@ function createParticleField(){
     "attribute vec2 a_logo;",
     "attribute vec2 a_target;",
     "attribute vec2 a_albumTarget;",
+    "attribute vec2 a_revenantTarget;",
     "attribute vec2 a_bioTarget;",
     "attribute vec4 a_seed;",
     "attribute vec4 a_meta;",
     "attribute vec4 a_albumMeta;",
+    "attribute vec4 a_revenantMeta;",
     "attribute vec4 a_bioMeta;",
     "attribute vec3 a_color;",
     "attribute vec3 a_albumColor;",
+    "attribute vec3 a_revenantColor;",
     "attribute vec3 a_bioColor;",
     "uniform vec2 u_resolution;",
     "uniform float u_time;",
     "uniform float u_morph;",
     "uniform float u_disc;",
+    "uniform float u_albumScene;",
     "uniform float u_bio;",
     "uniform float u_direction;",
     "uniform float u_material;",
@@ -1591,11 +1600,14 @@ function createParticleField(){
     "float smoother(float v){v=sat(v);return v*v*v*(v*(v*6.0-15.0)+10.0);}",
     "vec2 rot(vec2 p,float a){float c=cos(a),s=sin(a);return vec2(p.x*c-p.y*s,p.x*s+p.y*c);}",
     "void main(){",
-    "  vec2 sceneTarget=mix(a_target,a_albumTarget,u_disc);",
+    "  vec2 albumSceneTarget=mix(a_albumTarget,a_revenantTarget,u_albumScene);",
+    "  vec4 albumSceneMeta=mix(a_albumMeta,a_revenantMeta,u_albumScene);",
+    "  vec3 albumSceneColor=mix(a_albumColor,a_revenantColor,u_albumScene);",
+    "  vec2 sceneTarget=mix(a_target,albumSceneTarget,u_disc);",
     "  vec2 target=mix(sceneTarget,a_bioTarget,u_bio);",
-    "  vec4 sceneMeta=mix(a_meta,a_albumMeta,u_disc);",
+    "  vec4 sceneMeta=mix(a_meta,albumSceneMeta,u_disc);",
     "  vec4 activeMeta=mix(sceneMeta,a_bioMeta,u_bio);",
-    "  vec3 sceneColor=mix(a_color,a_albumColor,u_disc);",
+    "  vec3 sceneColor=mix(a_color,albumSceneColor,u_disc);",
     "  vec3 activeColor=mix(sceneColor,a_bioColor,u_bio);",
     "  float glow=activeMeta.x;",
     "  float zone=activeMeta.y;",
@@ -1719,7 +1731,7 @@ function createParticleField(){
     "",
     "  // Continuous displacement preserves neighbouring strands and architecture.",
     "  // The scene breathes as a field instead of independent particle noise.",
-    "  vec2 albumUV=a_albumTarget/u_resolution;",
+    "  vec2 albumUV=albumSceneTarget/u_resolution;",
     "  float flowTime=u_time*.00016;",
     "  vec2 albumFlow=vec2(",
     "    sin(albumUV.y*7.2+flowTime)+.42*sin(albumUV.x*5.4-flowTime*.63),",
@@ -1848,14 +1860,14 @@ function createParticleField(){
     "    // Keep the source hierarchy, but leave enough negative space for the",
     "    // reconstruction to read as particles rather than a grainy bitmap.",
     "    float albumKeep=1.0-step(.82,a_seed.x);",
-    "    float albumLum=a_albumMeta.x;",
+    "    float albumLum=albumSceneMeta.x;",
     "    // Push the source hierarchy apart: dim atmosphere recedes while the",
     "    // gate edges and ribbon filaments stay crisp and legible.",
     "    float albumToneAlpha=mix(.22,.98,smoothstep(.012,.17,albumLum));",
     "    float albumDetail=smoothstep(.055,.28,albumLum);",
     "    visible=albumWeight*albumKeep;",
-    "    passRadius=a_albumMeta.z*mix(.86,.68,albumDetail);",
-    "    color=mix(a_albumColor,a_albumColor*1.12,albumDetail);",
+    "    passRadius=albumSceneMeta.z*mix(.86,.68,albumDetail);",
+    "    color=mix(albumSceneColor,albumSceneColor*1.12,albumDetail);",
     "    passAlpha=albumToneAlpha;",
     "  }",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
@@ -1964,18 +1976,22 @@ function createParticleField(){
     logo:gl.getAttribLocation(particleProgram,"a_logo"),
     target:gl.getAttribLocation(particleProgram,"a_target"),
     albumTarget:gl.getAttribLocation(particleProgram,"a_albumTarget"),
+    revenantTarget:gl.getAttribLocation(particleProgram,"a_revenantTarget"),
     bioTarget:gl.getAttribLocation(particleProgram,"a_bioTarget"),
     seed:gl.getAttribLocation(particleProgram,"a_seed"),
     meta:gl.getAttribLocation(particleProgram,"a_meta"),
     albumMeta:gl.getAttribLocation(particleProgram,"a_albumMeta"),
+    revenantMeta:gl.getAttribLocation(particleProgram,"a_revenantMeta"),
     bioMeta:gl.getAttribLocation(particleProgram,"a_bioMeta"),
     color:gl.getAttribLocation(particleProgram,"a_color"),
     albumColor:gl.getAttribLocation(particleProgram,"a_albumColor"),
+    revenantColor:gl.getAttribLocation(particleProgram,"a_revenantColor"),
     bioColor:gl.getAttribLocation(particleProgram,"a_bioColor"),
     resolution:gl.getUniformLocation(particleProgram,"u_resolution"),
     time:gl.getUniformLocation(particleProgram,"u_time"),
     morph:gl.getUniformLocation(particleProgram,"u_morph"),
     disc:gl.getUniformLocation(particleProgram,"u_disc"),
+    albumScene:gl.getUniformLocation(particleProgram,"u_albumScene"),
     bio:gl.getUniformLocation(particleProgram,"u_bio"),
     direction:gl.getUniformLocation(particleProgram,"u_direction"),
     material:gl.getUniformLocation(particleProgram,"u_material"),
@@ -2001,13 +2017,16 @@ function createParticleField(){
     logo:gl.createBuffer(),
     target:gl.createBuffer(),
     albumTarget:gl.createBuffer(),
+    revenantTarget:gl.createBuffer(),
     bioTarget:gl.createBuffer(),
     seed:gl.createBuffer(),
     meta:gl.createBuffer(),
     albumMeta:gl.createBuffer(),
+    revenantMeta:gl.createBuffer(),
     bioMeta:gl.createBuffer(),
     color:gl.createBuffer(),
     albumColor:gl.createBuffer(),
+    revenantColor:gl.createBuffer(),
     bioColor:gl.createBuffer(),
     quad:gl.createBuffer()
   };
@@ -2021,6 +2040,7 @@ function createParticleField(){
     source,
     bookReference:particleBookReference,
     albumReference:particleAlbumReference,
+    revenantReference:particleRevenantReference,
     bioReference:particleBioReference,
     bioFlameReference:particleBioFlameReference,
     width:1,
@@ -2038,9 +2058,16 @@ function createParticleField(){
     logoBounds:{minU:0,minV:0,maxU:1,maxV:1},
     referenceCandidates:[],
     albumCandidates:[],
+    revenantCandidates:[],
     bioCandidates:[],
     bioFlameCandidates:[],
     discMorph:0,
+    albumSceneMorph:0,
+    albumSceneMorphFrom:0,
+    albumSceneMorphTo:0,
+    albumSceneMorphStartedAt:0,
+    albumSceneMorphDuration:1050,
+    albumSceneMorphInitialized:false,
     bioMorph:0,
     bioMorphFrom:0,
     bioMorphTo:0,
@@ -2231,10 +2258,9 @@ function createParticleField(){
     state.referenceCandidates=list;
   }
 
-  function prepareAlbumCandidates(){
-    const ref=state.albumReference;
-    // Keep the supplied full-resolution drawing. Sampling a thumbnail cannot
-    // recover its fine filaments, even with hundreds of thousands of particles.
+  function prepareDiscSceneCandidates(ref,excludeSourceLogo=false){
+    // Every album scene is sampled directly from its supplied full-resolution
+    // artwork. No thumbnail stage, so fine wing feathers / ribbons stay available.
     const sampleW=ref.naturalWidth;
     const sampleH=ref.naturalHeight;
     const off=document.createElement("canvas");
@@ -2256,14 +2282,11 @@ function createParticleField(){
         const u=(x+.5)/sampleW;
         const v=(y+.5)/sampleH;
 
-        // The reference already contains the band logo, while the site has its own
-        // global particle logo. Exclude only that small source-logo rectangle.
-        // This is not structural segmentation of the gates/ribbons.
-        const sourceLogoRegion=u>.385&&u<.615&&v<.155;
-        if(sourceLogoRegion)continue;
+        if(excludeSourceLogo){
+          const sourceLogoRegion=u>.385&&u<.615&&v<.155;
+          if(sourceLogoRegion)continue;
+        }
 
-        // Preserve dim grid lines as well as bright ribbons and architecture.
-        // No semantic gate/tower/ribbon masks, duplicated pixels or object quotas.
         if(lum<1/255)continue;
 
         list.push({
@@ -2277,10 +2300,15 @@ function createParticleField(){
       }
     }
 
-    state.albumCandidates=list;
+    return list;
   }
 
-  function sampleAlbumPoints(list,count){
+  function prepareAlbumCandidates(){
+    state.albumCandidates=prepareDiscSceneCandidates(state.albumReference,true);
+    state.revenantCandidates=prepareDiscSceneCandidates(state.revenantReference,false);
+  }
+
+  function sampleAlbumPoints(list,count,ref){
     // Allocate density by brightness, not by guesses about semantic objects.
     // Bright hairlines get tight splats; dim grid/atmosphere get broad faint ones.
     const bands=[[],[],[]];
@@ -2294,8 +2322,8 @@ function createParticleField(){
       .filter(b=>b.points.length);
     const totalShare=active.reduce((sum,b)=>sum+b.share,0);
     const out=[];
-    const rw=state.albumReference.naturalWidth;
-    const rh=state.albumReference.naturalHeight;
+    const rw=ref.naturalWidth;
+    const rh=ref.naturalHeight;
 
     active.forEach((band,bandIndex)=>{
       const n=bandIndex===active.length-1
@@ -2480,12 +2508,12 @@ function createParticleField(){
 
   function prepareCandidates(){
     if(state.candidatesReady)return true;
-    if(!source.naturalWidth||!state.bookReference.naturalWidth||!state.albumReference.naturalWidth||!state.bioReference.naturalWidth)return false;
+    if(!source.naturalWidth||!state.bookReference.naturalWidth||!state.albumReference.naturalWidth||!state.revenantReference.naturalWidth||!state.bioReference.naturalWidth)return false;
     prepareLogoCandidates();
     prepareReferenceCandidates();
     prepareAlbumCandidates();
     prepareBioCandidates();
-    state.candidatesReady=!!state.logoCandidates.length&&!!state.referenceCandidates.length&&!!state.albumCandidates.length&&!!state.bioCandidates.length;
+    state.candidatesReady=!!state.logoCandidates.length&&!!state.referenceCandidates.length&&!!state.albumCandidates.length&&!!state.revenantCandidates.length&&!!state.bioCandidates.length;
     return state.candidatesReady;
   }
 
@@ -2514,7 +2542,8 @@ function createParticleField(){
 
     const sourcePoints=sampleLowDiscrepancy(state.logoCandidates,count,0x91e10da5);
     const refPoints=sampleLowDiscrepancy(state.referenceCandidates,refCount,0xc2b2ae35);
-    const albumPoints=sampleAlbumPoints(state.albumCandidates,refCount);
+    const albumPoints=sampleAlbumPoints(state.albumCandidates,refCount,state.albumReference);
+    const revenantPoints=sampleAlbumPoints(state.revenantCandidates,refCount,state.revenantReference);
     const bioFlameCount=state.bioFlameCandidates.length
       ? Math.max(120,Math.round(refCount*.075))
       : 0;
@@ -2545,13 +2574,22 @@ function createParticleField(){
       height:Math.max(1,(lb.maxV-lb.minV)*topLogoH)
     };
 
-    const albumRefW=state.albumReference.naturalWidth;
-    const albumRefH=state.albumReference.naturalHeight;
-    const albumScale=Math.max(w/Math.max(1,albumRefW),h/Math.max(1,albumRefH));
-    const albumW=albumRefW*albumScale;
-    const albumH=albumRefH*albumScale;
-    const albumX=(w-albumW)*.5;
-    const albumY=(h-albumH)*.5;
+    const scenePlacement=ref=>{
+      const rw=ref.naturalWidth;
+      const rh=ref.naturalHeight;
+      const scale=Math.max(w/Math.max(1,rw),h/Math.max(1,rh));
+      const width=rw*scale;
+      const height=rh*scale;
+      return {
+        scale,
+        width,
+        height,
+        x:(w-width)*.5,
+        y:(h-height)*.5
+      };
+    };
+    const albumPlacement=scenePlacement(state.albumReference);
+    const revenantPlacement=scenePlacement(state.revenantReference);
 
     const bioRefW=state.bioReference.naturalWidth;
     const bioRefH=state.bioReference.naturalHeight;
@@ -2589,12 +2627,27 @@ function createParticleField(){
       if(tp.zone>1.5)return {...tp};
       const p=albumPoints[albumCursor++%albumPoints.length];
       return {
-        x:albumX+p.u*albumW,
-        y:albumY+p.v*albumH,
+        x:albumPlacement.x+p.u*albumPlacement.width,
+        y:albumPlacement.y+p.v*albumPlacement.height,
         zone:0,
         glow:p.glow,
         structure:0,
-        radius:p.radius*albumScale,
+        radius:p.radius*albumPlacement.scale,
+        r:p.r,g:p.g,b:p.b
+      };
+    });
+
+    let revenantCursor=0;
+    const revenantTargets=targets.map(tp=>{
+      if(tp.zone>1.5)return {...tp};
+      const p=revenantPoints[revenantCursor++%revenantPoints.length];
+      return {
+        x:revenantPlacement.x+p.u*revenantPlacement.width,
+        y:revenantPlacement.y+p.v*revenantPlacement.height,
+        zone:0,
+        glow:p.glow,
+        structure:0,
+        radius:p.radius*revenantPlacement.scale,
         r:p.r,g:p.g,b:p.b
       };
     });
@@ -2616,19 +2669,23 @@ function createParticleField(){
     const logoData=new Float32Array(count*2);
     const targetData=new Float32Array(count*2);
     const albumTargetData=new Float32Array(count*2);
+    const revenantTargetData=new Float32Array(count*2);
     const bioTargetData=new Float32Array(count*2);
     const seedData=new Float32Array(count*4);
     const metaData=new Float32Array(count*4);
     const albumMetaData=new Float32Array(count*4);
+    const revenantMetaData=new Float32Array(count*4);
     const bioMetaData=new Float32Array(count*4);
     const colorData=new Float32Array(count*3);
     const albumColorData=new Float32Array(count*3);
+    const revenantColorData=new Float32Array(count*3);
     const bioColorData=new Float32Array(count*3);
 
     for(let i=0;i<count;i++){
       const lp=sourcePoints[i];
       const tp=targets[i];
       const ap=albumTargets[i];
+      const rp=revenantTargets[i];
       const bp=bioTargets[i];
 
       logoData[i*2]=w*.5+(lp.u-.5)*sourceLogoW;
@@ -2638,6 +2695,8 @@ function createParticleField(){
       targetData[i*2+1]=tp.y;
       albumTargetData[i*2]=ap.x;
       albumTargetData[i*2+1]=ap.y;
+      revenantTargetData[i*2]=rp.x;
+      revenantTargetData[i*2+1]=rp.y;
       bioTargetData[i*2]=bp.x;
       bioTargetData[i*2+1]=bp.y;
 
@@ -2657,6 +2716,11 @@ function createParticleField(){
       albumMetaData[i*4+2]=ap.radius||0;
       albumMetaData[i*4+3]=ap.structure||0;
 
+      revenantMetaData[i*4]=rp.glow;
+      revenantMetaData[i*4+1]=rp.zone;
+      revenantMetaData[i*4+2]=rp.radius||0;
+      revenantMetaData[i*4+3]=rp.structure||0;
+
       bioMetaData[i*4]=bp.glow;
       bioMetaData[i*4+1]=bp.zone;
       bioMetaData[i*4+2]=pSize;
@@ -2668,12 +2732,15 @@ function createParticleField(){
       albumColorData[i*3]=ap.r;
       albumColorData[i*3+1]=ap.g;
       albumColorData[i*3+2]=ap.b;
+      revenantColorData[i*3]=rp.r;
+      revenantColorData[i*3+1]=rp.g;
+      revenantColorData[i*3+2]=rp.b;
       bioColorData[i*3]=bp.r;
       bioColorData[i*3+1]=bp.g;
       bioColorData[i*3+2]=bp.b;
     }
 
-    return {logoData,targetData,albumTargetData,bioTargetData,seedData,metaData,albumMetaData,bioMetaData,colorData,albumColorData,bioColorData};
+    return {logoData,targetData,albumTargetData,revenantTargetData,bioTargetData,seedData,metaData,albumMetaData,revenantMetaData,bioMetaData,colorData,albumColorData,revenantColorData,bioColorData};
   }
 
   function uploadBuffer(buffer,data){
@@ -2690,13 +2757,16 @@ function createParticleField(){
     bind(buffers.logo,pLoc.logo,2);
     bind(buffers.target,pLoc.target,2);
     bind(buffers.albumTarget,pLoc.albumTarget,2);
+    bind(buffers.revenantTarget,pLoc.revenantTarget,2);
     bind(buffers.bioTarget,pLoc.bioTarget,2);
     bind(buffers.seed,pLoc.seed,4);
     bind(buffers.meta,pLoc.meta,4);
     bind(buffers.albumMeta,pLoc.albumMeta,4);
+    bind(buffers.revenantMeta,pLoc.revenantMeta,4);
     bind(buffers.bioMeta,pLoc.bioMeta,4);
     bind(buffers.color,pLoc.color,3);
     bind(buffers.albumColor,pLoc.albumColor,3);
+    bind(buffers.revenantColor,pLoc.revenantColor,3);
     bind(buffers.bioColor,pLoc.bioColor,3);
   }
 
@@ -2752,13 +2822,16 @@ function createParticleField(){
     uploadBuffer(buffers.logo,data.logoData);
     uploadBuffer(buffers.target,data.targetData);
     uploadBuffer(buffers.albumTarget,data.albumTargetData);
+    uploadBuffer(buffers.revenantTarget,data.revenantTargetData);
     uploadBuffer(buffers.bioTarget,data.bioTargetData);
     uploadBuffer(buffers.seed,data.seedData);
     uploadBuffer(buffers.meta,data.metaData);
     uploadBuffer(buffers.albumMeta,data.albumMetaData);
+    uploadBuffer(buffers.revenantMeta,data.revenantMetaData);
     uploadBuffer(buffers.bioMeta,data.bioMetaData);
     uploadBuffer(buffers.color,data.colorData);
     uploadBuffer(buffers.albumColor,data.albumColorData);
+    uploadBuffer(buffers.revenantColor,data.revenantColorData);
     uploadBuffer(buffers.bioColor,data.bioColorData);
 
     state.count=count;
@@ -2847,6 +2920,41 @@ function createParticleField(){
     state.bioMorph=particleMix(state.bioMorphFrom,state.bioMorphTo,eased);
   }
 
+  function setAlbumScene(id){
+    const desired=id==="revenant"?1:0;
+    const now=performance.now();
+
+    if(!state.albumSceneMorphInitialized){
+      state.albumSceneMorph=desired;
+      state.albumSceneMorphFrom=desired;
+      state.albumSceneMorphTo=desired;
+      state.albumSceneMorphStartedAt=now;
+      state.albumSceneMorphInitialized=true;
+      return;
+    }
+
+    if(desired===state.albumSceneMorphTo)return;
+    state.albumSceneMorphFrom=state.albumSceneMorph;
+    state.albumSceneMorphTo=desired;
+    state.albumSceneMorphStartedAt=now;
+    state.albumSceneMorphDuration=1050;
+  }
+
+  function updateAlbumSceneMorph(now){
+    if(!state.albumSceneMorphInitialized){
+      setAlbumScene(ALBUMS[activeAlbumIndex]?.id||"reall");
+      return;
+    }
+    const t=particleClamp((now-state.albumSceneMorphStartedAt)/Math.max(1,state.albumSceneMorphDuration));
+    state.albumSceneMorph=particleMix(
+      state.albumSceneMorphFrom,
+      state.albumSceneMorphTo,
+      particleSmoother(t)
+    );
+  }
+
+  state.setAlbumScene=setAlbumScene;
+
   function setParticleUniforms(now,material,bloom,alpha,renderScale,pass){
     gl.useProgram(particleProgram);
     bindParticleAttributes();
@@ -2854,6 +2962,7 @@ function createParticleField(){
     gl.uniform1f(pLoc.time,now);
     gl.uniform1f(pLoc.morph,state.morph);
     gl.uniform1f(pLoc.disc,state.discMorph);
+    gl.uniform1f(pLoc.albumScene,state.albumSceneMorph);
     gl.uniform1f(pLoc.bio,state.bioMorph);
     gl.uniform1f(pLoc.direction,state.morphTo>.5?1:0);
     gl.uniform1f(pLoc.material,material);
@@ -2953,6 +3062,7 @@ function createParticleField(){
       const heroRange=Math.max(1,(introHero?.offsetHeight||state.height)-state.height);
       const heroRaw=particleClamp(scrollY/heroRange);
       updateMorph(now,heroRaw);
+      updateAlbumSceneMorph(now);
 
       const recordTop=parallaxRecord?.offsetTop??(heroRange+state.height*1.4);
       const discStart=recordTop-state.height*1.12;
@@ -3034,7 +3144,7 @@ function createParticleField(){
   }
 
   function boot(){
-    if(started||!source.naturalWidth||!particleBookReference.naturalWidth||!particleAlbumReference.naturalWidth||!particleBioReference.naturalWidth)return;
+    if(started||!source.naturalWidth||!particleBookReference.naturalWidth||!particleAlbumReference.naturalWidth||!particleRevenantReference.naturalWidth||!particleBioReference.naturalWidth)return;
     started=true;
 
     gl.disable(gl.DEPTH_TEST);
@@ -3085,11 +3195,13 @@ function createParticleField(){
 
     state.raf=requestAnimationFrame(render);
     particleField=state;
+    state.setAlbumScene(ALBUMS[activeAlbumIndex]?.id||"reall");
   }
 
   source.addEventListener("load",boot,{once:true});
   particleBookReference.addEventListener("load",boot,{once:true});
   particleAlbumReference.addEventListener("load",boot,{once:true});
+  particleRevenantReference.addEventListener("load",boot,{once:true});
   particleBioReference.addEventListener("load",boot,{once:true});
   particleBioFlameReference.addEventListener("load",()=>{
     if(started){
@@ -3110,6 +3222,7 @@ function createParticleField(){
     source.complete&&source.naturalWidth&&
     particleBookReference.complete&&particleBookReference.naturalWidth&&
     particleAlbumReference.complete&&particleAlbumReference.naturalWidth&&
+    particleRevenantReference.complete&&particleRevenantReference.naturalWidth&&
     particleBioReference.complete&&particleBioReference.naturalWidth
   ){
     boot();
