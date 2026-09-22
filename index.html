@@ -266,14 +266,15 @@ nav{display:none!important}
 
 /* TEMP: working album switcher for particle-scene inspection */
 .particle-album-debug{
-  position:fixed;z-index:50;
+  position:fixed;z-index:9999;
   left:50%;bottom:22px;transform:translateX(-50%);
   display:flex;align-items:center;justify-content:center;gap:18px;
   width:max-content;max-width:calc(100% - 40px);
   padding:10px 16px;
   font-family:var(--sans);font-size:10px;line-height:1;
   letter-spacing:.18em;text-transform:uppercase;
-  background:rgba(0,0,0,.64);
+  pointer-events:auto;
+  background:rgba(0,0,0,.78);
   border:1px solid rgba(255,255,255,.12);
   box-shadow:0 8px 30px rgba(0,0,0,.45);
   backdrop-filter:blur(8px);
@@ -928,6 +929,13 @@ nav{display:none!important}
 <div class="site-parallax-bg" aria-hidden="true"></div>
 <canvas id="particle-field" class="particle-field" aria-hidden="true"></canvas>
 <button id="particle-logo-hit" class="particle-logo-hit" type="button" aria-label="Return to Grimorium Verum logo"></button>
+<nav class="particle-album-debug" id="particleAlbumDebug" aria-label="Temporary album particle switcher">
+  <button type="button" data-id="reall">REALL</button>
+  <button type="button" data-id="revenant">Revenant</button>
+  <button type="button" data-id="relict">Relict</button>
+  <button type="button" data-id="reborn">Reborn</button>
+  <button type="button" data-id="retaliation">Retaliation</button>
+</nav>
 <header>
   <div class="brand" aria-hidden="true"><img src="assets/GV_PNG_bez_fona.png?v=13836c25" alt=""></div>
 </header>
@@ -969,8 +977,6 @@ nav{display:none!important}
       <div class="credits-text-window" id="creditsTextWindow"></div>
     </div>
   </div>
-
-  <nav class="particle-album-debug" id="particleAlbumDebug" aria-label="Temporary album particle switcher"></nav>
 </section>
 
 
@@ -1085,16 +1091,6 @@ let desktopTitleSeq=0;
 let desktopTailText="ALL";
 
 function query(a){return encodeURIComponent("Grimorium Verum "+a.title)}
-
-function renderParticleDebug(){
-  if(!particleAlbumDebug)return;
-  particleAlbumDebug.innerHTML=ALBUMS.map(a=>`
-    <button type="button" data-id="${a.id}" aria-label="Preview ${a.title} particles">${a.title}</button>
-  `).join("");
-  particleAlbumDebug.querySelectorAll("button").forEach(button=>{
-    button.addEventListener("click",()=>selectAlbum(button.dataset.id));
-  });
-}
 
 function renderTabs(){
   tabs.innerHTML=ALBUMS.map((a,i)=>`
@@ -1479,7 +1475,9 @@ function selectAlbum(id){
 }
 
 renderTabs();
-renderParticleDebug();
+particleAlbumDebug?.querySelectorAll("button").forEach(button=>{
+  button.addEventListener("click",()=>selectAlbum(button.dataset.id));
+});
 renderDiscPanels();
 selectAlbum("reall");
 
