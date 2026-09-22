@@ -227,8 +227,8 @@ nav{display:none!important}
   display:flex;align-items:center;justify-content:center;
   padding:48px 0;
   background:
-    radial-gradient(circle at 80% 26%,rgba(27,34,38,.14),transparent 30%),
-    linear-gradient(180deg,rgba(8,11,13,.54),rgba(7,9,11,.68));
+    radial-gradient(circle at 80% 26%,rgba(27,34,38,.08),transparent 30%),
+    linear-gradient(180deg,rgba(8,11,13,.28),rgba(7,9,11,.38));
   border-top:1px solid rgba(255,255,255,.05)
 }
 .record>.shell{
@@ -241,7 +241,7 @@ nav{display:none!important}
 .record>.shell:before{
   content:"";position:absolute;z-index:-1;pointer-events:none;
   inset:-92px -120px;
-  background:radial-gradient(ellipse at center,rgba(4,6,8,.90) 0%,rgba(4,6,8,.72) 40%,rgba(4,6,8,.28) 62%,rgba(4,6,8,0) 78%)
+  background:radial-gradient(ellipse at center,rgba(4,6,8,.38) 0%,rgba(4,6,8,.28) 40%,rgba(4,6,8,.12) 62%,rgba(4,6,8,0) 82%)
 }
 .record-side-label{
   position:absolute;z-index:3;left:34px;top:50%;
@@ -1586,7 +1586,10 @@ function createParticleField(){
     "  float pageStack=step(2.5,structure)*(1.0-step(3.5,structure));",
     "  float outerEdge=step(3.5,structure)*(1.0-step(4.5,structure));",
     "  float filament=step(4.5,structure)*(1.0-step(5.5,structure));",
-    "  float dust=step(5.5,structure);",
+    "  float dust=step(5.5,structure)*(1.0-step(6.5,structure));",
+    "  float albumCore=step(6.5,structure)*(1.0-step(7.5,structure));",
+    "  float albumRibbon=step(7.5,structure)*(1.0-step(8.5,structure));",
+    "  float albumDust=step(8.5,structure);",
     "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
     "  float isTop=step(1.5,zone);",
     "  float discTransition=sin(PI*u_disc)*(1.0-isTop);",
@@ -1685,6 +1688,9 @@ function createParticleField(){
     "  classRadius*=mix(1.0,.57,outerEdge);",
     "  classRadius*=mix(1.0,.29,filament);",
     "  classRadius*=mix(1.0,.19,dust);",
+    "  classRadius*=mix(1.0,.82,albumCore);",
+    "  classRadius*=mix(1.0,.48,albumRibbon);",
+    "  classRadius*=mix(1.0,.24,albumDust);",
     "  classRadius*=mix(1.0,.86,step(1.5,zone));",
     "  float materialU=target.x/max(1.0,u_resolution.x);",
     "  float materialV=target.y/max(1.0,u_resolution.y);",
@@ -1711,7 +1717,11 @@ function createParticleField(){
     "  float zoneAlpha=zone>1.5?.60:1.0;",
     "  zoneAlpha*=mix(1.0,.24,filament);",
     "  zoneAlpha*=mix(1.0,.065,dust);",
+    "  zoneAlpha*=mix(1.0,.94,albumCore);",
+    "  zoneAlpha*=mix(1.0,.58,albumRibbon);",
+    "  zoneAlpha*=mix(1.0,.14,albumDust);",
     "  float bookBaseGain=1.0+.06*(1.0-filament)*(1.0-dust)*(1.0-step(1.5,zone));",
+    "  float albumBaseGain=mix(1.0,1.34,u_disc);",
     "  float structuralAlpha=1.0;",
     "  structuralAlpha*=mix(1.0,.72,spine);",
     "  structuralAlpha*=mix(1.0,1.50,innerPage);",
@@ -1728,6 +1738,9 @@ function createParticleField(){
     "  highlightGain*=mix(1.0,.72,outerEdge);",
     "  highlightGain*=mix(1.0,.18,filament);",
     "  highlightGain*=mix(1.0,.025,dust);",
+    "  highlightGain*=mix(1.0,1.22,albumCore);",
+    "  highlightGain*=mix(1.0,.72,albumRibbon);",
+    "  highlightGain*=mix(1.0,.08,albumDust);",
     "  float bloomGain=1.0;",
     "  bloomGain*=mix(1.0,.18,spineHalo);",
     "  bloomGain*=mix(1.0,1.45,spineAccent);",
@@ -1736,7 +1749,10 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.24,outerEdge);",
     "  bloomGain*=mix(1.0,.075,filament);",
     "  bloomGain*=mix(1.0,.008,dust);",
-    "  float passAlpha=u_alpha*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
+    "  bloomGain*=mix(1.0,.82,albumCore);",
+    "  bloomGain*=mix(1.0,.22,albumRibbon);",
+    "  bloomGain*=mix(1.0,.02,albumDust);",
+    "  float passAlpha=u_alpha*albumBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
     "  float forwardTopAlpha=max(topSourceFade,topCrystal);",
@@ -2146,14 +2162,14 @@ function createParticleField(){
         const v=y/sampleH;
         const r=data[k]/255,g=data[k+1]/255,b=data[k+2]/255;
 
-        let structure=6;
-        if(edge>.20||lum>82)structure=4;
-        else if(edge>.065||lum>22)structure=5;
+        let structure=9;
+        if(edge>.20||lum>82)structure=7;
+        else if(edge>.065||lum>22)structure=8;
 
         const glow=particleClamp((lum-4)/205,.025,1);
         let copies=1;
-        if(structure===4)copies=2+(lum>120?1:0)+(edge>.42?1:0);
-        else if(structure===5)copies=lum<55?2:1;
+        if(structure===7)copies=3+(lum>100?1:0)+(edge>.38?1:0);
+        else if(structure===8)copies=lum<55?3:2;
         else{
           const keep=particleHash(x*98317+y*196613);
           if(keep>.18)continue;
@@ -2566,7 +2582,7 @@ function createParticleField(){
 
       const material=particleSmoother((state.morph-.38)/.62);
       const bloom=particleSmoother((state.morph-.60)/.40);
-      const alpha=particleMix(.94,.72,material);
+      const alpha=particleMix(.94,.72,material)*(1+state.discMorph*.20);
 
       if(particleLogoHit){
         const logoClickable=
