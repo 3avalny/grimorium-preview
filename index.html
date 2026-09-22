@@ -3773,7 +3773,7 @@ function createParticleField(){
       return {
         el,
         rect,
-        text:(el.textContent||"").trim(),
+        text:(el.textContent||"").trim().toUpperCase(),
         fontSize:parseFloat(style.fontSize)||28,
         fontWeight:style.fontWeight||"400",
         fontFamily:style.fontFamily||"Moonscythe",
