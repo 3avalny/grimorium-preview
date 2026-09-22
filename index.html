@@ -572,7 +572,7 @@ nav{display:none!important}
   transform:translate3d(0,-13px,0);
   will-change:opacity,filter,transform;
   transition-property:opacity,filter,transform;
-  transition-duration:.28s,.34s,.34s;
+  transition-duration:.30s,.36s,.36s;
   transition-timing-function:ease,cubic-bezier(.2,.7,.2,1),cubic-bezier(.2,.78,.2,1);
   transition-delay:var(--bio-enter-delay,0ms)
 }
@@ -583,9 +583,9 @@ nav{display:none!important}
 }
 .bio-copy.bio-text-exit-up .bio-word{
   opacity:0;
-  filter:blur(8px);
-  transform:translate3d(0,-10px,0);
-  transition-duration:.13s,.16s,.16s;
+  filter:blur(12px);
+  transform:translate3d(0,-11px,0);
+  transition-duration:.20s,.25s,.25s;
   transition-delay:var(--bio-exit-delay,0ms)
 }
 .bio-copy,.bio-copy *{
@@ -1577,6 +1577,7 @@ const biographyCopy=document.querySelector(".bio-desktop .bio-copy");
 let biographyWords=[];
 let biographyTextActive=false;
 let biographyLayoutFrame=0;
+let biographyEnterTimer=0;
 
 function wrapBiographyWords(){
   if(!biographyCopy||biographyCopy.dataset.wordRevealReady==="1")return;
@@ -1639,9 +1640,9 @@ function layoutBiographyWords(){
   let wordIndex=0;
 
   lines.forEach((line,lineIndex)=>{
-    const exitDelay=(lines.length-1-lineIndex)*30;
+    const exitDelay=(lines.length-1-lineIndex)*38;
     line.words.forEach(word=>{
-      word.style.setProperty("--bio-enter-delay",`${wordIndex*10}ms`);
+      word.style.setProperty("--bio-enter-delay",`${wordIndex*14}ms`);
       word.style.setProperty("--bio-exit-delay",`${exitDelay}ms`);
       word.dataset.bioLine=String(lineIndex);
       wordIndex+=1;
@@ -1693,19 +1694,35 @@ function setBiographyTextActive(active,{immediate=false}={}){
   if(!biographyCopy||window.innerWidth<=720)return;
   wrapBiographyWords();
 
+  if(biographyEnterTimer){
+    clearTimeout(biographyEnterTimer);
+    biographyEnterTimer=0;
+  }
+
+  biographyTextActive=active;
+
   if(active){
     fitBiographyWidth();
     biographyCopy.classList.remove("bio-text-exit-up");
+    biographyCopy.classList.remove("bio-text-visible");
+
+    const reveal=()=>{
+      biographyEnterTimer=0;
+      if(!biographyTextActive)return;
+      requestAnimationFrame(()=>{
+        requestAnimationFrame(()=>{
+          if(biographyTextActive)biographyCopy.classList.add("bio-text-visible");
+        });
+      });
+    };
 
     if(immediate||reducedMotionQuery.matches){
       biographyCopy.classList.add("bio-text-visible");
     }else{
-      requestAnimationFrame(()=>{
-        requestAnimationFrame(()=>biographyCopy.classList.add("bio-text-visible"));
-      });
+      biographyEnterTimer=window.setTimeout(reveal,2000);
     }
   }else{
-    if(!biographyTextActive&&!biographyCopy.classList.contains("bio-text-visible")){
+    if(!biographyCopy.classList.contains("bio-text-visible")){
       biographyCopy.classList.remove("bio-text-exit-up");
     }else{
       layoutBiographyWords();
@@ -1713,8 +1730,6 @@ function setBiographyTextActive(active,{immediate=false}={}){
       biographyCopy.classList.add("bio-text-exit-up");
     }
   }
-
-  biographyTextActive=active;
 }
 
 wrapBiographyWords();
@@ -1852,6 +1867,8 @@ function createParticleField(){
     "uniform float u_renderScale;",
     "uniform vec4 u_topLogoField;",
     "uniform vec4 u_sideFields[2];",
+    "uniform sampler2D u_sideMask;",
+    "uniform vec2 u_sideMaskTexel;",
     "uniform vec4 u_smoke[3];",
     "varying vec3 v_color;",
     "varying float v_alpha;",
@@ -2034,7 +2051,7 @@ function createParticleField(){
     "    cos(bookT*bioSpeedY+bioPhaseY)+.39*sin(bookT*bioSpeedX*.69+bioPhaseX*1.27)",
     "  );",
     "  float bioMotionEnergy=mix(.10,1.70,smoother((bioEnergy-.025)/.56));",
-    "  bioDrift*=vec2(bioAmpX,bioAmpY)*1.20*bioAmpBreath*bioMotionEnergy;",
+    "  bioDrift*=vec2(bioAmpX,bioAmpY)*3.60*bioAmpBreath*bioMotionEnergy;",
     "  pos+=bioDrift*bioLifeGate;",
     "",
     "  float bioBrightnessRaw=.5+.5*sin(",
@@ -2044,19 +2061,37 @@ function createParticleField(){
     "  float bioBrightnessFloor=mix(.34,.784,a_seed.x);",
     "  float bioBrightness=mix(1.0,mix(bioBrightnessFloor,1.0,bioBrightnessPhase),bioLifeGate);",
     "",
-    "  // Tight anti-field around the actual side-label bounding boxes.",
-    "  // The interior is fully clear; only a tiny feather outside repels particles.",
+    "  // Pixel-accurate Moonscythe glyph anti-field for the vertical labels.",
+    "  // Particles only clear the actual letter strokes and a ~3px neighbourhood.",
     "  float sideLabelClear=0.0;",
     "  for(int sfi=0;sfi<2;sfi++){",
     "    vec4 sf=u_sideFields[sfi];",
-    "    vec2 sideDelta=pos-sf.xy;",
-    "    vec2 q=abs(sideDelta)-sf.zw;",
-    "    float sideRectD=length(max(q,vec2(0.0)))+min(max(q.x,q.y),0.0);",
-    "    float sideForce=1.0-smoother((sideRectD+1.5)/8.0);",
-    "    float sideInside=1.0-smoother((sideRectD+0.5)/3.5);",
-    "    vec2 sideAway=normalize(sideDelta+vec2(.001));",
-    "    pos+=sideAway*sideForce*(3.0+13.0*sideForce);",
-    "    sideLabelClear=max(sideLabelClear,sideInside);",
+    "    if(sf.z>2.0&&sf.w>2.0){",
+    "      vec2 screenDelta=pos-sf.xy;",
+    "      vec2 local=vec2(-screenDelta.y,screenDelta.x);",
+    "      vec2 luv=local/sf.zw+.5;",
+    "      float inside=step(0.0,luv.x)*step(luv.x,1.0)*step(0.0,luv.y)*step(luv.y,1.0);",
+    "      if(inside>.5){",
+    "        float bandBase=float(sfi)*.5;",
+    "        vec2 atlasUV=vec2(luv.x,bandBase+luv.y*.5);",
+    "        float stepX=3.0/max(1.0,sf.z);",
+    "        float stepY=3.0/max(1.0,sf.w)*.5;",
+    "        float c=texture2D(u_sideMask,atlasUV).r;",
+    "        float l=texture2D(u_sideMask,atlasUV+vec2(-stepX,0.0)).r;",
+    "        float r=texture2D(u_sideMask,atlasUV+vec2( stepX,0.0)).r;",
+    "        float d=texture2D(u_sideMask,atlasUV+vec2(0.0,-stepY)).r;",
+    "        float u=texture2D(u_sideMask,atlasUV+vec2(0.0, stepY)).r;",
+    "        float nearInk=max(max(l,r),max(d,u));",
+    "        sideLabelClear=max(sideLabelClear,smoothstep(.06,.34,c));",
+    "        vec2 awayLocal=vec2(l-r,d-u);",
+    "        vec2 awayScreen=vec2(awayLocal.y,-awayLocal.x);",
+    "        float awayLen=length(awayScreen);",
+    "        if(awayLen>.001){",
+    "          float repel=smoother(nearInk)*(1.0-smoothstep(.05,.32,c))*3.2;",
+    "          pos+=awayScreen/awayLen*repel;",
+    "        }",
+    "      }",
+    "    }",
     "  }",
     "",
     "  // Feathered negative-space halo under the persistent GV mark.",
@@ -2360,6 +2395,8 @@ function createParticleField(){
     renderScale:gl.getUniformLocation(particleProgram,"u_renderScale"),
     topLogoField:gl.getUniformLocation(particleProgram,"u_topLogoField"),
     sideFields:gl.getUniformLocation(particleProgram,"u_sideFields[0]"),
+    sideMask:gl.getUniformLocation(particleProgram,"u_sideMask"),
+    sideMaskTexel:gl.getUniformLocation(particleProgram,"u_sideMaskTexel"),
     smoke:gl.getUniformLocation(particleProgram,"u_smoke[0]")
   };
   const blurLoc={
@@ -2482,6 +2519,7 @@ function createParticleField(){
     bloomB:null,
     topLogoHit:null,
     sideFieldData:new Float32Array(8),
+    sideMaskSignature:"",
     pointerX:0,
     pointerY:0,
     pointerLastAt:0,
@@ -3700,6 +3738,87 @@ function createParticleField(){
   state.setAlbumScene=setAlbumScene;
 
 
+  const SIDE_MASK_W=768;
+  const SIDE_MASK_H=256;
+  const sideMaskCanvas=document.createElement("canvas");
+  sideMaskCanvas.width=SIDE_MASK_W;
+  sideMaskCanvas.height=SIDE_MASK_H;
+  const sideMaskCtx=sideMaskCanvas.getContext("2d");
+  const sideMaskTexture=gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D,sideMaskTexture);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,SIDE_MASK_W,SIDE_MASK_H,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+
+  function drawSpacedMaskText(ctx,text,cx,cy,font,letterSpacing){
+    ctx.font=font;
+    ctx.textBaseline="middle";
+    ctx.fillStyle="#fff";
+    const widths=Array.from(text).map(ch=>ctx.measureText(ch).width);
+    const total=widths.reduce((sum,w)=>sum+w,0)+Math.max(0,widths.length-1)*letterSpacing;
+    let x=cx-total*.5;
+    Array.from(text).forEach((ch,i)=>{
+      ctx.fillText(ch,x,cy);
+      x+=widths[i]+letterSpacing;
+    });
+  }
+
+  function rebuildSideMaskTexture(labels){
+    const descriptors=labels.map(el=>{
+      if(!el)return null;
+      const rect=el.getBoundingClientRect();
+      const style=getComputedStyle(el);
+      return {
+        el,
+        rect,
+        text:(el.textContent||"").trim(),
+        fontSize:parseFloat(style.fontSize)||28,
+        fontWeight:style.fontWeight||"400",
+        fontFamily:style.fontFamily||"Moonscythe",
+        letterSpacing:parseFloat(style.letterSpacing)||0
+      };
+    });
+
+    const signature=descriptors.map(d=>d
+      ?[d.text,d.rect.width.toFixed(1),d.rect.height.toFixed(1),d.fontSize.toFixed(1),d.fontWeight,d.fontFamily,d.letterSpacing.toFixed(2)].join("|")
+      :"x"
+    ).join("::");
+
+    if(signature===state.sideMaskSignature)return;
+    state.sideMaskSignature=signature;
+
+    sideMaskCtx.clearRect(0,0,SIDE_MASK_W,SIDE_MASK_H);
+
+    descriptors.forEach((d,i)=>{
+      if(!d||d.rect.width<1||d.rect.height<1)return;
+      const localW=Math.max(1,d.rect.height);
+      const localH=Math.max(1,d.rect.width);
+      const bandY=i*(SIDE_MASK_H*.5);
+      const bandH=SIDE_MASK_H*.5;
+      const sx=SIDE_MASK_W/localW;
+      const sy=bandH/localH;
+
+      sideMaskCtx.save();
+      sideMaskCtx.translate(0,bandY);
+      sideMaskCtx.scale(sx,sy);
+      drawSpacedMaskText(
+        sideMaskCtx,
+        d.text,
+        localW*.5,
+        localH*.5,
+        `${d.fontWeight} ${d.fontSize}px ${d.fontFamily}`,
+        d.letterSpacing
+      );
+      sideMaskCtx.restore();
+    });
+
+    gl.bindTexture(gl.TEXTURE_2D,sideMaskTexture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,sideMaskCanvas);
+  }
+
   function updateSideFieldData(){
     const data=state.sideFieldData;
     const labels=[recordSideLabel,bioSideLabel];
@@ -3710,8 +3829,8 @@ function createParticleField(){
       const rect=el?.getBoundingClientRect();
       const visible=
         rect&&rect.width>1&&rect.height>1&&
-        rect.right>-90&&rect.left<state.width+90&&
-        rect.bottom>-90&&rect.top<state.height+90;
+        rect.right>-40&&rect.left<state.width+40&&
+        rect.bottom>-40&&rect.top<state.height+40;
 
       if(!visible){
         data[k]=-9999;
@@ -3723,9 +3842,16 @@ function createParticleField(){
 
       data[k]=rect.left+rect.width*.5;
       data[k+1]=rect.top+rect.height*.5;
-      data[k+2]=rect.width*.5+3;
-      data[k+3]=rect.height*.5+5;
+      // Local, unrotated label dimensions: screen height becomes text width.
+      data[k+2]=Math.max(1,rect.height);
+      data[k+3]=Math.max(1,rect.width);
     }
+
+    rebuildSideMaskTexture(labels);
+  }
+
+  if(document.fonts?.ready){
+    document.fonts.ready.then(()=>{state.sideMaskSignature="";});
   }
 
   function setParticleUniforms(now,material,bloom,alpha,renderScale,pass){
@@ -3757,6 +3883,10 @@ function createParticleField(){
       gl.uniform4f(pLoc.topLogoField,state.width*.5,36,120,42);
     }
     gl.uniform4fv(pLoc.sideFields,state.sideFieldData);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D,sideMaskTexture);
+    gl.uniform1i(pLoc.sideMask,0);
+    gl.uniform2f(pLoc.sideMaskTexel,1/SIDE_MASK_W,1/SIDE_MASK_H);
     gl.uniform4fv(pLoc.smoke,state.smokeUniformData);
   }
 
