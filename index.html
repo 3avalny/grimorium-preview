@@ -1550,6 +1550,9 @@ function createParticleField(){
     "  float glow=a_meta.x;",
     "  float zone=a_meta.y;",
     "  float pSize=a_meta.z;",
+    "  float structure=a_meta.w;",
+    "  float spine=step(.5,structure)*(1.0-step(1.5,structure));",
+    "  float pageEdge=step(1.5,structure);"
     "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
     "  float stagger=a_seed.w*.060;",
     "  float rawLeave=smoother((u_morph-stagger)/(1.0-stagger));",
@@ -1603,10 +1606,12 @@ function createParticleField(){
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
     "  gl_Position=vec4(clip,0.0,1.0);",
     "",
-    "  float logoR=max(.31,pSize*.76);",
-    "  float targetR=max(.15,pSize*(.255+.30*glow));",
-    "  float zoneRadius=zone<.5?.52:(zone>1.5?.90:1.0);",
+    "  float logoR=max(.30,pSize*.73);",
+    "  float targetR=max(.115,pSize*(.205+.235*glow));",
+    "  float zoneRadius=zone<.5?.40:(zone>1.5?.88:1.0);",
     "  targetR*=zoneRadius;",
+    "  targetR*=mix(1.0,.54,spine);",
+    "  targetR*=mix(1.0,1.08,pageEdge);"
     "  float radius=mix(logoR,targetR,u_material);",
     "",
     "  vec3 initialColor=vec3(.80,.76,.68);",
@@ -1617,23 +1622,26 @@ function createParticleField(){
     "  vec3 color=mix(initialColor,targetColor,u_material);",
     "  float visible=1.0;",
     "  float passRadius=radius;",
-    "  float passAlpha=u_alpha*mix(1.0,mix(.60,1.0,glow),u_material);",
+    "  float zoneAlpha=zone<.5?.46:(zone>1.5?.60:1.0);",
+    "  float structuralAlpha=mix(1.0,.72+.22*glow,spine);",
+    "  structuralAlpha*=mix(1.0,1.10,pageEdge);",
+    "  float passAlpha=u_alpha*zoneAlpha*structuralAlpha*mix(1.0,mix(.58,1.0,glow),u_material);"
     "",
     "  if(u_pass>.5&&u_pass<1.5){",
     "    visible=step(.44,glow)*u_material*(1.0-step(1.5,zone));",
-    "    passRadius=radius*(1.18+.32*glow);",
-    "    color=mix(targetColor,vec3(1.0,.95,.84),.32);",
-    "    passAlpha=u_alpha*visible*(.16+.21*glow);",
+    "    passRadius=radius*(1.06+.24*glow)*mix(1.0,.74,spine);",
+    "    color=mix(targetColor,vec3(1.0,.95,.84),.30);",
+    "    passAlpha=u_alpha*visible*zoneAlpha*(.12+.18*glow)*mix(1.0,1.18,pageEdge);"
     "  }else if(u_pass>1.5&&u_pass<2.5){",
     "    visible=step(.76,glow)*u_material*(1.0-step(1.5,zone));",
-    "    passRadius=radius*(.54+.15*glow);",
+    "    passRadius=radius*(.40+.10*glow)*mix(1.0,.68,spine);",
     "    color=vec3(1.0,.975,.92);",
-    "    passAlpha=u_alpha*visible*(.48+.28*glow);",
+    "    passAlpha=u_alpha*visible*zoneAlpha*(.44+.24*glow);"
     "  }else if(u_pass>2.5){",
     "    visible=step(.58,glow)*u_bloom*(1.0-step(1.5,zone));",
-    "    passRadius=radius*(.92+.24*glow);",
+    "    passRadius=radius*(.62+.14*glow)*mix(1.0,.72,spine);",
     "    color=mix(targetColor,vec3(1.0,.96,.87),.50);",
-    "    passAlpha=visible*(.20+.32*glow);",
+    "    passAlpha=visible*zoneAlpha*(.16+.26*glow);"
     "  }",
     "",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
@@ -1868,30 +1876,73 @@ function createParticleField(){
     ctx.drawImage(state.bookReference,0,0,sampleW,sampleH);
     const data=ctx.getImageData(0,0,sampleW,sampleH).data;
     const list=[];
+    const lumMap=new Float32Array(sampleW*sampleH);
+
+    for(let y=0;y<sampleH;y++){
+      for(let x=0;x<sampleW;x++){
+        const k=(y*sampleW+x)*4;
+        const a=data[k+3]/255;
+        lumMap[y*sampleW+x]=(data[k]*.2126+data[k+1]*.7152+data[k+2]*.0722)*a;
+      }
+    }
+
+    const lumAt=(x,y)=>{
+      x=Math.max(0,Math.min(sampleW-1,x));
+      y=Math.max(0,Math.min(sampleH-1,y));
+      return lumMap[y*sampleW+x];
+    };
 
     for(let y=0;y<sampleH;y++){
       for(let x=0;x<sampleW;x++){
         const k=(y*sampleW+x)*4;
         const a=data[k+3]/255;
         if(a<=.01)continue;
+
         const r=data[k],g=data[k+1],b=data[k+2];
-        const lum=(r*.2126+g*.7152+b*.0722)*a;
-        if(lum<7.5)continue;
+        const lum=lumMap[y*sampleW+x];
+        if(lum<6.2)continue;
 
         const u=x/sampleW;
         const v=y/sampleH;
         const zone=pointInBookShape(u,v)?1:0;
-        const glow=particleClamp((lum-6)/205,.06,1);
+        const dx=Math.abs(lumAt(x+1,y)-lumAt(x-1,y));
+        const dy=Math.abs(lumAt(x,y+1)-lumAt(x,y-1));
+        const edge=particleClamp((dx+dy)/92,0,1);
+        const centerDistance=Math.abs(u-.5);
+        const spine=zone===1 && centerDistance<.030 && v>.16 && v<.84;
+        const internalPageEdge=zone===1 && !spine && edge>.18 && v>.27 && v<.80;
+        const lowerSpread=zone===1 && v>.53 && v<.82 && centerDistance<.42;
+        const upperWing=zone===1 && v<.39 && centerDistance>.24;
+        const glow=particleClamp((lum-5)/205,.045,1);
+
+        // structure: 0 normal, 1 central spine, 2 page/edge detail
+        const structure=spine?1:(internalPageEdge?2:0);
         const p={
-          u,v,zone,glow,
+          u,v,zone,glow,structure,edge,
           r:r/255,g:g/255,b:b/255
         };
 
-        list.push(p);
-        if(lum>26)list.push(p);
-        if(lum>58)list.push(p);
-        if(lum>105)list.push(p,p);
-        if(lum>170)list.push(p,p);
+        let copies=1;
+
+        if(zone===0){
+          // Preserve more faint external filaments, but let the shader keep
+          // them thin and dim. This restores distant webbing without noise.
+          if(lum<48)copies+=2;
+          else if(lum<95)copies+=1;
+          if(edge>.25)copies+=1;
+        }else{
+          // Page structure gets priority over the bright upper "wing" silhouette.
+          if(internalPageEdge)copies+=2;
+          if(lowerSpread)copies+=1;
+          if(edge>.42)copies+=1;
+          if(lum>58)copies+=1;
+          if(lum>112)copies+=1;
+          if(lum>175)copies+=1;
+          if(upperWing)copies=Math.max(1,copies-2);
+          if(spine)copies=Math.max(1,Math.min(copies,2));
+        }
+
+        for(let n=0;n<copies;n++)list.push(p);
       }
     }
     state.referenceCandidates=list;
@@ -1950,6 +2001,7 @@ function createParticleField(){
         y:targetRefY+p.v*targetRefH,
         zone:p.zone,
         glow:p.glow,
+        structure:p.structure||0,
         r:p.r,g:p.g,b:p.b
       });
     });
@@ -1959,6 +2011,7 @@ function createParticleField(){
         y:topLogoY+p.v*topLogoH,
         zone:2,
         glow:.50,
+        structure:0,
         r:.80,g:.76,b:.68
       });
     });
@@ -1987,8 +2040,8 @@ function createParticleField(){
 
       metaData[i*4]=tp.glow;
       metaData[i*4+1]=tp.zone;
-      metaData[i*4+2]=.44+particleHash(i+301)*.15;
-      metaData[i*4+3]=0;
+      metaData[i*4+2]=.40+particleHash(i+301)*.14;
+      metaData[i*4+3]=tp.structure||0;
 
       colorData[i*3]=tp.r;
       colorData[i*3+1]=tp.g;
@@ -2172,6 +2225,8 @@ function createParticleField(){
 
     blurTexture(state.bloomA,state.bloomB,[1,0]);
     blurTexture(state.bloomB,state.bloomA,[0,1]);
+    blurTexture(state.bloomA,state.bloomB,[1.65,0]);
+    blurTexture(state.bloomB,state.bloomA,[0,1.65]);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);
     gl.viewport(0,0,particleCanvas.width,particleCanvas.height);
@@ -2181,7 +2236,7 @@ function createParticleField(){
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D,state.bloomA.texture);
     gl.uniform1i(compositeLoc.texture,0);
-    gl.uniform1f(compositeLoc.strength,1.18*bloom);
+    gl.uniform1f(compositeLoc.strength,.96*bloom);
     gl.drawArrays(gl.TRIANGLES,0,6);
   }
 
