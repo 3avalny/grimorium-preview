@@ -112,7 +112,8 @@ header{
   transform-origin:center center;
   will-change:transform;
   backface-visibility:hidden;
-  pointer-events:auto
+  pointer-events:auto;
+  cursor:pointer
 }
 .brand img{
   width:min(56vw,820px);height:auto;max-height:none;object-fit:contain;object-position:center;
@@ -1549,31 +1550,42 @@ function createParticleField(){
     "  float glow=a_meta.x;",
     "  float zone=a_meta.y;",
     "  float pSize=a_meta.z;",
-    "  float stagger=a_seed.w*.038;",
-    "  float localLeave=smoother((u_morph-stagger)/(1.0-stagger));",
+    "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
+    "  float stagger=a_seed.w*.060;",
+    "  float rawLeave=smoother((u_morph-stagger)/(1.0-stagger));",
+    "  // Different particles traverse the same overall morph at different rates,",
+    "  // but every trajectory still begins and ends at exactly the right shape.",
+    "  float speedPower=mix(.70,1.34,seed5);",
+    "  float localLeave=pow(rawLeave,speedPower);",
     "  float transition=sin(PI*localLeave);",
     "",
     "  vec2 logoCenter=u_resolution*.5;",
     "  vec2 d=a_logo-logoCenter;",
     "  float radial=sat(length(d)/max(1.0,u_resolution.x*.34));",
-    "  float twist=transition*(.14+radial*.58);",
+    "  float spinSign=step(.5,a_seed.x)*2.0-1.0;",
+    "  float twist=transition*spinSign*(.20+radial*.66)*(.72+a_seed.z*.58);",
     "  vec2 warped=logoCenter+rot(d,twist);",
-    "  warped.x+=sin(a_logo.y*.020+localLeave*11.0)*transition*(18.0+radial*58.0);",
-    "  warped.y+=sin(a_logo.x*.017-localLeave*9.0)*transition*(14.0+radial*44.0);",
+    "  warped.x+=sin(a_logo.y*.018+a_seed.y*8.0+localLeave*9.0)*transition*(8.0+radial*26.0);",
+    "  warped.y+=cos(a_logo.x*.015+a_seed.z*7.0-localLeave*8.0)*transition*(7.0+radial*22.0);",
     "",
-    "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
-    "  float angle=a_seed.y*PI*2.0;",
-    "  float exitAngle=a_seed.w*PI*2.0;",
-    "  float swirl=localLeave*PI*(1.10+a_seed.z*3.55);",
-    "  float arcRadius=(42.0+seed5*285.0)*transition;",
+    "  // Directed magic path: always progresses toward the target instead of",
+    "  // exploding into a larger cloud and only then collapsing.",
+    "  vec2 delta=a_target-warped;",
+    "  float travel=max(1.0,length(delta));",
+    "  vec2 dir=delta/travel;",
+    "  vec2 normal=vec2(-dir.y,dir.x);",
+    "  float bendSign=step(.5,a_seed.y)*2.0-1.0;",
+    "  float bendAmp=min(96.0,18.0+travel*(.035+.075*a_seed.z));",
+    "  float curl=sin(localLeave*PI*(1.35+a_seed.w*2.8)+a_seed.x*PI*2.0);",
+    "  float longitudinal=sin(localLeave*PI*2.0+a_seed.z*PI*2.0);",
     "",
     "  vec2 pos=mix(warped,a_target,localLeave);",
-    "  pos.x+=cos(angle+swirl)*arcRadius;",
-    "  pos.y+=sin(angle+swirl*.79)*arcRadius*.70;",
-    "  pos.x+=cos(exitAngle-localLeave*5.4)*transition*(10.0+a_seed.z*42.0);",
-    "  pos.y+=sin(exitAngle+localLeave*4.7)*transition*(9.0+a_seed.x*36.0);",
-    "  pos.x+=sin(localLeave*15.0+a_seed.y*31.0)*transition*(14.0+a_seed.z*48.0);",
-    "  pos.y+=cos(localLeave*12.0+a_seed.x*37.0)*transition*(13.0+a_seed.y*44.0);",
+    "  pos+=normal*transition*bendAmp*(bendSign*.58+curl*.42);",
+    "  pos+=dir*transition*longitudinal*(5.0+a_seed.x*22.0);",
+    "  // Fine independent distortion gives different pieces distinct magical",
+    "  // routes while keeping them inside the source-to-target corridor.",
+    "  pos.x+=sin(localLeave*10.0+a_seed.y*37.0)*transition*(3.0+a_seed.w*11.0);",
+    "  pos.y+=cos(localLeave*9.0+a_seed.x*41.0)*transition*(3.0+a_seed.z*10.0);",
     "",
     "  if(zone<1.5){",
     "    float t=u_time*.001;",
@@ -1591,33 +1603,34 @@ function createParticleField(){
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
     "  gl_Position=vec4(clip,0.0,1.0);",
     "",
-    "  float logoR=max(.36,pSize*.88);",
-    "  float targetR=max(.18,pSize*(.30+.36*glow));",
+    "  float logoR=max(.31,pSize*.76);",
+    "  float targetR=max(.15,pSize*(.255+.30*glow));"
     "  float zoneRadius=zone<.5?.52:(zone>1.5?.90:1.0);",
     "  targetR*=zoneRadius;",
     "  float radius=mix(logoR,targetR,u_material);",
     "",
-    "  vec3 initialColor=vec3(242.0/255.0,242.0/255.0,239.0/255.0);",
+    "  vec3 initialColor=vec3(.80,.76,.68);",
     "  vec3 targetColor=a_color;",
     "  float hot=smoothstep(.58,1.0,glow);",
-    "  targetColor=mix(targetColor,vec3(1.0,.965,.90),hot*.18);",
+    "  if(zone<1.5)targetColor=mix(targetColor,vec3(1.0,.965,.90),hot*.18);",
+    "  else targetColor=vec3(.80,.76,.68);"
     "  vec3 color=mix(initialColor,targetColor,u_material);",
     "  float visible=1.0;",
     "  float passRadius=radius;",
     "  float passAlpha=u_alpha*mix(1.0,mix(.60,1.0,glow),u_material);",
     "",
     "  if(u_pass>.5&&u_pass<1.5){",
-    "    visible=step(.44,glow)*u_material;",
+    "    visible=step(.44,glow)*u_material*(1.0-step(1.5,zone));"
     "    passRadius=radius*(1.18+.32*glow);",
     "    color=mix(targetColor,vec3(1.0,.95,.84),.32);",
     "    passAlpha=u_alpha*visible*(.16+.21*glow);",
     "  }else if(u_pass>1.5&&u_pass<2.5){",
-    "    visible=step(.76,glow)*u_material;",
+    "    visible=step(.76,glow)*u_material*(1.0-step(1.5,zone));"
     "    passRadius=radius*(.54+.15*glow);",
     "    color=vec3(1.0,.975,.92);",
     "    passAlpha=u_alpha*visible*(.48+.28*glow);",
     "  }else if(u_pass>2.5){",
-    "    visible=step(.58,glow)*u_bloom;",
+    "    visible=step(.58,glow)*u_bloom*(1.0-step(1.5,zone));"
     "    passRadius=radius*(.92+.24*glow);",
     "    color=mix(targetColor,vec3(1.0,.96,.87),.50);",
     "    passAlpha=visible*(.20+.32*glow);",
@@ -1781,8 +1794,9 @@ function createParticleField(){
     morphFrom:0,
     morphTo:0,
     morphStartedAt:0,
-    morphDuration:1850,
+    morphDuration:1950,
     morphInitialized:false,
+    forcedMorph:null,
     lastFrameAt:0,
     perfSum:0,
     perfCount:0,
@@ -1927,7 +1941,7 @@ function createParticleField(){
     const topLogoW=Math.min(w*.215,360);
     const topLogoH=topLogoW/logoAspect;
     const topLogoX=w*.5-topLogoW*.5;
-    const topLogoY=h*.002;
+    const topLogoY=-topLogoH*.18;
 
     const targets=[];
     refPoints.forEach(p=>{
@@ -1944,8 +1958,8 @@ function createParticleField(){
         x:topLogoX+p.u*topLogoW,
         y:topLogoY+p.v*topLogoH,
         zone:2,
-        glow:.72,
-        r:.86,g:.82,b:.74
+        glow:.50,
+        r:.80,g:.76,b:.68
       });
     });
     particleShuffle(targets,0x4cf5ad43);
@@ -2079,21 +2093,34 @@ function createParticleField(){
       return;
     }
 
-    // Real hysteresis: once the book transition starts, it will not reverse
-    // until the user comes genuinely close to the top again.
-    if(state.morphTo<.5&&heroRaw>.13)desired=1;
-    else if(state.morphTo>.5&&heroRaw<.075)desired=0;
+    if(state.forcedMorph!==null){
+      desired=state.forcedMorph;
+    }else{
+      // Real hysteresis: once the book transition starts, it will not reverse
+      // until the user comes genuinely close to the top again.
+      if(state.morphTo<.5&&heroRaw>.13)desired=1;
+      else if(state.morphTo>.5&&heroRaw<.075)desired=0;
+    }
 
     if(desired!==state.morphTo){
       state.morphFrom=state.morph;
       state.morphTo=desired;
       state.morphStartedAt=now;
-      state.morphDuration=1850;
+      state.morphDuration=1950;
     }
 
     const t=particleClamp((now-state.morphStartedAt)/Math.max(1,state.morphDuration));
     const eased=particleSmoother(t);
     state.morph=particleMix(state.morphFrom,state.morphTo,eased);
+
+    if(
+      state.forcedMorph===0 &&
+      heroRaw<.075 &&
+      state.morph<.002 &&
+      t>=.995
+    ){
+      state.forcedMorph=null;
+    }
   }
 
   function setParticleUniforms(now,material,bloom,alpha,renderScale,pass){
@@ -2236,6 +2263,14 @@ function createParticleField(){
 
     rebuild();
     state.render=render;
+    state.goHome=()=>{
+      const now=performance.now();
+      state.forcedMorph=0;
+      state.morphFrom=state.morph;
+      state.morphTo=0;
+      state.morphStartedAt=now;
+      state.morphDuration=1950;
+    };
     state.raf=requestAnimationFrame(render);
     particleField=state;
   }
@@ -2660,9 +2695,16 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",
 
   e.preventDefault();
 
-  if(window.innerWidth>720 && a.classList.contains("brand") && a.getAttribute("href")==="#top"){
-    resetDesktopIntroSnap();
-    animateDesktopSnap(0);
+  if(a.classList.contains("brand") && a.getAttribute("href")==="#top"){
+    particleField?.goHome?.();
+
+    if(window.innerWidth>720){
+      resetDesktopIntroSnap();
+      animateDesktopSnap(0);
+      return;
+    }
+
+    el.scrollIntoView({behavior:"smooth"});
     return;
   }
 
