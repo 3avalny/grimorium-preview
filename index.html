@@ -1969,7 +1969,7 @@ function createParticleField(){
     "  // Large-logo smoke is evaluated only in the dedicated hero pass.",
     "  // No radial push: radial forces create visible circular boundaries.",
     "  float logoInteract=1.0-smoother(u_morph/.16);",
-    "  if(u_pass>5.5&&logoInteract>.001){",
+    "  if(u_pass>3.5&&u_pass<4.5&&logoInteract>.001){",
     "    for(int si=0;si<3;si++){",
     "      vec4 node=u_smoke[si];",
     "      float nodeStrength=node.z*logoInteract;",
@@ -2033,7 +2033,7 @@ function createParticleField(){
     "  float bookBrightness=mix(1.0,mix(bookBrightnessFloor,1.0,bookBrightnessPhase),bookLifeGate);",
     "  float bookV=a_target.y/max(1.0,u_resolution.y);",
     "  float bookUpperRay=(1.0-smoothstep(.018,.070,abs(bookU-.5)))*(1.0-smoothstep(.18,.58,bookV));",
-    "  float bookRayTone=1.0-bookUpperRay*(1.0-discT)*(1.0-u_bio)*.46;",
+    "  float bookRayTone=1.0-bookUpperRay*u_material*(1.0-discT)*(1.0-u_bio)*.46;",
     "",
     "  // Biography: the same independent anchor-local life as Book, but with",
     "  // uniform strength across the frame (no distance-from-center rule).",
@@ -2224,25 +2224,24 @@ function createParticleField(){
     "  float reconstructionWeight=u_material*(1.0-isTop);",
     "  passAlpha*=1.0-logoReconstructionWeight;",
     "  passAlpha*=1.0-reconstructionWeight;",
-    "  if(u_pass>5.5){",
-    "    // Large GV mark uses the same sharp particle reconstruction as albums.",
-    "    float logoKeep=1.0-step(.82,a_seed.x);",
-    "    float logoToneAlpha=mix(.22,.98,smoothstep(.012,.17,logoGlow));",
-    "    float logoDetail=smoothstep(.055,.28,logoGlow);",
-    "    visible=logoReconstructionWeight*logoKeep;",
-    "    passRadius=a_logo.z*mix(.86,.68,logoDetail);",
-    "    color=mix(initialColor,initialColor*1.12,logoDetail);",
-    "    passAlpha=logoToneAlpha;",
-    "  }else if(u_pass>4.5){",
-    "    // Final top-logo overlay pass. Use the sampled GV material so it reads",
-    "    // as the same particle substance rather than a separate flat sticker.",
+    "  if(u_pass>4.5){",
+    "    // Final top-logo overlay pass. These are the same source particles that",
+    "    // travelled out of the large GV; there is no separate large-logo layer.",
     "    visible=isTop*u_material;",
     "    float topLogoDetail=smoothstep(.055,.28,a_meta.x);",
     "    passRadius=max(.32,a_meta.z*.74);",
     "    color=mix(a_color,a_color*1.10,topLogoDetail);",
     "    passAlpha=u_alpha*.94;",
     "  }else if(u_pass>3.5){",
-    "    // Book, albums and Biography share one reconstruction path.",
+    "    // One sharp reconstruction pass owns BOTH endpoints: large GV <-> Book",
+    "    // (and then Discography/Biography). Every point carries its logo material",
+    "    // along its own path and becomes target material only as that point lands.",
+    "    float logoKeep=1.0-step(.82,a_seed.x);",
+    "    float logoToneAlpha=mix(.22,.98,smoothstep(.012,.17,logoGlow));",
+    "    float logoDetail=smoothstep(.055,.28,logoGlow);",
+    "    float logoSharpRadius=a_logo.z*mix(.86,.68,logoDetail);",
+    "    vec3 logoSharpColor=mix(initialColor,initialColor*1.12,logoDetail);",
+    "",
     "    float materialKeep=1.0-step(.82,a_seed.x);",
     "    float bookCenter=1.0-smoothstep(.045,.16,abs(bookU-.5));",
     "    float bookCenterKeep=bookCenter*(1.0-discT)*(1.0-bioT);",
@@ -2256,10 +2255,14 @@ function createParticleField(){
     "    float materialDetail=smoothstep(.055,.28,materialLum);",
     "    float bookSpine=1.0-smoothstep(.018,.085,abs(bookU-.5));",
     "    float bookSpineTone=1.0-bookSpine*(1.0-discT)*(1.0-bioT)*.13;",
-    "    visible=reconstructionWeight*materialKeep;",
-    "    passRadius=reconstructionMeta.z*mix(.86,.68,materialDetail);",
-    "    color=mix(reconstructionColor,reconstructionColor*1.12,materialDetail);",
-    "    passAlpha=materialToneAlpha*bookSpineTone*mix(1.0,.22,topLogoField)*mix(1.0,.08,topLogoCore);",
+    "    float materialProtection=mix(1.0,.22,topLogoField)*mix(1.0,.08,topLogoCore);",
+    "",
+    "    float reconstructionBlend=localLeave;",
+    "    float targetVisible=materialKeep*(1.0-isTop);",
+    "    visible=mix(logoKeep,targetVisible,reconstructionBlend);",
+    "    passRadius=mix(logoSharpRadius,reconstructionMeta.z*mix(.86,.68,materialDetail),reconstructionBlend);",
+    "    color=mix(logoSharpColor,mix(reconstructionColor,reconstructionColor*1.12,materialDetail),reconstructionBlend);",
+    "    passAlpha=mix(logoToneAlpha,materialToneAlpha*bookSpineTone*materialProtection,reconstructionBlend);",
     "  }",
     "  passAlpha*=bookBrightness*bookRayTone*bioBrightness;",
     "  passAlpha*=1.0-sideLabelClear;",
@@ -4067,10 +4070,9 @@ function createParticleField(){
         particleLogoHit.setAttribute("aria-hidden",logoClickable?"false":"true");
       }
 
-      const imageReveal=reducedMotionQuery.matches
-        ?1
-        :(state.width>1100?0:particleSmooth((state.morph-.60)/.20));
-      introBrandImg.style.opacity=imageReveal.toFixed(3);
+      // The DOM logo is only a source/fallback. Once WebGL is active the visible
+      // GV is 100% particle reconstruction, on every viewport.
+      introBrandImg.style.opacity="0";
 
       gl.enable(gl.BLEND);
       gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
@@ -4086,19 +4088,11 @@ function createParticleField(){
         gl.drawArrays(gl.POINTS,0,state.count);
       }
 
-      if(state.morph<.72){
-        gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
-        setParticleUniforms(now,material,bloom,alpha,1,6);
-        gl.drawArrays(gl.POINTS,0,state.count);
-      }
-
-      if(material>.001){
-        // The sharp reconstruction pass owns Book, Discography and Biography.
-        // All three full-resolution references therefore use the same material.
-        gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
-        setParticleUniforms(now,material,bloom,alpha,1,4);
-        gl.drawArrays(gl.POINTS,0,state.count);
-      }
+      // One sharp pass owns the full chain:
+      // large GV <-> Book <-> Discography <-> Biography.
+      gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
+      setParticleUniforms(now,material,bloom,alpha,1,4);
+      gl.drawArrays(gl.POINTS,0,state.count);
 
       renderBloom(now,material,bloom,alpha);
 
