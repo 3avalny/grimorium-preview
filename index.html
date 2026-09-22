@@ -1672,7 +1672,7 @@ function createParticleField(){
     "  float materialU=a_target.x/max(1.0,u_resolution.x);",
     "  float materialV=a_target.y/max(1.0,u_resolution.y);",
     "  float centerBand=1.0-smoothstep(.012,.052,abs(materialU-.5));",
-    "  float upperCenter=(1.0-smoothstep(.18,.54,materialV))*centerBand*(1.0-spine);"
+    "  float upperCenter=(1.0-smoothstep(.18,.54,materialV))*centerBand*(1.0-spine);",
     "  classRadius*=mix(1.0,.62,upperCenter);",
     "  targetR*=classRadius;",
     "  float radius=mix(logoR,targetR,u_material);",
