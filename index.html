@@ -1667,7 +1667,7 @@ function createParticleField(){
     "  classRadius*=mix(1.0,.70,pageStack);",
     "  classRadius*=mix(1.0,.61,outerEdge);",
     "  classRadius*=mix(1.0,.29,filament);",
-    "  classRadius*=mix(1.0,.19,dust);"
+    "  classRadius*=mix(1.0,.19,dust);",
     "  classRadius*=mix(1.0,.86,step(1.5,zone));",
     "  float targetU=a_target.x/max(1.0,u_resolution.x);",
     "  float targetV=a_target.y/max(1.0,u_resolution.y);",
@@ -1675,7 +1675,7 @@ function createParticleField(){
     "  float upperCenter=(1.0-smoothstep(.18,.54,targetV))*centerBand*(1.0-spine);",
     "  classRadius*=mix(1.0,.62,upperCenter);",
     "  targetR*=classRadius;",
-    "  float radius=mix(logoR,targetR,u_material);"
+    "  float radius=mix(logoR,targetR,u_material);",
     "",
     "  vec3 initialColor=vec3(.80,.76,.68);",
     "  vec3 targetColor=a_color;",
@@ -1708,7 +1708,7 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.94,pageStack);",
     "  bloomGain*=mix(1.0,.42,outerEdge);",
     "  bloomGain*=mix(1.0,.075,filament);",
-    "  bloomGain*=mix(1.0,.008,dust);"
+    "  bloomGain*=mix(1.0,.008,dust);",
     "  float passAlpha=u_alpha*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
@@ -1729,7 +1729,7 @@ function createParticleField(){
     "    visible=step(.60,effectiveGlow)*u_bloom*(1.0-step(1.5,zone));",
     "    passRadius=radius*(.48+.10*glow)*mix(1.0,.58,spine);",
     "    color=mix(targetColor,vec3(1.0,.96,.87),.46);",
-    "    passAlpha=visible*zoneAlpha*bloomGain*(.11+.19*glow);"
+    "    passAlpha=visible*zoneAlpha*bloomGain*(.11+.19*glow);",
     "  }",
     "",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
