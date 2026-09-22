@@ -2079,8 +2079,10 @@ function createParticleField(){
       return;
     }
 
-    if(state.morphTo<.5&&heroRaw>.12)desired=1;
-    else if(state.morphTo>.5&&heroRaw<.42)desired=0;
+    // Real hysteresis: once the book transition starts, it will not reverse
+    // until the user comes genuinely close to the top again.
+    if(state.morphTo<.5&&heroRaw>.13)desired=1;
+    else if(state.morphTo>.5&&heroRaw<.075)desired=0;
 
     if(desired!==state.morphTo){
       state.morphFrom=state.morph;
