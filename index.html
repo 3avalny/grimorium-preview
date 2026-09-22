@@ -1655,7 +1655,7 @@ function createParticleField(){
     "uniform float u_alpha;",
     "uniform float u_pass;",
     "uniform float u_renderScale;",
-    "uniform vec4 u_smoke[6];",
+    "uniform vec4 u_smoke[3];",
     "varying vec3 v_color;",
     "varying float v_alpha;",
     "varying float v_albumSharp;",
@@ -1799,25 +1799,27 @@ function createParticleField(){
     "  vec2 forwardTopPos=mix(a_logo.xy,target,topTeleport);",
     "  pos=mix(pos,forwardTopPos,forwardTop);",
     "",
-    "  // Large-logo interaction: a short history of independent vortex nodes",
-    "  // behaves like turbulent smoke. There is intentionally no line segment",
-    "  // connecting the cursor to a lagging point, so no visible 'stick' can form.",
+    "  // Large-logo smoke is evaluated only in the dedicated hero pass.",
+    "  // No radial push: radial forces create visible circular boundaries.",
     "  float logoInteract=1.0-smoother(u_morph/.16);",
-    "  for(int si=0;si<6;si++){",
-    "    vec4 node=u_smoke[si];",
-    "    float nodeStrength=node.z*logoInteract;",
-    "    vec2 smokeDelta=pos-node.xy;",
-    "    float smokeDist=max(.001,length(smokeDelta));",
-    "    float nodePhase=node.w*PI*2.0;",
-    "    float smokeRadius=42.0+24.0*abs(sin(nodePhase))+nodeStrength*24.0;",
-    "    float smokeFalloff=pow(1.0-smoother(smokeDist/smokeRadius),1.35);",
-    "    float smoke=smokeFalloff*nodeStrength;",
-    "    vec2 smokeDir=smokeDelta/smokeDist;",
-    "    vec2 smokeTangent=vec2(-smokeDir.y,smokeDir.x);",
-    "    float swirlSign=step(.5,fract(node.w*1.618))*2.0-1.0;",
-    "    float smokeCurl=sin(u_time*.0028+nodePhase+a_seed.x*9.0+a_seed.z*5.0);",
-    "    pos+=smokeDir*smoke*(5.0+13.0*a_seed.y);",
-    "    pos+=smokeTangent*smoke*swirlSign*smokeCurl*(10.0+24.0*a_seed.w);",
+    "  if(u_pass>5.5&&logoInteract>.001){",
+    "    for(int si=0;si<3;si++){",
+    "      vec4 node=u_smoke[si];",
+    "      float nodeStrength=node.z*logoInteract;",
+    "      vec2 smokeDelta=pos-node.xy;",
+    "      float smokeDist=max(.001,length(smokeDelta));",
+    "      float nodePhase=node.w*PI*2.0;",
+    "      float smokeRadius=58.0+nodeStrength*26.0;",
+    "      float q=smokeDist/max(1.0,smokeRadius);",
+    "      float smoke=exp(-q*q*2.35)*nodeStrength;",
+    "      vec2 smokeDir=smokeDelta/smokeDist;",
+    "      vec2 smokeTangent=vec2(-smokeDir.y,smokeDir.x);",
+    "      float swirlSign=step(.5,fract(node.w*1.618))*2.0-1.0;",
+    "      float smokeCurl=sin(u_time*.0022+nodePhase+a_seed.x*7.0+a_seed.z*4.0);",
+    "      float dustNoise=sin(a_seed.x*17.0+a_seed.y*31.0+nodePhase);",
+    "      pos+=smokeTangent*smoke*swirlSign*smokeCurl*(9.0+17.0*a_seed.w);",
+    "      pos+=vec2(dustNoise,-dustNoise*.55)*smoke*(2.0+5.0*a_seed.y);",
+    "    }",
     "  }",
     "",
 
@@ -2247,13 +2249,13 @@ function createParticleField(){
     pointerLastAt:0,
     pointerInitialized:false,
     smokeCursor:0,
-    smokeNodes:Array.from({length:6},(_,i)=>({
+    smokeNodes:Array.from({length:3},(_,i)=>({
       x:-9999,y:-9999,
       strength:0,
       phase:(i*.38196601125)%1,
       vx:0,vy:0
     })),
-    smokeUniformData:new Float32Array(24)
+    smokeUniformData:new Float32Array(12)
   };
 
   function desiredCount(){
@@ -3297,11 +3299,11 @@ function createParticleField(){
         if(node.strength>.001){
           // Each eddy keeps a little cursor momentum, slowly rises like smoke,
           // diffuses by losing strength, then the original particle field reforms.
-          node.x+=node.vx*dt*.055;
-          node.y+=node.vy*dt*.055-dt*.0025*(.45+node.phase);
-          node.vx*=Math.exp(-dt/720);
-          node.vy*=Math.exp(-dt/720);
-          node.strength*=Math.exp(-dt/1650);
+          node.x+=node.vx*dt*.038;
+          node.y+=node.vy*dt*.038-dt*.0018*(.45+node.phase);
+          node.vx*=Math.exp(-dt/620);
+          node.vy*=Math.exp(-dt/620);
+          node.strength*=Math.exp(-dt/1500);
           if(node.strength<.002)node.strength=0;
         }
         const k=i*4;
@@ -3555,23 +3557,19 @@ function createParticleField(){
     const eventDt=Math.max(8,now-state.pointerLastAt);
     const speed=dist/eventDt;
 
-    // Lay down discrete eddies roughly every 26 px. They overlap softly, but
-    // are never connected by a geometric strip.
-    if(dist>5&&state.morph<.18){
-      const steps=Math.min(4,Math.max(1,Math.ceil(dist/26)));
+    // One soft eddy per meaningful pointer sample. A short node history gives
+    // a smoke wake without creating geometry or expensive per-frame trails.
+    if(dist>8&&state.morph<.18){
       const vx=dx/eventDt;
       const vy=dy/eventDt;
-      const baseStrength=particleClamp(.28+speed*.78,.22,1);
-      for(let s=1;s<=steps;s++){
-        const t=s/steps;
-        spawnSmokeNode(
-          state.pointerX+dx*t,
-          state.pointerY+dy*t,
-          vx,
-          vy,
-          baseStrength*(.82+.18*t)
-        );
-      }
+      const baseStrength=particleClamp(.24+speed*.68,.18,.92);
+      spawnSmokeNode(
+        x,
+        y,
+        vx,
+        vy,
+        baseStrength
+      );
     }
 
     state.pointerX=x;
