@@ -2126,16 +2126,17 @@ function createParticleField(){
   }
 
   function prepareReferenceCandidates(){
-    const maxW=Math.min(1400,state.bookReference.naturalWidth||960);
-    const aspect=state.bookReference.naturalWidth/Math.max(1,state.bookReference.naturalHeight);
-    const sampleW=Math.max(1,Math.round(maxW));
-    const sampleH=Math.max(1,Math.round(sampleW/aspect));
+    // Same reconstruction rule as the Astra Discography pass: sample the
+    // supplied artwork at native resolution. A reduced intermediate image can
+    // never give the particle field its fine page edges and filaments back.
+    const sampleW=state.bookReference.naturalWidth;
+    const sampleH=state.bookReference.naturalHeight;
     const off=document.createElement("canvas");
     off.width=sampleW;
     off.height=sampleH;
     const ctx=off.getContext("2d",{willReadFrequently:true});
     ctx.clearRect(0,0,sampleW,sampleH);
-    ctx.drawImage(state.bookReference,0,0,sampleW,sampleH);
+    ctx.drawImage(state.bookReference,0,0);
     const data=ctx.getImageData(0,0,sampleW,sampleH).data;
     const list=[];
     const lumMap=new Float32Array(sampleW*sampleH);
@@ -2164,8 +2165,8 @@ function createParticleField(){
         const lum=lumMap[y*sampleW+x];
         if(lum<5.8)continue;
 
-        const u=x/sampleW;
-        const v=y/sampleH;
+        const u=(x+.5)/sampleW;
+        const v=(y+.5)/sampleH;
         const zone=pointInBookShape(u,v)?1:0;
         const dx=Math.abs(lumAt(x+1,y)-lumAt(x-1,y));
         const dy=Math.abs(lumAt(x,y+1)-lumAt(x,y-1));
