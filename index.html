@@ -1829,20 +1829,15 @@ function createParticleField(){
     "  float albumDriftGate=u_disc*u_material*localLeave*(1.0-isTop)*(1.0-u_bio);",
     "  pos+=albumFlow*4.8*albumDriftGate;",
     "",
-    "  // Biography breathes too, but much more quietly than the album scenes.",
+    "  // Biography uses the exact same coherent flow as the album scenes,",
+    "  // only with a much smaller amplitude.",
     "  vec2 bioUV=a_bioTarget/u_resolution;",
-    "  float bioFlowTime=u_time*.000105;",
     "  vec2 bioFlow=vec2(",
-    "    sin(bioUV.y*5.8+bioFlowTime)+.32*sin(bioUV.x*4.6-bioFlowTime*.71),",
-    "    cos(bioUV.x*5.2+bioFlowTime*.86)+.28*sin(bioUV.y*6.7+bioFlowTime*.93)",
+    "    sin(bioUV.y*7.2+flowTime)+.42*sin(bioUV.x*5.4-flowTime*.63),",
+    "    cos(bioUV.x*6.4+flowTime*.82)+.36*sin(bioUV.y*8.1+flowTime*.91)",
     "  );",
     "  float bioDriftGate=u_bio*u_material*localLeave*(1.0-isTop);",
-    "  pos+=bioFlow*1.45*bioDriftGate;",
-    "  float bioMicroPhase=u_time*.001*(.16+a_seed.w*.13)+a_seed.x*PI*2.0;",
-    "  pos+=vec2(",
-    "    sin(bioMicroPhase+a_seed.z*4.0),",
-    "    cos(bioMicroPhase*.87+a_seed.y*5.0)",
-    "  )*(.12+a_seed.y*.24)*bioDriftGate;",
+    "  pos+=bioFlow*1.35*bioDriftGate;",
     "",
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
     "  gl_Position=vec4(clip,0.0,1.0);",
@@ -1968,19 +1963,7 @@ function createParticleField(){
     "    visible=reconstructionWeight*materialKeep;",
     "    passRadius=reconstructionMeta.z*mix(.86,.68,materialDetail);",
     "    color=mix(reconstructionColor,reconstructionColor*1.12,materialDetail);",
-    "",
-    "    // Independent candle shimmer: most particles only breathe slightly;",
-    "    // a sparse subset produces short, unsynchronised sparkle peaks.",
-    "    float twinklePhase=u_time*.001*(.45+a_seed.z*1.35)+a_seed.x*PI*2.0+a_seed.w*7.0;",
-    "    float twinkleSoft=.5+.5*sin(twinklePhase);",
-    "    float sparkleWave=max(0.0,sin(twinklePhase*1.73+a_seed.y*11.0));",
-    "    float sparklePulse=pow(sparkleWave,10.0);",
-    "    float sparkleMask=step(.86,a_seed.y);",
-    "    float bioTwinkle=1.0+bioT*(twinkleSoft*.055+sparkleMask*sparklePulse*.42);",
-    "    float bioSparkRadius=1.0+bioT*sparkleMask*sparklePulse*.18;",
-    "    passRadius*=bioSparkRadius;",
-    "    color=mix(color,vec3(1.0,.975,.91),bioT*sparkleMask*sparklePulse*.24);",
-    "    passAlpha=materialToneAlpha*bioTwinkle;",
+    "    passAlpha=materialToneAlpha;",
     "  }",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
     "  v_color=color;",
@@ -2182,6 +2165,7 @@ function createParticleField(){
     albumSceneTargetId:"reall",
     albumSceneTransitioning:false,
     albumMatchSalt:1,
+    bioMapVersion:0,
     bookScene:null,
     bioSceneRaw:null,
     bioSceneMapped:null,
@@ -3149,29 +3133,63 @@ function createParticleField(){
     state.bioMorph=particleMix(state.bioMorphFrom,state.bioMorphTo,eased);
   }
 
+  function scheduleBiographyMapping(scene,id){
+    const version=++state.bioMapVersion;
+    const run=()=>{
+      if(
+        version!==state.bioMapVersion||
+        state.albumSceneTransitioning||
+        state.albumSceneCurrentId!==id||
+        !state.bioSceneRaw
+      )return;
+
+      const mapped=matchParticleSceneNearest(
+        scene,
+        state.bioSceneRaw,
+        ++state.albumMatchSalt
+      );
+
+      if(
+        version!==state.bioMapVersion||
+        state.albumSceneTransitioning||
+        state.albumSceneCurrentId!==id
+      )return;
+
+      uploadAlbumScene(buffers.bioTarget,buffers.bioMeta,buffers.bioColor,mapped);
+      state.bioSceneMapped=mapped;
+    };
+
+    // Do the expensive Biography preparation only after the visible album morph
+    // has finished. requestIdleCallback keeps it off the animation frames where
+    // available; Safari falls back to a short delayed task on the settled scene.
+    if("requestIdleCallback" in window){
+      window.requestIdleCallback(run,{timeout:900});
+    }else{
+      window.setTimeout(run,120);
+    }
+  }
+
   function setAlbumScene(id){
     if(!state.albumScenes[id]){
       state.pendingAlbumSceneId=id;
       return;
     }
     if(!state.albumSceneTransitioning&&id===state.albumSceneCurrentId)return;
-    if(state.albumSceneTransitioning&&id===state.albumSceneTargetId)return;
-
-    const now=performance.now();
-    let from=state.albumFromData||state.albumScenes[state.albumSceneCurrentId]||state.albumScenes.reall;
-
-    if(state.albumSceneTransitioning&&state.albumToData){
-      from=blendAlbumScenes(state.albumFromData,state.albumToData,state.albumSceneMorph);
-      uploadAlbumScene(buffers.albumTarget,buffers.albumMeta,buffers.albumColor,from);
+    if(state.albumSceneTransitioning){
+      if(id!==state.albumSceneTargetId)state.pendingAlbumSceneId=id;
+      return;
     }
 
+    state.pendingAlbumSceneId=null;
+    state.bioMapVersion++;
+
+    const now=performance.now();
+    const from=state.albumFromData||state.albumScenes[state.albumSceneCurrentId]||state.albumScenes.reall;
     const rawTo=state.albumScenes[id];
     const to=matchParticleSceneNearest(from,rawTo,++state.albumMatchSalt);
-    const mappedBio=matchParticleSceneNearest(to,state.bioSceneRaw,++state.albumMatchSalt);
-    uploadAlbumScene(buffers.revenantTarget,buffers.revenantMeta,buffers.revenantColor,to);
-    uploadAlbumScene(buffers.bioTarget,buffers.bioMeta,buffers.bioColor,mappedBio);
 
-    state.bioSceneMapped=mappedBio;
+    uploadAlbumScene(buffers.revenantTarget,buffers.revenantMeta,buffers.revenantColor,to);
+
     state.albumFromData=from;
     state.albumToData=to;
     state.albumSceneTargetId=id;
@@ -3200,6 +3218,15 @@ function createParticleField(){
       state.albumSceneMorphFrom=0;
       state.albumSceneMorphTo=0;
       state.albumSceneTransitioning=false;
+
+      const settledId=state.albumSceneCurrentId;
+      scheduleBiographyMapping(state.albumFromData,settledId);
+
+      const queuedId=state.pendingAlbumSceneId;
+      state.pendingAlbumSceneId=null;
+      if(queuedId&&queuedId!==settledId){
+        setAlbumScene(queuedId);
+      }
     }
   }
 
