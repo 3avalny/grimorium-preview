@@ -112,13 +112,27 @@ header{
   transform-origin:center center;
   will-change:transform;
   backface-visibility:hidden;
-  pointer-events:auto;
-  cursor:pointer
+  pointer-events:none;
+  cursor:default
 }
 .brand img{
   width:min(56vw,820px);height:auto;max-height:none;object-fit:contain;object-position:center;
   image-rendering:auto;
   mix-blend-mode:normal;filter:drop-shadow(0 5px 20px rgba(0,0,0,.52))
+}
+.particle-logo-hit{
+  position:fixed;z-index:26;
+  display:block;margin:0;padding:0;border:0;background:transparent;
+  opacity:0;pointer-events:none;cursor:default;
+  appearance:none;-webkit-appearance:none;
+  touch-action:manipulation
+}
+.particle-logo-hit.is-active{
+  pointer-events:auto;cursor:pointer
+}
+.particle-logo-hit:focus-visible{
+  outline:1px solid rgba(221,220,213,.72);
+  outline-offset:4px
 }
 nav{display:none!important}
 
@@ -864,10 +878,11 @@ nav{display:none!important}
 <body>
 <div class="site-parallax-bg" aria-hidden="true"></div>
 <canvas id="particle-field" class="particle-field" aria-hidden="true"></canvas>
+<button id="particle-logo-hit" class="particle-logo-hit" type="button" aria-label="Return to Grimorium Verum logo"></button>
 <img class="site-light-layer" src="assets/light.webp?v=0680db37" alt="" aria-hidden="true">
 <img class="site-rocks-layer" src="assets/rocks.webp?v=8f46a97b" alt="" aria-hidden="true">
 <header>
-  <a class="brand" href="#top" aria-label="Grimorium Verum home"><img src="assets/GV_PNG_bez_fona.png?v=13836c25" alt="Grimorium Verum"></a>
+  <div class="brand" aria-hidden="true"><img src="assets/GV_PNG_bez_fona.png?v=13836c25" alt=""></div>
 </header>
 
 <main id="top">
@@ -1458,6 +1473,7 @@ const reducedMotionQuery=window.matchMedia("(prefers-reduced-motion: reduce)");
 
 /* ---------- WEBGL PARTICLE / BOOK FIELD ---------- */
 const particleCanvas=document.getElementById("particle-field");
+const particleLogoHit=document.getElementById("particle-logo-hit");
 const particleGL=particleCanvas?.getContext("webgl",{
   alpha:true,
   antialias:false,
@@ -1534,6 +1550,7 @@ function createParticleField(){
     "uniform vec2 u_resolution;",
     "uniform float u_time;",
     "uniform float u_morph;",
+    "uniform float u_direction;",
     "uniform float u_material;",
     "uniform float u_bloom;",
     "uniform float u_dpr;",
@@ -1554,11 +1571,21 @@ function createParticleField(){
     "  float spine=step(.5,structure)*(1.0-step(1.5,structure));",
     "  float pageEdge=step(1.5,structure);",
     "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
-    "  float stagger=a_seed.w*.060;",
-    "  float rawLeave=smoother((u_morph-stagger)/(1.0-stagger));",
-    "  // Different particles traverse the same overall morph at different rates,",
-    "  // but every trajectory still begins and ends at exactly the right shape.",
-    "  float speedPower=mix(.70,1.34,seed5);",
+    "  float side=step(u_resolution.x*.5,a_target.x);",
+    "  float group=floor(a_seed.z*5.0)/5.0;",
+    "  float reverseStagger=a_seed.w*.060;",
+    "  float forwardDelay=.004+a_seed.w*.035+group*.060;",
+    "  // The right half starts a little later, so the two pages never assemble",
+    "  // like a mirrored synchronized animation.",
+    "  forwardDelay+=side*.050*(1.0-step(1.5,zone));",
+    "  // The small header logo is deliberately the final thing to form.",
+    "  forwardDelay=mix(forwardDelay,.70+a_seed.w*.080,step(1.5,zone));",
+    "  float forwardLeave=smoother((u_morph-forwardDelay)/max(.001,1.0-forwardDelay));",
+    "  float reverseLeave=smoother((u_morph-reverseStagger)/(1.0-reverseStagger));",
+    "  float rawLeave=mix(reverseLeave,forwardLeave,u_direction);",
+    "  // Independent speed curves make separate particle groups arrive at",
+    "  // different moments instead of behaving like one cloud.",
+    "  float speedPower=mix(.62,1.48,seed5);",
     "  float localLeave=pow(rawLeave,speedPower);",
     "  float transition=sin(PI*localLeave);",
     "",
@@ -1578,8 +1605,9 @@ function createParticleField(){
     "  vec2 dir=delta/travel;",
     "  vec2 normal=vec2(-dir.y,dir.x);",
     "  float bendSign=step(.5,a_seed.y)*2.0-1.0;",
-    "  float bendAmp=min(96.0,18.0+travel*(.035+.075*a_seed.z));",
-    "  float curl=sin(localLeave*PI*(1.35+a_seed.w*2.8)+a_seed.x*PI*2.0);",
+    "  float forwardMagic=mix(1.0,1.30,u_direction);",
+    "  float bendAmp=min(108.0,18.0+travel*(.038+.082*a_seed.z))*forwardMagic;",
+    "  float curl=sin(localLeave*PI*(1.25+a_seed.w*3.35)+a_seed.x*PI*2.0+group*2.4);"
     "  float longitudinal=sin(localLeave*PI*2.0+a_seed.z*PI*2.0);",
     "",
     "  vec2 pos=mix(warped,a_target,localLeave);",
@@ -1587,8 +1615,8 @@ function createParticleField(){
     "  pos+=dir*transition*longitudinal*(5.0+a_seed.x*22.0);",
     "  // Fine independent distortion gives different pieces distinct magical",
     "  // routes while keeping them inside the source-to-target corridor.",
-    "  pos.x+=sin(localLeave*10.0+a_seed.y*37.0)*transition*(3.0+a_seed.w*11.0);",
-    "  pos.y+=cos(localLeave*9.0+a_seed.x*41.0)*transition*(3.0+a_seed.z*10.0);",
+    "  pos.x+=sin(localLeave*(9.0+a_seed.z*5.0)+a_seed.y*37.0+group*3.0)*transition*(3.0+a_seed.w*14.0)*forwardMagic;",
+    "  pos.y+=cos(localLeave*(8.0+a_seed.w*5.0)+a_seed.x*41.0-group*2.2)*transition*(3.0+a_seed.z*13.0)*forwardMagic;"
     "",
     "  if(zone<1.5){",
     "    float t=u_time*.001;",
@@ -1750,6 +1778,7 @@ function createParticleField(){
     resolution:gl.getUniformLocation(particleProgram,"u_resolution"),
     time:gl.getUniformLocation(particleProgram,"u_time"),
     morph:gl.getUniformLocation(particleProgram,"u_morph"),
+    direction:gl.getUniformLocation(particleProgram,"u_direction"),
     material:gl.getUniformLocation(particleProgram,"u_material"),
     bloom:gl.getUniformLocation(particleProgram,"u_bloom"),
     dpr:gl.getUniformLocation(particleProgram,"u_dpr"),
@@ -1797,6 +1826,7 @@ function createParticleField(){
     destroyed:false,
     candidatesReady:false,
     logoCandidates:[],
+    logoBounds:{minU:0,minV:0,maxU:1,maxV:1},
     referenceCandidates:[],
     morph:0,
     morphFrom:0,
@@ -1811,7 +1841,8 @@ function createParticleField(){
     perfAdapted:false,
     bloomScale:.36,
     bloomA:null,
-    bloomB:null
+    bloomB:null,
+    topLogoHit:null
   };
 
   function desiredCount(){
@@ -1852,15 +1883,22 @@ function createParticleField(){
     ctx.drawImage(source,0,0,sampleW,sampleH);
     const data=ctx.getImageData(0,0,sampleW,sampleH).data;
     const list=[];
+    let minU=1,minV=1,maxU=0,maxV=0;
     for(let y=0;y<sampleH;y++){
       for(let x=0;x<sampleW;x++){
         const k=(y*sampleW+x)*4;
         const a=data[k+3]/255;
         const lum=(data[k]+data[k+1]+data[k+2])/3;
-        if(a>.14&&lum>64)list.push({u:x/sampleW,v:y/sampleH});
+        if(a>.14&&lum>64){
+          const u=x/sampleW,v=y/sampleH;
+          list.push({u,v});
+          minU=Math.min(minU,u);minV=Math.min(minV,v);
+          maxU=Math.max(maxU,u);maxV=Math.max(maxV,v);
+        }
       }
     }
     state.logoCandidates=list;
+    if(list.length)state.logoBounds={minU,minV,maxU,maxV};
   }
 
   function prepareReferenceCandidates(){
@@ -1994,6 +2032,14 @@ function createParticleField(){
     const topLogoX=w*.5-topLogoW*.5;
     const topLogoY=-topLogoH*.18;
 
+    const lb=state.logoBounds;
+    state.topLogoHit={
+      left:topLogoX+lb.minU*topLogoW,
+      top:topLogoY+lb.minV*topLogoH,
+      width:Math.max(1,(lb.maxU-lb.minU)*topLogoW),
+      height:Math.max(1,(lb.maxV-lb.minV)*topLogoH)
+    };
+
     const targets=[];
     refPoints.forEach(p=>{
       targets.push({
@@ -2125,6 +2171,15 @@ function createParticleField(){
     uploadBuffer(buffers.color,data.colorData);
 
     state.count=count;
+
+    if(particleLogoHit&&state.topLogoHit){
+      const hit=state.topLogoHit;
+      particleLogoHit.style.left=hit.left.toFixed(1)+"px";
+      particleLogoHit.style.top=hit.top.toFixed(1)+"px";
+      particleLogoHit.style.width=hit.width.toFixed(1)+"px";
+      particleLogoHit.style.height=hit.height.toFixed(1)+"px";
+    }
+
     rebuildBloomTargets();
     state.ready=true;
     state.perfSum=0;
@@ -2137,7 +2192,7 @@ function createParticleField(){
   function updateMorph(now,heroRaw){
     let desired=state.morphTo;
     if(!state.morphInitialized){
-      desired=heroRaw>.12?1:0;
+      desired=heroRaw>.00015?1:0;
       state.morph=desired;
       state.morphFrom=desired;
       state.morphTo=desired;
@@ -2151,8 +2206,8 @@ function createParticleField(){
     }else{
       // Real hysteresis: once the book transition starts, it will not reverse
       // until the user comes genuinely close to the top again.
-      if(state.morphTo<.5&&heroRaw>.13)desired=1;
-      else if(state.morphTo>.5&&heroRaw<.075)desired=0;
+      if(state.morphTo<.5&&heroRaw>.00015)desired=1;
+      else if(state.morphTo>.5&&heroRaw<.00005)desired=0;
     }
 
     if(desired!==state.morphTo){
@@ -2182,6 +2237,7 @@ function createParticleField(){
     gl.uniform2f(pLoc.resolution,state.width,state.height);
     gl.uniform1f(pLoc.time,now);
     gl.uniform1f(pLoc.morph,state.morph);
+    gl.uniform1f(pLoc.direction,state.morphTo>.5?1:0);
     gl.uniform1f(pLoc.material,material);
     gl.uniform1f(pLoc.bloom,bloom);
     gl.uniform1f(pLoc.dpr,state.dpr);
@@ -2280,6 +2336,16 @@ function createParticleField(){
       const bloom=particleSmoother((state.morph-.60)/.40);
       const alpha=particleMix(.94,.72,material);
 
+      if(particleLogoHit){
+        const logoClickable=
+          state.morphTo>.5 &&
+          state.morph>.90 &&
+          material>.82;
+        particleLogoHit.classList.toggle("is-active",logoClickable);
+        particleLogoHit.tabIndex=logoClickable?0:-1;
+        particleLogoHit.setAttribute("aria-hidden",logoClickable?"false":"true");
+      }
+
       const imageReveal=reducedMotionQuery.matches
         ?1
         :(state.width>1100?0:particleSmooth((state.morph-.60)/.20));
@@ -2325,7 +2391,26 @@ function createParticleField(){
       state.morphTo=0;
       state.morphStartedAt=now;
       state.morphDuration=1950;
+      particleLogoHit?.classList.remove("is-active");
+      if(particleLogoHit)particleLogoHit.tabIndex=-1;
     };
+
+    if(particleLogoHit&&!particleLogoHit.dataset.bound){
+      particleLogoHit.dataset.bound="1";
+      particleLogoHit.tabIndex=-1;
+      particleLogoHit.setAttribute("aria-hidden","true");
+      particleLogoHit.addEventListener("click",()=>{
+        if(!particleLogoHit.classList.contains("is-active"))return;
+        state.goHome();
+        if(window.innerWidth>720){
+          resetDesktopIntroSnap();
+          animateDesktopSnap(0);
+        }else{
+          document.querySelector("#top")?.scrollIntoView({behavior:"smooth"});
+        }
+      });
+    }
+
     state.raf=requestAnimationFrame(render);
     particleField=state;
   }
@@ -2749,19 +2834,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",
   if(!el)return;
 
   e.preventDefault();
-
-  if(a.classList.contains("brand") && a.getAttribute("href")==="#top"){
-    particleField?.goHome?.();
-
-    if(window.innerWidth>720){
-      resetDesktopIntroSnap();
-      animateDesktopSnap(0);
-      return;
-    }
-
-    el.scrollIntoView({behavior:"smooth"});
-    return;
-  }
 
   el.scrollIntoView({behavior:"smooth"});
 }));
