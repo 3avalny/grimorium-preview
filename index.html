@@ -1663,9 +1663,24 @@ function createParticleField(){
     "float smoother(float v){v=sat(v);return v*v*v*(v*(v*6.0-15.0)+10.0);}",
     "vec2 rot(vec2 p,float a){float c=cos(a),s=sin(a);return vec2(p.x*c-p.y*s,p.x*s+p.y*c);}",
     "void main(){",
-    "  vec2 albumSceneTarget=mix(a_albumTarget,a_nextAlbumTarget,u_albumScene);",
-    "  vec4 albumSceneMeta=mix(a_albumMeta,a_nextAlbumMeta,u_albumScene);",
-    "  vec3 albumSceneColor=mix(a_albumColor,a_nextAlbumColor,u_albumScene);",
+    "  // Album-to-album morph is intentionally per-particle, not per-fragment.",
+    "  // Every point starts at a slightly different moment and follows its own",
+    "  // small local arc while still ending on its spatially-near destination.",
+    "  float albumDelay=a_seed.x*.27;",
+    "  float albumRaw=sat((u_albumScene-albumDelay)/max(.001,1.0-albumDelay));",
+    "  float albumT=pow(smoother(albumRaw),mix(.72,1.34,a_seed.z));",
+    "  vec2 albumDelta=a_nextAlbumTarget-a_albumTarget;",
+    "  float albumTravel=max(1.0,length(albumDelta));",
+    "  vec2 albumDir=albumDelta/albumTravel;",
+    "  vec2 albumNormal=vec2(-albumDir.y,albumDir.x);",
+    "  float albumArcSign=step(.5,a_seed.w)*2.0-1.0;",
+    "  float albumMove=sin(PI*albumT);",
+    "  float albumArc=min(22.0,2.0+albumTravel*.032)*(.24+a_seed.y*.76);",
+    "  vec2 albumSceneTarget=mix(a_albumTarget,a_nextAlbumTarget,albumT);",
+    "  albumSceneTarget+=albumNormal*albumMove*albumArc*albumArcSign;",
+    "  albumSceneTarget+=albumDir*albumMove*sin(albumT*PI*2.0+a_seed.y*PI*2.0)*(1.0+a_seed.x*4.0);",
+    "  vec4 albumSceneMeta=mix(a_albumMeta,a_nextAlbumMeta,albumT);",
+    "  vec3 albumSceneColor=mix(a_albumColor,a_nextAlbumColor,albumT);",
     "  vec2 sceneTarget=mix(a_target,albumSceneTarget,u_disc);",
     "  vec2 target=mix(sceneTarget,a_bioTarget,u_bio);",
     "  vec4 sceneMeta=mix(a_meta,albumSceneMeta,u_disc);",
@@ -2447,7 +2462,22 @@ function createParticleField(){
     return ordered;
   }
 
-  function sampleAlbumPoints(list,count,ref){
+  function locallyScrambleAlbumPoints(points,salt){
+    // Break visible moving fragments without destroying locality: shuffle only
+    // inside tiny consecutive Hilbert windows, never across the whole picture.
+    const blockSize=72;
+    for(let start=0;start<points.length;start+=blockSize){
+      const end=Math.min(points.length,start+blockSize);
+      for(let i=end-1;i>start;i--){
+        const h=particleHash((salt+1)*104729+i*8191+start*131);
+        const j=start+Math.floor(h*(i-start+1));
+        const tmp=points[i];points[i]=points[j];points[j]=tmp;
+      }
+    }
+    return points;
+  }
+
+  function sampleAlbumPoints(list,count,ref,sceneSalt=0){
     // Allocate density by brightness, not by guesses about semantic objects.
     // Bright hairlines get tight splats; dim grid/atmosphere get broad faint ones.
     const bands=[[],[],[]];
@@ -2493,7 +2523,7 @@ function createParticleField(){
       }
     });
 
-    return spatiallyOrderAlbumPoints(out);
+    return locallyScrambleAlbumPoints(spatiallyOrderAlbumPoints(out),sceneSalt);
   }
 
   function prepareBioCandidates(){
@@ -2683,8 +2713,14 @@ function createParticleField(){
     const sourcePoints=sampleLowDiscrepancy(state.logoCandidates,count,0x91e10da5);
     const refPoints=sampleLowDiscrepancy(state.referenceCandidates,refCount,0xc2b2ae35);
     const albumPointsById={};
+    const albumSceneSalts={reall:11,revenant:23,relict:37,reborn:53,retaliation:71};
     for(const [id,ref] of Object.entries(state.albumReferences)){
-      albumPointsById[id]=sampleAlbumPoints(state.albumCandidatesById[id],refCount,ref);
+      albumPointsById[id]=sampleAlbumPoints(
+        state.albumCandidatesById[id],
+        refCount,
+        ref,
+        albumSceneSalts[id]||0
+      );
     }
     const bioFlameCount=state.bioFlameCandidates.length
       ? Math.max(120,Math.round(refCount*.075))
