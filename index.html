@@ -1611,7 +1611,7 @@ function createParticleField(){
     "  float bendAmp=min(132.0,20.0+travel*(.042+.096*a_seed.z))*forwardMagic;",
     "  float groupPhase=group*PI*2.0;",
     "  float curl=sin(localLeave*PI*(1.15+a_seed.w*4.15)+a_seed.x*PI*2.0+groupPhase);",
-    "  float longitudinal=sin(localLeave*PI*(1.8+a_seed.y*.9)+a_seed.z*PI*2.0-groupPhase*.45);"
+    "  float longitudinal=sin(localLeave*PI*(1.8+a_seed.y*.9)+a_seed.z*PI*2.0-groupPhase*.45);",
     "",
     "  vec2 pos=mix(warped,a_target,localLeave);",
     "  pos+=normal*transition*bendAmp*(bendSign*.58+curl*.42);",
@@ -1629,8 +1629,8 @@ function createParticleField(){
     "  float topTeleport=step(.26,u_morph);",
     "  vec2 forwardTopPos=mix(a_logo,a_target,topTeleport);",
     "  pos=mix(pos,forwardTopPos,forwardTop);",
-    ""
-    "  if(zone<1.5){",
+    "",
+    "  if(zone<1.5){"
     "    float t=u_time*.001;",
     "    float speed1=.095+a_seed.w*.070;",
     "    float speed2=.040+a_seed.y*.040;",
@@ -1667,7 +1667,7 @@ function createParticleField(){
     "  structuralAlpha*=mix(1.0,1.10,pageEdge);",
     "  float passAlpha=u_alpha*zoneAlpha*structuralAlpha*mix(1.0,mix(.58,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
-    "  float topCrystal=smoother((u_morph-.78)/.18);",
+    "  float topCrystal=smoother((u_morph-.90)/.09);",
     "  float forwardTopAlpha=max(topSourceFade,topCrystal);",
     "  passAlpha*=mix(1.0,forwardTopAlpha,forwardTop);",
     "",
@@ -2355,8 +2355,8 @@ function createParticleField(){
       if(particleLogoHit){
         const logoClickable=
           state.morphTo>.5 &&
-          state.morph>.90 &&
-          material>.82;
+          state.morph>.965 &&
+          material>.92;
         particleLogoHit.classList.toggle("is-active",logoClickable);
         particleLogoHit.tabIndex=logoClickable?0:-1;
         particleLogoHit.setAttribute("aria-hidden",logoClickable?"false":"true");
