@@ -2357,6 +2357,15 @@ function createParticleField(){
         const u=(x+.5)/sampleW;
         const v=(y+.5)/sampleH;
 
+        if(sceneId==="bio"){
+          // Remove the narrow hanging ornament directly above the tall inner-right
+          // candle. Keep the flame/smoke and the surrounding dust untouched.
+          const hangingAboveRightCandle=
+            u>.672&&u<.686&&
+            v>.025&&v<.275;
+          if(hangingAboveRightCandle)continue;
+        }
+
         if(sceneId==="book"){
           // Remove only the faint construction circles from the Book reference.
           // Bright book material is intentionally preserved where it crosses
@@ -2718,14 +2727,23 @@ function createParticleField(){
         bioU+=.065;
       }
 
+      // Give only the taller rear-right candle a little more presence.
+      // The narrower x-range avoids brightening the shorter candle in front.
+      const tallRightCandle=
+        p.u>.655&&p.u<.715&&
+        p.v>.285&&p.v<.705;
+      const candleBoost=tallRightCandle?1.18:1.0;
+
       return {
         x:bioX+bioU*bioW,
         y:bioY+p.v*bioH,
         zone:0,
-        glow:p.glow,
+        glow:particleClamp(p.glow*candleBoost),
         structure:0,
-        radius:p.radius*bioScale,
-        r:p.r,g:p.g,b:p.b
+        radius:p.radius*bioScale*(tallRightCandle?1.035:1.0),
+        r:particleClamp(p.r*candleBoost),
+        g:particleClamp(p.g*candleBoost),
+        b:particleClamp(p.b*candleBoost)
       };
     });
 
