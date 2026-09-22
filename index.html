@@ -548,11 +548,7 @@ nav{display:none!important}
   padding:56px 22px;text-align:center;
   -webkit-user-select:none;user-select:none
 }
-.bio-copy:before{
-  content:"";position:absolute;z-index:-1;inset:-70px -95px;
-  background:radial-gradient(ellipse at center,rgba(7,9,11,.92) 0%,rgba(7,9,11,.72) 44%,rgba(7,9,11,0) 74%);
-  pointer-events:none
-}
+.bio-copy:before{content:none!important}
 .bio-eyebrow{
   margin-bottom:0;font-family:var(--sans);font-size:9px;
   letter-spacing:.27em;text-transform:uppercase;color:#72777a
@@ -576,7 +572,7 @@ nav{display:none!important}
   transform:translate3d(0,-13px,0);
   will-change:opacity,filter,transform;
   transition-property:opacity,filter,transform;
-  transition-duration:.42s,.48s,.48s;
+  transition-duration:.28s,.34s,.34s;
   transition-timing-function:ease,cubic-bezier(.2,.7,.2,1),cubic-bezier(.2,.78,.2,1);
   transition-delay:var(--bio-enter-delay,0ms)
 }
@@ -1643,9 +1639,9 @@ function layoutBiographyWords(){
   let wordIndex=0;
 
   lines.forEach((line,lineIndex)=>{
-    const exitDelay=(lines.length-1-lineIndex)*36;
+    const exitDelay=(lines.length-1-lineIndex)*30;
     line.words.forEach(word=>{
-      word.style.setProperty("--bio-enter-delay",`${wordIndex*22}ms`);
+      word.style.setProperty("--bio-enter-delay",`${wordIndex*10}ms`);
       word.style.setProperty("--bio-exit-delay",`${exitDelay}ms`);
       word.dataset.bioLine=String(lineIndex);
       wordIndex+=1;
@@ -1921,7 +1917,8 @@ function createParticleField(){
     "  float glow=activeMeta.x;",
     "  float zone=activeMeta.y;",
     "  float pSize=mix(a_meta.z,a_bioMeta.z,bioT);",
-    "  float structure=mix(a_meta.w,a_bioMeta.w,step(.52,bioT));",
+    "  float bioEnergy=a_bioMeta.w;",
+    "  float structure=mix(a_meta.w,0.0,step(.52,bioT));",
     "  float spine=step(.5,structure)*(1.0-step(1.5,structure));",
     "  float innerPage=step(1.5,structure)*(1.0-step(2.5,structure));",
     "  float pageStack=step(2.5,structure)*(1.0-step(3.5,structure));",
@@ -2036,7 +2033,8 @@ function createParticleField(){
     "    sin(bookT*bioSpeedX+bioPhaseX)+.42*sin(bookT*bioSpeedY*.57+bioPhaseY*1.41),",
     "    cos(bookT*bioSpeedY+bioPhaseY)+.39*sin(bookT*bioSpeedX*.69+bioPhaseX*1.27)",
     "  );",
-    "  bioDrift*=vec2(bioAmpX,bioAmpY)*1.20*bioAmpBreath;",
+    "  float bioMotionEnergy=mix(.10,1.70,smoother((bioEnergy-.025)/.56));",
+    "  bioDrift*=vec2(bioAmpX,bioAmpY)*1.20*bioAmpBreath*bioMotionEnergy;",
     "  pos+=bioDrift*bioLifeGate;",
     "",
     "  float bioBrightnessRaw=.5+.5*sin(",
@@ -2046,16 +2044,19 @@ function createParticleField(){
     "  float bioBrightnessFloor=mix(.34,.784,a_seed.x);",
     "  float bioBrightness=mix(1.0,mix(bioBrightnessFloor,1.0,bioBrightnessPhase),bioLifeGate);",
     "",
-    "  // DOM side labels act as soft anti-fields: particles physically move",
-    "  // away from their visible bounds instead of relying on text shadows.",
+    "  // Tight anti-field around the actual side-label bounding boxes.",
+    "  // The interior is fully clear; only a tiny feather outside repels particles.",
+    "  float sideLabelClear=0.0;",
     "  for(int sfi=0;sfi<2;sfi++){",
     "    vec4 sf=u_sideFields[sfi];",
     "    vec2 sideDelta=pos-sf.xy;",
-    "    vec2 sideLocal=sideDelta/max(sf.zw,vec2(1.0));",
-    "    float sideD=length(sideLocal);",
-    "    float sideForce=1.0-smoother((sideD-.48)/.86);",
+    "    vec2 q=abs(sideDelta)-sf.zw;",
+    "    float sideRectD=length(max(q,vec2(0.0)))+min(max(q.x,q.y),0.0);",
+    "    float sideForce=1.0-smoother((sideRectD+1.5)/8.0);",
+    "    float sideInside=1.0-smoother((sideRectD+0.5)/3.5);",
     "    vec2 sideAway=normalize(sideDelta+vec2(.001));",
-    "    pos+=sideAway*sideForce*(7.0+27.0*sideForce);",
+    "    pos+=sideAway*sideForce*(3.0+13.0*sideForce);",
+    "    sideLabelClear=max(sideLabelClear,sideInside);",
     "  }",
     "",
     "  // Feathered negative-space halo under the persistent GV mark.",
@@ -2226,6 +2227,7 @@ function createParticleField(){
     "    passAlpha=materialToneAlpha*bookSpineTone*mix(1.0,.22,topLogoField)*mix(1.0,.08,topLogoCore);",
     "  }",
     "  passAlpha*=bookBrightness*bookRayTone*bioBrightness;",
+    "  passAlpha*=1.0-sideLabelClear;",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
     "  v_color=color;",
     "  v_alpha=passAlpha*visible;",
@@ -2556,6 +2558,50 @@ function createParticleField(){
     const data=ctx.getImageData(0,0,sampleW,sampleH).data;
     const list=[];
 
+    // Biography movement energy: summed-area table of local luminance.
+    // This lets bright, dense regions (especially flames) move more while
+    // sparse/dim candle material stays calmer, without any O(N²) neighbour pass.
+    let bioEnergyIntegral=null;
+    let bioEnergyStride=0;
+    let bioEnergyRadius=0;
+    if(sceneId==="bio"){
+      bioEnergyStride=sampleW+1;
+      bioEnergyRadius=Math.max(5,Math.round(Math.min(sampleW,sampleH)*.0105));
+      bioEnergyIntegral=new Float32Array((sampleW+1)*(sampleH+1));
+
+      for(let iy=0;iy<sampleH;iy++){
+        let rowSum=0;
+        for(let ix=0;ix<sampleW;ix++){
+          const ik=(iy*sampleW+ix)*4;
+          const ia=data[ik+3]/255;
+          const ir=data[ik]/255*ia;
+          const ig=data[ik+1]/255*ia;
+          const ib=data[ik+2]/255*ia;
+          const il=ir*.2126+ig*.7152+ib*.0722;
+          rowSum+=Math.pow(il,.72);
+          const dst=(iy+1)*bioEnergyStride+(ix+1);
+          bioEnergyIntegral[dst]=bioEnergyIntegral[iy*bioEnergyStride+(ix+1)]+rowSum;
+        }
+      }
+    }
+
+    const bioLocalEnergy=(x,y,lum)=>{
+      if(!bioEnergyIntegral)return 0;
+      const x0=Math.max(0,x-bioEnergyRadius);
+      const y0=Math.max(0,y-bioEnergyRadius);
+      const x1=Math.min(sampleW-1,x+bioEnergyRadius);
+      const y1=Math.min(sampleH-1,y+bioEnergyRadius);
+      const ax=x0, ay=y0, bx=x1+1, by=y1+1;
+      const sum=
+        bioEnergyIntegral[by*bioEnergyStride+bx]-
+        bioEnergyIntegral[ay*bioEnergyStride+bx]-
+        bioEnergyIntegral[by*bioEnergyStride+ax]+
+        bioEnergyIntegral[ay*bioEnergyStride+ax];
+      const area=Math.max(1,(bx-ax)*(by-ay));
+      const neighbourhood=sum/area;
+      return particleClamp(neighbourhood*1.55+Math.pow(lum,.62)*.38);
+    };
+
     for(let y=0;y<sampleH;y++){
       for(let x=0;x<sampleW;x++){
         const k=(y*sampleW+x)*4;
@@ -2687,7 +2733,7 @@ function createParticleField(){
           v,
           zone:0,
           glow:lum,
-          structure:0,
+          structure:sceneId==="bio"?bioLocalEnergy(x,y,lum):0,
           r,g,b
         });
       }
@@ -2956,7 +3002,7 @@ function createParticleField(){
         y:bioY+p.v*bioH,
         zone:0,
         glow:particleClamp(p.glow*candleBoost),
-        structure:0,
+        structure:p.structure||0,
         radius:p.radius*bioScale*(tallRightCandle?1.035:1.0),
         r:particleClamp(p.r*candleBoost),
         g:particleClamp(p.g*candleBoost),
@@ -3677,8 +3723,8 @@ function createParticleField(){
 
       data[k]=rect.left+rect.width*.5;
       data[k+1]=rect.top+rect.height*.5;
-      data[k+2]=rect.width*.72+24;
-      data[k+3]=rect.height*.56+26;
+      data[k+2]=rect.width*.5+3;
+      data[k+3]=rect.height*.5+5;
     }
   }
 
