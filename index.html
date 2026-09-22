@@ -1586,7 +1586,7 @@ function particleMix(a,b,t){return a+(b-a)*t}
 
 const particleAlbumReference=new Image();
 particleAlbumReference.decoding="async";
-particleAlbumReference.src="assets/album-particles-desktop.png";
+particleAlbumReference.src="assets/gates.webp";
 
 const particleRevenantReference=new Image();
 particleRevenantReference.decoding="async";
@@ -1853,11 +1853,17 @@ function createParticleField(){
     "  // Feathered negative-space halo under the persistent GV mark.",
     "  // It changes opacity only; particle geometry stays untouched.",
     "  float topLogoField=0.0;",
+    "  float topLogoCore=0.0;",
     "  if(isTop<.5&&u_material>.001){",
     "    vec2 fieldRadius=max(u_topLogoField.zw,vec2(1.0));",
     "    vec2 fieldLocal=(pos-u_topLogoField.xy)/fieldRadius;",
     "    float fieldD=length(fieldLocal);",
     "    topLogoField=1.0-smoother((fieldD-.36)/.92);",
+    "",
+    "    // Extra protection only around the central O cluster of the GV mark.",
+    "    vec2 coreLocal=vec2(fieldLocal.x/.24,(fieldLocal.y+.08)/.30);",
+    "    float coreD=length(coreLocal);",
+    "    topLogoCore=1.0-smoother((coreD-.18)/.82);",
     "  }",
     "",
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
@@ -1951,6 +1957,7 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.72,bioSpark);",
     "  float passAlpha=u_alpha*bioBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
     "  passAlpha*=mix(1.0,.22,topLogoField*(1.0-isTop));",
+    "  passAlpha*=mix(1.0,.08,topLogoCore*(1.0-isTop));",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
     "  float forwardTopAlpha=max(topSourceFade,topCrystal);",
@@ -2012,7 +2019,7 @@ function createParticleField(){
     "    visible=reconstructionWeight*materialKeep;",
     "    passRadius=reconstructionMeta.z*mix(.86,.68,materialDetail);",
     "    color=mix(reconstructionColor,reconstructionColor*1.12,materialDetail);",
-    "    passAlpha=materialToneAlpha*bookSpineTone*mix(1.0,.22,topLogoField);",
+    "    passAlpha=materialToneAlpha*bookSpineTone*mix(1.0,.22,topLogoField)*mix(1.0,.08,topLogoCore);",
     "  }",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
     "  v_color=color;",
@@ -2476,7 +2483,7 @@ function createParticleField(){
 
   function prepareAlbumCandidates(){
     state.albumCandidatesById={
-      reall:prepareDiscSceneCandidates(state.albumReferences.reall,true,"reall"),
+      reall:prepareDiscSceneCandidates(state.albumReferences.reall,false,"reall"),
       revenant:prepareDiscSceneCandidates(state.albumReferences.revenant,false,"revenant"),
       relict:prepareDiscSceneCandidates(state.albumReferences.relict,false,"relict"),
       reborn:prepareDiscSceneCandidates(state.albumReferences.reborn,false,"reborn"),
