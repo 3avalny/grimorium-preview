@@ -2357,10 +2357,9 @@ function createParticleField(){
     state.referenceCandidates=list;
   }
 
-  function prepareDiscSceneCandidates(ref,excludeSourceLogo=false,sceneId="",overlayRef=null){
+  function prepareDiscSceneCandidates(ref,excludeSourceLogo=false,sceneId=""){
     // Album and Biography scenes use exactly the same native-resolution source
-    // reconstruction. Biography simply composites its flame reference on top
-    // before the same pixel sampler runs.
+    // reconstruction. No thumbnail stage and no composite source.
     const sampleW=ref.naturalWidth;
     const sampleH=ref.naturalHeight;
     const off=document.createElement("canvas");
@@ -2368,9 +2367,6 @@ function createParticleField(){
     off.height=sampleH;
     const ctx=off.getContext("2d",{willReadFrequently:true});
     ctx.drawImage(ref,0,0);
-    if(overlayRef?.naturalWidth){
-      ctx.drawImage(overlayRef,0,0,sampleW,sampleH);
-    }
     const data=ctx.getImageData(0,0,sampleW,sampleH).data;
     const list=[];
 
@@ -2495,8 +2491,7 @@ function createParticleField(){
     state.bioCandidates=prepareDiscSceneCandidates(
       state.bioReference,
       false,
-      "bio",
-      state.bioFlameReference
+      "bio"
     );
     state.bioFlameCandidates=[];
   }
@@ -2504,13 +2499,7 @@ function createParticleField(){
   function prepareCandidates(){
     if(state.candidatesReady)return true;
     const albumRefsReady=Object.values(state.albumReferences).every(ref=>ref.naturalWidth);
-    if(
-      !source.naturalWidth||
-      !state.bookReference.naturalWidth||
-      !albumRefsReady||
-      !state.bioReference.naturalWidth||
-      !state.bioFlameReference.naturalWidth
-    )return false;
+    if(!source.naturalWidth||!state.bookReference.naturalWidth||!albumRefsReady||!state.bioReference.naturalWidth)return false;
     prepareLogoCandidates();
     prepareReferenceCandidates();
     prepareAlbumCandidates();
@@ -3343,8 +3332,7 @@ function createParticleField(){
       !source.naturalWidth||
       !particleBookReference.naturalWidth||
       !albumRefsReady||
-      !particleBioReference.naturalWidth||
-      !particleBioFlameReference.naturalWidth
+      !particleBioReference.naturalWidth
     )return;
     started=true;
 
@@ -3407,12 +3395,6 @@ function createParticleField(){
   particleRebornReference.addEventListener("load",boot,{once:true});
   particleRetaliationReference.addEventListener("load",boot,{once:true});
   particleBioReference.addEventListener("load",boot,{once:true});
-  particleBioFlameReference.addEventListener("load",boot,{once:true});
-  particleBioFlameReference.addEventListener("error",()=>{
-    // If the overlay fails, continue with the candle reference alone.
-    state.bioFlameReference=state.bioReference;
-    boot();
-  },{once:true});
   if(
     source.complete&&source.naturalWidth&&
     particleBookReference.complete&&particleBookReference.naturalWidth&&
@@ -3421,8 +3403,7 @@ function createParticleField(){
     particleRelictReference.complete&&particleRelictReference.naturalWidth&&
     particleRebornReference.complete&&particleRebornReference.naturalWidth&&
     particleRetaliationReference.complete&&particleRetaliationReference.naturalWidth&&
-    particleBioReference.complete&&particleBioReference.naturalWidth&&
-    particleBioFlameReference.complete&&particleBioFlameReference.naturalWidth
+    particleBioReference.complete&&particleBioReference.naturalWidth
   ){
     boot();
   }
