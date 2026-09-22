@@ -25,10 +25,17 @@
   font-weight:400;
   font-display:swap;
 }
+@font-face{
+  font-family:"Moonscythe";
+  src:url("assets/Moonscythe%20Regular.otf") format("opentype");
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+}
 :root{
   --bg:#000;--bg2:#0a0d10;--ink:#dddcd5;--soft:#a6a6a0;--dim:#6f7477;
   --line:rgba(223,224,218,.13);--line-strong:rgba(223,224,218,.32);--red:#8b1e23;
-  --serif:"Cormorant Garamond",Georgia,serif;--sans:"Manrope",Arial,sans-serif;--album-display:"Cattedrale-Demo",var(--serif);
+  --serif:"Cormorant Garamond",Georgia,serif;--sans:"Manrope",Arial,sans-serif;--album-display:"Cattedrale-Demo",var(--serif);--moon-display:"Moonscythe",var(--serif);
   --pad:clamp(20px,4.7vw,72px);--shell:1380px;
   --mobile-album-motion:.32s;--mobile-album-opacity:.24s
 }
@@ -179,9 +186,13 @@ nav{display:none!important}
   pointer-events:none
 }
 .hero h1{
-  margin:0;font-family:var(--album-display);font-weight:400;
-  font-size:clamp(54px,8.5vw,124px);line-height:.86;letter-spacing:.075em;text-transform:uppercase;
-  text-shadow:0 8px 42px rgba(0,0,0,.86);white-space:nowrap;
+  margin:0;font-family:var(--moon-display);font-weight:400;
+  font-size:clamp(54px,8.5vw,124px);line-height:.86;letter-spacing:.025em;text-transform:none;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,.96),
+    0 8px 26px rgba(0,0,0,.90),
+    0 18px 52px rgba(0,0,0,.70);
+  white-space:nowrap;
   transform:translateY(52px)
 }
 .hero-carved-s{
@@ -244,11 +255,17 @@ nav{display:none!important}
   background:radial-gradient(ellipse at center,rgba(4,6,8,.38) 0%,rgba(4,6,8,.28) 40%,rgba(4,6,8,.12) 62%,rgba(4,6,8,0) 82%)
 }
 .record-side-label{
-  position:absolute;z-index:3;left:34px;top:50%;
+  position:absolute;z-index:12;left:34px;top:50%;
   transform:translate(-50%,-50%) rotate(-90deg);
   transform-origin:center;white-space:nowrap;
-  font-family:var(--sans);font-size:13px;font-weight:500;
-  letter-spacing:.30em;text-transform:uppercase;color:#73787b;
+  font-family:var(--moon-display);font-size:clamp(24px,2.1vw,32px);font-weight:400;
+  letter-spacing:.07em;text-transform:none;color:#d3d0c8;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,1),
+    0 4px 8px rgba(0,0,0,.98),
+    0 9px 20px rgba(0,0,0,.92),
+    0 18px 38px rgba(0,0,0,.78);
+  filter:drop-shadow(0 7px 12px rgba(0,0,0,.72));
   will-change:opacity
 }
 /* TEMP: particle-scene inspection — keep Discography DOM intact, just hide it */
@@ -256,10 +273,13 @@ nav{display:none!important}
   background:transparent!important;
   border-top-color:transparent!important
 }
-.record>.shell,
-.record-side-label{
+.record>.shell{
   opacity:0!important;
   visibility:hidden!important;
+  pointer-events:none!important
+}
+.record-side-label{
+  visibility:visible!important;
   pointer-events:none!important
 }
 .record>.shell:before{display:none!important}
@@ -511,11 +531,17 @@ nav{display:none!important}
   border-top:1px solid rgba(255,255,255,.05)
 }
 .bio-side-label{
-  position:absolute;z-index:6;left:34px;top:50%;
+  position:absolute;z-index:12;left:34px;top:50%;
   transform:translate(-50%,-50%) rotate(-90deg);
   transform-origin:center;white-space:nowrap;
-  font-family:var(--sans);font-size:13px;font-weight:500;
-  letter-spacing:.30em;text-transform:uppercase;color:#73787b
+  font-family:var(--moon-display);font-size:clamp(24px,2.1vw,32px);font-weight:400;
+  letter-spacing:.07em;text-transform:none;color:#d3d0c8;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,1),
+    0 4px 8px rgba(0,0,0,.98),
+    0 9px 20px rgba(0,0,0,.92),
+    0 18px 38px rgba(0,0,0,.78);
+  filter:drop-shadow(0 7px 12px rgba(0,0,0,.72))
 }
 .bio-figure{display:none!important}
 .bio-figure-left{left:max(-18px,calc((100vw - var(--shell))/2 - 110px))}
@@ -648,7 +674,7 @@ nav{display:none!important}
 }
 @media(max-width:900px){
   .bio{min-height:760px}
-  .bio-side-label{left:26px;font-size:12px}
+  .bio-side-label{left:26px;font-size:clamp(21px,3vw,27px)}
   .bio-figure{height:69%;width:40vw;opacity:1}
   .bio-figure-left{left:-6vw}
   .bio-figure-right{right:-6vw}
@@ -660,7 +686,7 @@ nav{display:none!important}
   .hero-copy{width:86vw}
   .hero h1{font-size:clamp(48px,11vw,90px)}
 
-  .record-side-label{left:26px;font-size:12px}
+  .record-side-label{left:26px;font-size:clamp(21px,3vw,27px)}
 
   /* Tablet Spotify uses the same compact embed height as mobile. */
   .disc-content-window{height:527px}
@@ -946,7 +972,7 @@ nav{display:none!important}
     <img class="hero-light" src="assets/light.webp?v=0680db37" alt="" aria-hidden="true">
     <img class="hero-rocks" src="assets/rocks.webp?v=8f46a97b" alt="" aria-hidden="true">
     <div class="hero-copy">
-      <h1>Renai<span class="hero-carved-s">s</span>sance</h1>
+      <h1>Renaissance</h1>
       <div class="hero-sub">
         <span class="hero-sub-line">New Album</span>
         <span class="hero-sub-line hero-sub-coming">Coming 2026</span>
