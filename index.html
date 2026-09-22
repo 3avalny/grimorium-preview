@@ -1607,7 +1607,7 @@ function createParticleField(){
     "  float bendSign=step(.5,a_seed.y)*2.0-1.0;",
     "  float forwardMagic=mix(1.0,1.30,u_direction);",
     "  float bendAmp=min(108.0,18.0+travel*(.038+.082*a_seed.z))*forwardMagic;",
-    "  float curl=sin(localLeave*PI*(1.25+a_seed.w*3.35)+a_seed.x*PI*2.0+group*2.4);"
+    "  float curl=sin(localLeave*PI*(1.25+a_seed.w*3.35)+a_seed.x*PI*2.0+group*2.4);",
     "  float longitudinal=sin(localLeave*PI*2.0+a_seed.z*PI*2.0);",
     "",
     "  vec2 pos=mix(warped,a_target,localLeave);",
@@ -1616,7 +1616,7 @@ function createParticleField(){
     "  // Fine independent distortion gives different pieces distinct magical",
     "  // routes while keeping them inside the source-to-target corridor.",
     "  pos.x+=sin(localLeave*(9.0+a_seed.z*5.0)+a_seed.y*37.0+group*3.0)*transition*(3.0+a_seed.w*14.0)*forwardMagic;",
-    "  pos.y+=cos(localLeave*(8.0+a_seed.w*5.0)+a_seed.x*41.0-group*2.2)*transition*(3.0+a_seed.z*13.0)*forwardMagic;"
+    "  pos.y+=cos(localLeave*(8.0+a_seed.w*5.0)+a_seed.x*41.0-group*2.2)*transition*(3.0+a_seed.z*13.0)*forwardMagic;",
     "",
     "  if(zone<1.5){",
     "    float t=u_time*.001;",
