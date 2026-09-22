@@ -741,7 +741,7 @@ nav{display:none!important}
   :root{--pad:18px}
   .bio{
     min-height:auto;display:block;padding:0;overflow:hidden;
-    background:url("assets/bio-background2.webp?v=3c75c6af") center center/cover no-repeat
+    background:transparent
   }
   .bio:before,
   .bio:after{content:none!important}
@@ -1661,6 +1661,10 @@ const particleAlbumReference=new Image();
 particleAlbumReference.decoding="async";
 particleAlbumReference.src="data:image/webp;base64,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";
 
+const particleBioReference=new Image();
+particleBioReference.decoding="async";
+particleBioReference.src="assets/biography_candles.webp";
+
 const particleBookReference=new Image();
 particleBookReference.decoding="async";
 particleBookReference.src="data:image/webp;base64,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";
@@ -1680,15 +1684,19 @@ function createParticleField(){
     "attribute vec2 a_logo;",
     "attribute vec2 a_target;",
     "attribute vec2 a_albumTarget;",
+    "attribute vec2 a_bioTarget;",
     "attribute vec4 a_seed;",
     "attribute vec4 a_meta;",
     "attribute vec4 a_albumMeta;",
+    "attribute vec4 a_bioMeta;",
     "attribute vec3 a_color;",
     "attribute vec3 a_albumColor;",
+    "attribute vec3 a_bioColor;",
     "uniform vec2 u_resolution;",
     "uniform float u_time;",
     "uniform float u_morph;",
     "uniform float u_disc;",
+    "uniform float u_bio;",
     "uniform float u_direction;",
     "uniform float u_material;",
     "uniform float u_bloom;",
@@ -1703,13 +1711,17 @@ function createParticleField(){
     "float smoother(float v){v=sat(v);return v*v*v*(v*(v*6.0-15.0)+10.0);}",
     "vec2 rot(vec2 p,float a){float c=cos(a),s=sin(a);return vec2(p.x*c-p.y*s,p.x*s+p.y*c);}",
     "void main(){",
-    "  vec2 target=mix(a_target,a_albumTarget,u_disc);",
-    "  vec4 activeMeta=mix(a_meta,a_albumMeta,u_disc);",
-    "  vec3 activeColor=mix(a_color,a_albumColor,u_disc);",
+    "  vec2 sceneTarget=mix(a_target,a_albumTarget,u_disc);",
+    "  vec2 target=mix(sceneTarget,a_bioTarget,u_bio);",
+    "  vec4 sceneMeta=mix(a_meta,a_albumMeta,u_disc);",
+    "  vec4 activeMeta=mix(sceneMeta,a_bioMeta,u_bio);",
+    "  vec3 sceneColor=mix(a_color,a_albumColor,u_disc);",
+    "  vec3 activeColor=mix(sceneColor,a_bioColor,u_bio);",
     "  float glow=activeMeta.x;",
     "  float zone=activeMeta.y;",
     "  float pSize=activeMeta.z;",
-    "  float structure=mix(a_meta.w,a_albumMeta.w,step(.56,u_disc));",
+    "  float sceneStructure=mix(a_meta.w,a_albumMeta.w,step(.56,u_disc));",
+    "  float structure=mix(sceneStructure,a_bioMeta.w,step(.52,u_bio));",
     "  float spine=step(.5,structure)*(1.0-step(1.5,structure));",
     "  float innerPage=step(1.5,structure)*(1.0-step(2.5,structure));",
     "  float pageStack=step(2.5,structure)*(1.0-step(3.5,structure));",
@@ -1719,13 +1731,21 @@ function createParticleField(){
     "  float albumGate=step(6.5,structure)*(1.0-step(7.5,structure));",
     "  float albumTower=step(7.5,structure)*(1.0-step(8.5,structure));",
     "  float albumRibbon=step(8.5,structure)*(1.0-step(9.5,structure));",
-    "  float albumSpark=step(9.5,structure);",
+    "  float albumSpark=step(9.5,structure)*(1.0-step(10.5,structure));",
+    "  float bioCandle=step(10.5,structure)*(1.0-step(11.5,structure));",
+    "  float bioFlame=step(11.5,structure)*(1.0-step(12.5,structure));",
+    "  float bioWeb=step(12.5,structure)*(1.0-step(13.5,structure));",
+    "  float bioSpark=step(13.5,structure);",
     "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
     "  float isTop=step(1.5,zone);",
     "  float discTransition=sin(PI*u_disc)*(1.0-isTop);",
     "  float discPhase=a_seed.x*PI*2.0+a_seed.z*5.0;",
     "  target.x+=sin(u_disc*PI*(2.2+a_seed.w*2.5)+discPhase)*discTransition*(8.0+a_seed.y*34.0);",
     "  target.y+=cos(u_disc*PI*(1.8+a_seed.z*2.7)+discPhase*.83)*discTransition*(7.0+a_seed.x*28.0);",
+    "  float bioTransition=sin(PI*u_bio)*(1.0-isTop);",
+    "  float bioPhase=a_seed.y*PI*2.0+a_seed.w*4.7;",
+    "  target.x+=sin(u_bio*PI*(1.6+a_seed.x*2.2)+bioPhase)*bioTransition*(5.0+a_seed.z*18.0);",
+    "  target.y+=cos(u_bio*PI*(1.4+a_seed.w*2.0)+bioPhase*.76)*bioTransition*(4.0+a_seed.y*15.0);",
     "  float targetU=sat(target.x/max(1.0,u_resolution.x));",
     "  float groupIndex=floor(min(.9999,targetU)*6.0);",
     "  float groupNorm=groupIndex/5.0;",
@@ -1800,10 +1820,26 @@ function createParticleField(){
     "    float phase1=a_seed.x*PI*2.0;",
     "    float phase2=a_seed.z*PI*2.0;",
     "    float amp=1.0+a_seed.y*1.25;",
-    "    pos.x+=(sin(t*speed1+phase1)+.40*sin(t*speed2+phase2))*amp*u_material*localLeave;",
-    "    pos.y+=(cos(t*speed1*.91+phase2)+.36*sin(t*speed2*1.17+phase1))*amp*.80*u_material*localLeave;",
-    "    float jitter=zone<.5?.38:.12;",
+    "    float bioMicro=mix(1.0,.20,u_bio);",
+    "    bioMicro*=mix(1.0,.55,bioSpark*u_bio);",
+    "    bioMicro*=mix(1.0,.55,bioWeb*u_bio);",
+    "    bioMicro*=mix(1.0,.42,bioCandle*u_bio);",
+    "    pos.x+=(sin(t*speed1+phase1)+.40*sin(t*speed2+phase2))*amp*u_material*localLeave*bioMicro;",
+    "    pos.y+=(cos(t*speed1*.91+phase2)+.36*sin(t*speed2*1.17+phase1))*amp*.80*u_material*localLeave*bioMicro;",
+    "    float jitter=(zone<.5?.38:.12)*bioMicro;",
     "    pos+=vec2(a_seed.x-.5,a_seed.z-.5)*jitter*u_material*localLeave;",
+    "",
+    "    // Six flame groups move coherently but independently. The group id is",
+    "    // encoded in a_bioMeta.y as 0.1..0.6.",
+    "    float flameGroup=floor(a_bioMeta.y*10.0+.5);",
+    "    float groupPhaseBio=flameGroup*1.173+flameGroup*flameGroup*.071;",
+    "    float groupSpeed=.78+fract(flameGroup*.371)*.34;",
+    "    float flameSway=sin(t*groupSpeed+groupPhaseBio);",
+    "    float flameBreath=sin(t*(1.45+fract(flameGroup*.217)*.52)+groupPhaseBio*.63);",
+    "    float flameFine=sin(t*(2.15+a_seed.x*.55)+phase1)*.58;",
+    "    float flameAmount=bioFlame*u_bio*u_material*localLeave;",
+    "    pos.x+=flameAmount*(flameSway*2.7+flameFine*.75);",
+    "    pos.y+=flameAmount*(flameBreath*2.15+sin(t*1.83+phase2)*.65);",
     "  }",
     "",
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
@@ -1822,11 +1858,15 @@ function createParticleField(){
     "  classRadius*=mix(1.0,.72,albumTower);",
     "  classRadius*=mix(1.0,.31,albumRibbon);",
     "  classRadius*=mix(1.0,.46,albumSpark);",
+    "  classRadius*=mix(1.0,.84,bioCandle);",
+    "  classRadius*=mix(1.0,1.05,bioFlame);",
+    "  classRadius*=mix(1.0,.58,bioWeb);",
+    "  classRadius*=mix(1.0,.52,bioSpark);",
     "  classRadius*=mix(1.0,.86,step(1.5,zone));",
     "  float materialU=target.x/max(1.0,u_resolution.x);",
     "  float materialV=target.y/max(1.0,u_resolution.y);",
     "  float centerBand=1.0-smoothstep(.010,.045,abs(materialU-.5));",
-    "  float upperCenter=(1.0-smoothstep(.18,.52,materialV))*centerBand*(1.0-spine)*(1.0-u_disc);",
+    "  float upperCenter=(1.0-smoothstep(.18,.52,materialV))*centerBand*(1.0-spine)*(1.0-u_disc)*(1.0-u_bio);",
     "  float spineCenter=spine*(1.0-smoothstep(.0016,.0048,abs(materialU-.5)));",
     "  float spineSideDist=abs(abs(materialU-.5)-.0062);",
     "  float spineSides=spine*(1.0-smoothstep(.0012,.0032,spineSideDist));",
@@ -1844,6 +1884,9 @@ function createParticleField(){
     "    targetColor=mix(targetColor,vec3(1.0,.965,.90),hot*.18);",
     "    targetColor=mix(targetColor,vec3(.88,.83,.74),albumTower*.34*u_disc);",
     "    targetColor=mix(targetColor,vec3(.94,.89,.80),albumGate*.46*u_disc);",
+    "    targetColor=mix(targetColor,vec3(.91,.84,.72),bioCandle*.25*u_bio);",
+    "    targetColor=mix(targetColor,vec3(1.0,.94,.78),bioFlame*.48*u_bio);",
+    "    targetColor=mix(targetColor,vec3(.88,.82,.72),bioWeb*.18*u_bio);",
     "  }else{",
     "    targetColor=vec3(.80,.76,.68);",
     "  }",
@@ -1857,8 +1900,13 @@ function createParticleField(){
     "  zoneAlpha*=mix(1.0,.96,albumTower);",
     "  zoneAlpha*=mix(1.0,.18,albumRibbon);",
     "  zoneAlpha*=mix(1.0,.16,albumSpark);",
+    "  zoneAlpha*=mix(1.0,.96,bioCandle);",
+    "  zoneAlpha*=mix(1.0,1.00,bioFlame);",
+    "  zoneAlpha*=mix(1.0,.58,bioWeb);",
+    "  zoneAlpha*=mix(1.0,.62,bioSpark);",
     "  float bookBaseGain=1.0+.06*(1.0-filament)*(1.0-dust)*(1.0-step(1.5,zone));",
-    "  float albumBaseGain=mix(1.0,1.58,u_disc);",
+    "  float albumBaseGain=mix(1.0,1.58,u_disc)*(1.0-u_bio)+u_bio;",
+    "  float bioBaseGain=mix(1.0,1.20,u_bio);",
     "  float structuralAlpha=1.0;",
     "  structuralAlpha*=mix(1.0,.72,spine);",
     "  structuralAlpha*=mix(1.0,1.50,innerPage);",
@@ -1868,7 +1916,11 @@ function createParticleField(){
     "  structuralAlpha*=mix(1.0,1.72,spineAccent);",
     "  structuralAlpha*=mix(1.0,2.80,albumGate);",
     "  structuralAlpha*=mix(1.0,2.30,albumTower);",
-    "  float effectiveGlow=glow+spineAccent*.30+spineHalo*.035+innerPage*.050+pageStack*.105+outerEdge*.006+albumGate*.22+albumTower*.11+albumSpark*.015;",
+    "  structuralAlpha*=mix(1.0,1.08,bioCandle);",
+    "  structuralAlpha*=mix(1.0,1.62,bioFlame);",
+    "  structuralAlpha*=mix(1.0,.88,bioWeb);",
+    "  structuralAlpha*=mix(1.0,.82,bioSpark);",
+    "  float effectiveGlow=glow+spineAccent*.30+spineHalo*.035+innerPage*.050+pageStack*.105+outerEdge*.006+albumGate*.22+albumTower*.11+albumSpark*.015+bioFlame*.22+bioCandle*.035+bioSpark*.08;",
     "  float highlightGain=1.0;",
     "  highlightGain*=mix(1.0,.38,spineHalo);",
     "  highlightGain*=mix(1.0,1.55,spineAccent);",
@@ -1881,6 +1933,10 @@ function createParticleField(){
     "  highlightGain*=mix(1.0,1.38,albumTower);",
     "  highlightGain*=mix(1.0,.10,albumRibbon);",
     "  highlightGain*=mix(1.0,.36,albumSpark);",
+    "  highlightGain*=mix(1.0,1.08,bioCandle);",
+    "  highlightGain*=mix(1.0,1.72,bioFlame);",
+    "  highlightGain*=mix(1.0,.54,bioWeb);",
+    "  highlightGain*=mix(1.0,.88,bioSpark);",
     "  float bloomGain=1.0;",
     "  bloomGain*=mix(1.0,.18,spineHalo);",
     "  bloomGain*=mix(1.0,1.45,spineAccent);",
@@ -1893,7 +1949,11 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.28,albumTower);",
     "  bloomGain*=mix(1.0,.025,albumRibbon);",
     "  bloomGain*=mix(1.0,.28,albumSpark);",
-    "  float passAlpha=u_alpha*albumBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
+    "  bloomGain*=mix(1.0,.26,bioCandle);",
+    "  bloomGain*=mix(1.0,1.48,bioFlame);",
+    "  bloomGain*=mix(1.0,.055,bioWeb);",
+    "  bloomGain*=mix(1.0,.72,bioSpark);",
+    "  float passAlpha=u_alpha*albumBaseGain*bioBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
     "  float forwardTopAlpha=max(topSourceFade,topCrystal);",
@@ -2017,15 +2077,19 @@ function createParticleField(){
     logo:gl.getAttribLocation(particleProgram,"a_logo"),
     target:gl.getAttribLocation(particleProgram,"a_target"),
     albumTarget:gl.getAttribLocation(particleProgram,"a_albumTarget"),
+    bioTarget:gl.getAttribLocation(particleProgram,"a_bioTarget"),
     seed:gl.getAttribLocation(particleProgram,"a_seed"),
     meta:gl.getAttribLocation(particleProgram,"a_meta"),
     albumMeta:gl.getAttribLocation(particleProgram,"a_albumMeta"),
+    bioMeta:gl.getAttribLocation(particleProgram,"a_bioMeta"),
     color:gl.getAttribLocation(particleProgram,"a_color"),
     albumColor:gl.getAttribLocation(particleProgram,"a_albumColor"),
+    bioColor:gl.getAttribLocation(particleProgram,"a_bioColor"),
     resolution:gl.getUniformLocation(particleProgram,"u_resolution"),
     time:gl.getUniformLocation(particleProgram,"u_time"),
     morph:gl.getUniformLocation(particleProgram,"u_morph"),
     disc:gl.getUniformLocation(particleProgram,"u_disc"),
+    bio:gl.getUniformLocation(particleProgram,"u_bio"),
     direction:gl.getUniformLocation(particleProgram,"u_direction"),
     material:gl.getUniformLocation(particleProgram,"u_material"),
     bloom:gl.getUniformLocation(particleProgram,"u_bloom"),
@@ -2050,11 +2114,14 @@ function createParticleField(){
     logo:gl.createBuffer(),
     target:gl.createBuffer(),
     albumTarget:gl.createBuffer(),
+    bioTarget:gl.createBuffer(),
     seed:gl.createBuffer(),
     meta:gl.createBuffer(),
     albumMeta:gl.createBuffer(),
+    bioMeta:gl.createBuffer(),
     color:gl.createBuffer(),
     albumColor:gl.createBuffer(),
+    bioColor:gl.createBuffer(),
     quad:gl.createBuffer()
   };
   gl.bindBuffer(gl.ARRAY_BUFFER,buffers.quad);
@@ -2067,6 +2134,7 @@ function createParticleField(){
     source,
     bookReference:particleBookReference,
     albumReference:particleAlbumReference,
+    bioReference:particleBioReference,
     width:1,
     height:1,
     dpr:1,
@@ -2081,7 +2149,9 @@ function createParticleField(){
     logoBounds:{minU:0,minV:0,maxU:1,maxV:1},
     referenceCandidates:[],
     albumCandidates:[],
+    bioCandidates:[],
     discMorph:0,
+    bioMorph:0,
     morph:0,
     morphFrom:0,
     morphTo:0,
@@ -2403,13 +2473,142 @@ function createParticleField(){
     state.albumCandidates=list;
   }
 
+  function prepareBioCandidates(){
+    const ref=state.bioReference;
+    const sampleW=ref.naturalWidth;
+    const sampleH=ref.naturalHeight;
+    const step=window.innerWidth>1100?1:2;
+    const off=document.createElement("canvas");
+    off.width=sampleW;
+    off.height=sampleH;
+    const ctx=off.getContext("2d",{willReadFrequently:true});
+    ctx.clearRect(0,0,sampleW,sampleH);
+    ctx.drawImage(ref,0,0,sampleW,sampleH);
+    const data=ctx.getImageData(0,0,sampleW,sampleH).data;
+    const lumMap=new Float32Array(sampleW*sampleH);
+    const list=[];
+
+    for(let y=0;y<sampleH;y++){
+      for(let x=0;x<sampleW;x++){
+        const k=(y*sampleW+x)*4;
+        const a=data[k+3]/255;
+        lumMap[y*sampleW+x]=(data[k]*.2126+data[k+1]*.7152+data[k+2]*.0722)*a;
+      }
+    }
+
+    const lumAt=(x,y)=>{
+      x=Math.max(0,Math.min(sampleW-1,x));
+      y=Math.max(0,Math.min(sampleH-1,y));
+      return lumMap[y*sampleW+x];
+    };
+
+    // Six flame regions in normalized coordinates, matching the supplied
+    // full-resolution composition. Each gets its own coherent motion phase.
+    const flames=[
+      [.083,.335,.055,.205],
+      [.192,.490,.035,.105],
+      [.249,.315,.038,.125],
+      [.688,.325,.038,.125],
+      [.735,.565,.034,.105],
+      [.909,.390,.058,.205]
+    ];
+
+    const candleBoxes=[
+      [.018,.145,.405,.985],
+      [.158,.225,.490,.760],
+      [.218,.285,.300,.680],
+      [.653,.720,.305,.685],
+      [.704,.775,.555,.790],
+      [.846,.978,.455,.995]
+    ];
+
+    const inBox=(u,v,b)=>u>=b[0]&&u<=b[1]&&v>=b[2]&&v<=b[3];
+
+    for(let y=0;y<sampleH;y+=step){
+      for(let x=0;x<sampleW;x+=step){
+        const k=(y*sampleW+x)*4;
+        const a=data[k+3]/255;
+        if(a<=.01)continue;
+
+        const lum=lumMap[y*sampleW+x];
+        if(lum<4.2)continue;
+
+        const u=x/sampleW;
+        const v=y/sampleH;
+        const dx=Math.abs(lumAt(x+1,y)-lumAt(x-1,y));
+        const dy=Math.abs(lumAt(x,y+1)-lumAt(x,y-1));
+        const edge=particleClamp((dx+dy)/82,0,1);
+        const localMass=
+          lumAt(x-2,y)+lumAt(x+2,y)+lumAt(x,y-2)+lumAt(x,y+2)+
+          lumAt(x-1,y-1)+lumAt(x+1,y-1)+lumAt(x-1,y+1)+lumAt(x+1,y+1);
+
+        const r=data[k]/255,g=data[k+1]/255,b=data[k+2]/255;
+        const glow=particleClamp((lum-2.5)/205,.02,1);
+
+        let flameId=0;
+        for(let fi=0;fi<flames.length;fi++){
+          const [cx,cy,rx,ry]=flames[fi];
+          const ex=(u-cx)/rx, ey=(v-cy)/ry;
+          if(ex*ex+ey*ey<=1 && lum>10){
+            flameId=fi+1;
+            break;
+          }
+        }
+
+        let candle=false;
+        if(!flameId){
+          for(const box of candleBoxes){
+            if(inBox(u,v,box)){candle=true;break}
+          }
+        }
+
+        const isolated=lum>58 && localMass<lum*3.15 && edge>.10;
+
+        let structure=13;
+        let zone=0;
+        let copies=1;
+
+        if(flameId){
+          structure=12;
+          zone=flameId*.1;
+          copies=2+(lum>90?2:0)+(edge>.24?1:0);
+        }else if(candle){
+          structure=11;
+          copies=1+(edge>.10?1:0)+(lum>72?1:0);
+        }else if(isolated){
+          structure=14;
+          const keep=particleHash(x*17239+y*99371);
+          if(keep>.32)continue;
+          copies=1;
+        }else{
+          // Preserve the fine cobweb/string network from the original image.
+          // Weak background grain is discarded, coherent strands survive.
+          const coherent=(edge>.055||lum>15) && localMass>lum*1.55;
+          if(!coherent)continue;
+          structure=13;
+          const keep=particleHash(x*61357+y*37199);
+          const keepChance=lum>55?.88:(edge>.22?.78:.56);
+          if(keep>keepChance)continue;
+          copies=1+(edge>.27?1:0);
+        }
+
+        const p={u,v,zone,glow,structure,r,g,b};
+        for(let n=0;n<copies;n++)list.push(p);
+      }
+    }
+
+    particleShuffle(list,0x5ca1ab1e);
+    state.bioCandidates=list;
+  }
+
   function prepareCandidates(){
     if(state.candidatesReady)return true;
-    if(!source.naturalWidth||!state.bookReference.naturalWidth||!state.albumReference.naturalWidth)return false;
+    if(!source.naturalWidth||!state.bookReference.naturalWidth||!state.albumReference.naturalWidth||!state.bioReference.naturalWidth)return false;
     prepareLogoCandidates();
     prepareReferenceCandidates();
     prepareAlbumCandidates();
-    state.candidatesReady=!!state.logoCandidates.length&&!!state.referenceCandidates.length&&!!state.albumCandidates.length;
+    prepareBioCandidates();
+    state.candidatesReady=!!state.logoCandidates.length&&!!state.referenceCandidates.length&&!!state.albumCandidates.length&&!!state.bioCandidates.length;
     return state.candidatesReady;
   }
 
@@ -2439,6 +2638,7 @@ function createParticleField(){
     const sourcePoints=sampleLowDiscrepancy(state.logoCandidates,count,0x91e10da5);
     const refPoints=sampleLowDiscrepancy(state.referenceCandidates,refCount,0xc2b2ae35);
     const albumPoints=sampleLowDiscrepancy(state.albumCandidates,refCount,0x1f123bb5);
+    const bioPoints=sampleLowDiscrepancy(state.bioCandidates,refCount,0x52dce729);
     const topPoints=sampleLowDiscrepancy(state.logoCandidates,topLogoCount,0x7f4a7c15);
 
     const refAspect=state.bookReference.naturalWidth/Math.max(1,state.bookReference.naturalHeight);
@@ -2467,6 +2667,14 @@ function createParticleField(){
     const albumH=albumRefH*albumScale;
     const albumX=(w-albumW)*.5;
     const albumY=(h-albumH)*.5;
+
+    const bioRefW=state.bioReference.naturalWidth;
+    const bioRefH=state.bioReference.naturalHeight;
+    const bioScale=Math.max(w/Math.max(1,bioRefW),h/Math.max(1,bioRefH));
+    const bioW=bioRefW*bioScale;
+    const bioH=bioRefH*bioScale;
+    const bioX=(w-bioW)*.5;
+    const bioY=(h-bioH)*.5;
 
     const targets=[];
     refPoints.forEach(p=>{
@@ -2505,19 +2713,37 @@ function createParticleField(){
       };
     });
 
+    let bioCursor=0;
+    const bioTargets=targets.map(tp=>{
+      if(tp.zone>1.5)return {...tp};
+      const p=bioPoints[bioCursor++%bioPoints.length];
+      return {
+        x:bioX+p.u*bioW,
+        y:bioY+p.v*bioH,
+        zone:p.zone,
+        glow:p.glow,
+        structure:p.structure,
+        r:p.r,g:p.g,b:p.b
+      };
+    });
+
     const logoData=new Float32Array(count*2);
     const targetData=new Float32Array(count*2);
     const albumTargetData=new Float32Array(count*2);
+    const bioTargetData=new Float32Array(count*2);
     const seedData=new Float32Array(count*4);
     const metaData=new Float32Array(count*4);
     const albumMetaData=new Float32Array(count*4);
+    const bioMetaData=new Float32Array(count*4);
     const colorData=new Float32Array(count*3);
     const albumColorData=new Float32Array(count*3);
+    const bioColorData=new Float32Array(count*3);
 
     for(let i=0;i<count;i++){
       const lp=sourcePoints[i];
       const tp=targets[i];
       const ap=albumTargets[i];
+      const bp=bioTargets[i];
 
       logoData[i*2]=w*.5+(lp.u-.5)*sourceLogoW;
       logoData[i*2+1]=h*.5+(lp.v-.5)*sourceLogoH;
@@ -2526,6 +2752,8 @@ function createParticleField(){
       targetData[i*2+1]=tp.y;
       albumTargetData[i*2]=ap.x;
       albumTargetData[i*2+1]=ap.y;
+      bioTargetData[i*2]=bp.x;
+      bioTargetData[i*2+1]=bp.y;
 
       seedData[i*4]=particleHash(i+1);
       seedData[i*4+1]=particleHash(i+971);
@@ -2543,15 +2771,23 @@ function createParticleField(){
       albumMetaData[i*4+2]=pSize;
       albumMetaData[i*4+3]=ap.structure||0;
 
+      bioMetaData[i*4]=bp.glow;
+      bioMetaData[i*4+1]=bp.zone;
+      bioMetaData[i*4+2]=pSize;
+      bioMetaData[i*4+3]=bp.structure||0;
+
       colorData[i*3]=tp.r;
       colorData[i*3+1]=tp.g;
       colorData[i*3+2]=tp.b;
       albumColorData[i*3]=ap.r;
       albumColorData[i*3+1]=ap.g;
       albumColorData[i*3+2]=ap.b;
+      bioColorData[i*3]=bp.r;
+      bioColorData[i*3+1]=bp.g;
+      bioColorData[i*3+2]=bp.b;
     }
 
-    return {logoData,targetData,albumTargetData,seedData,metaData,albumMetaData,colorData,albumColorData};
+    return {logoData,targetData,albumTargetData,bioTargetData,seedData,metaData,albumMetaData,bioMetaData,colorData,albumColorData,bioColorData};
   }
 
   function uploadBuffer(buffer,data){
@@ -2568,11 +2804,14 @@ function createParticleField(){
     bind(buffers.logo,pLoc.logo,2);
     bind(buffers.target,pLoc.target,2);
     bind(buffers.albumTarget,pLoc.albumTarget,2);
+    bind(buffers.bioTarget,pLoc.bioTarget,2);
     bind(buffers.seed,pLoc.seed,4);
     bind(buffers.meta,pLoc.meta,4);
     bind(buffers.albumMeta,pLoc.albumMeta,4);
+    bind(buffers.bioMeta,pLoc.bioMeta,4);
     bind(buffers.color,pLoc.color,3);
     bind(buffers.albumColor,pLoc.albumColor,3);
+    bind(buffers.bioColor,pLoc.bioColor,3);
   }
 
   function makeRenderTarget(w,h){
@@ -2627,11 +2866,14 @@ function createParticleField(){
     uploadBuffer(buffers.logo,data.logoData);
     uploadBuffer(buffers.target,data.targetData);
     uploadBuffer(buffers.albumTarget,data.albumTargetData);
+    uploadBuffer(buffers.bioTarget,data.bioTargetData);
     uploadBuffer(buffers.seed,data.seedData);
     uploadBuffer(buffers.meta,data.metaData);
     uploadBuffer(buffers.albumMeta,data.albumMetaData);
+    uploadBuffer(buffers.bioMeta,data.bioMetaData);
     uploadBuffer(buffers.color,data.colorData);
     uploadBuffer(buffers.albumColor,data.albumColorData);
+    uploadBuffer(buffers.bioColor,data.bioColorData);
 
     state.count=count;
 
@@ -2701,6 +2943,7 @@ function createParticleField(){
     gl.uniform1f(pLoc.time,now);
     gl.uniform1f(pLoc.morph,state.morph);
     gl.uniform1f(pLoc.disc,state.discMorph);
+    gl.uniform1f(pLoc.bio,state.bioMorph);
     gl.uniform1f(pLoc.direction,state.morphTo>.5?1:0);
     gl.uniform1f(pLoc.material,material);
     gl.uniform1f(pLoc.bloom,bloom);
@@ -2801,9 +3044,14 @@ function createParticleField(){
       const discEnd=recordTop-state.height*.08;
       state.discMorph=particleSmoother((scrollY-discStart)/Math.max(1,discEnd-discStart));
 
+      const bioTop=parallaxBio?.offsetTop??(recordTop+state.height);
+      const bioStart=bioTop-state.height*1.10;
+      const bioEnd=bioTop-state.height*.10;
+      state.bioMorph=particleSmoother((scrollY-bioStart)/Math.max(1,bioEnd-bioStart));
+
       const material=particleSmoother((state.morph-.38)/.62);
       const bloom=particleSmoother((state.morph-.60)/.40);
-      const alpha=particleMix(.94,.72,material)*(1+state.discMorph*.12);
+      const alpha=particleMix(.94,.72,material)*(1+state.discMorph*.12)*(1+state.bioMorph*.08);
 
       if(particleLogoHit){
         const logoClickable=
@@ -2842,7 +3090,7 @@ function createParticleField(){
   }
 
   function boot(){
-    if(started||!source.naturalWidth||!particleBookReference.naturalWidth||!particleAlbumReference.naturalWidth)return;
+    if(started||!source.naturalWidth||!particleBookReference.naturalWidth||!particleAlbumReference.naturalWidth||!particleBioReference.naturalWidth)return;
     started=true;
 
     gl.disable(gl.DEPTH_TEST);
@@ -2887,10 +3135,12 @@ function createParticleField(){
   source.addEventListener("load",boot,{once:true});
   particleBookReference.addEventListener("load",boot,{once:true});
   particleAlbumReference.addEventListener("load",boot,{once:true});
+  particleBioReference.addEventListener("load",boot,{once:true});
   if(
     source.complete&&source.naturalWidth&&
     particleBookReference.complete&&particleBookReference.naturalWidth&&
-    particleAlbumReference.complete&&particleAlbumReference.naturalWidth
+    particleAlbumReference.complete&&particleAlbumReference.naturalWidth&&
+    particleBioReference.complete&&particleBioReference.naturalWidth
   ){
     boot();
   }
