@@ -1575,7 +1575,7 @@ function createParticleField(){
     "  float pageStack=step(2.5,structure)*(1.0-step(3.5,structure));",
     "  float outerEdge=step(3.5,structure)*(1.0-step(4.5,structure));",
     "  float filament=step(4.5,structure)*(1.0-step(5.5,structure));",
-    "  float dust=step(5.5,structure);"
+    "  float dust=step(5.5,structure);",
     "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
     "  float isTop=step(1.5,zone);",
     "  float targetU=sat(a_target.x/max(1.0,u_resolution.x));",
@@ -1713,17 +1713,17 @@ function createParticleField(){
     "    visible=step(.42,effectiveGlow)*u_material*(1.0-step(1.5,zone));",
     "    passRadius=radius*(1.02+.20*glow)*mix(1.0,.72,spine);",
     "    color=mix(targetColor,vec3(1.0,.95,.84),.28);",
-    "    passAlpha=u_alpha*visible*zoneAlpha*highlightGain*(.10+.16*glow);"
+    "    passAlpha=u_alpha*visible*zoneAlpha*highlightGain*(.10+.16*glow);",
     "  }else if(u_pass>1.5&&u_pass<2.5){",
     "    visible=step(.76,effectiveGlow)*u_material*(1.0-step(1.5,zone));",
     "    passRadius=radius*(.36+.09*glow)*mix(1.0,.64,spine);",
     "    color=vec3(1.0,.975,.92);",
-    "    passAlpha=u_alpha*visible*zoneAlpha*highlightGain*(.38+.22*glow);"
+    "    passAlpha=u_alpha*visible*zoneAlpha*highlightGain*(.38+.22*glow);",
     "  }else if(u_pass>2.5){",
     "    visible=step(.60,effectiveGlow)*u_bloom*(1.0-step(1.5,zone));",
     "    passRadius=radius*(.56+.12*glow)*mix(1.0,.68,spine);",
     "    color=mix(targetColor,vec3(1.0,.96,.87),.48);",
-    "    passAlpha=visible*zoneAlpha*bloomGain*(.13+.22*glow);"
+    "    passAlpha=visible*zoneAlpha*bloomGain*(.13+.22*glow);",
     "  }",
     "",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
