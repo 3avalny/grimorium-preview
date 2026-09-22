@@ -1682,16 +1682,45 @@ function createParticleField(){
     "  albumSceneTarget+=albumDir*albumMove*sin(albumT*PI*2.0+a_seed.y*PI*2.0)*(1.0+a_seed.x*4.0);",
     "  vec4 albumSceneMeta=mix(a_albumMeta,a_nextAlbumMeta,albumT);",
     "  vec3 albumSceneColor=mix(a_albumColor,a_nextAlbumColor,albumT);",
-    "  vec2 sceneTarget=mix(a_target,albumSceneTarget,u_disc);",
-    "  vec2 target=mix(sceneTarget,a_bioTarget,u_bio);",
-    "  vec4 sceneMeta=mix(a_meta,albumSceneMeta,u_disc);",
-    "  vec4 activeMeta=mix(sceneMeta,a_bioMeta,u_bio);",
-    "  vec3 sceneColor=mix(a_color,albumSceneColor,u_disc);",
-    "  vec3 activeColor=mix(sceneColor,a_bioColor,u_bio);",
+    "  float isTop=step(1.5,a_meta.y);",
+    "",
+    "  // Book <-> album: same independent-particle motion as album <-> album.",
+    "  float discDelay=a_seed.y*.42;",
+    "  float discRaw=sat((u_disc-discDelay)/max(.001,1.0-discDelay));",
+    "  float discT=pow(smoother(discRaw),mix(.66,1.46,a_seed.w));",
+    "  vec2 discDelta=albumSceneTarget-a_target;",
+    "  float discTravel=max(1.0,length(discDelta));",
+    "  vec2 discDir=discDelta/discTravel;",
+    "  vec2 discNormal=vec2(-discDir.y,discDir.x);",
+    "  float discMove=sin(PI*discT)*(1.0-isTop);",
+    "  float discArc=min(26.0,2.0+discTravel*.030)*(.22+a_seed.x*.78);",
+    "  float discArcSign=step(.5,a_seed.z)*2.0-1.0;",
+    "  vec2 sceneTarget=mix(a_target,albumSceneTarget,discT);",
+    "  sceneTarget+=discNormal*discMove*discArc*discArcSign;",
+    "  sceneTarget+=discDir*discMove*sin(discT*PI*2.0+a_seed.w*PI*2.0)*(1.0+a_seed.y*4.0);",
+    "  vec4 sceneMeta=mix(a_meta,albumSceneMeta,discT);",
+    "  vec3 sceneColor=mix(a_color,albumSceneColor,discT);",
+    "",
+    "  // Album <-> Biography: candles receive the same one-point-at-a-time flow.",
+    "  float bioDelay=a_seed.z*.44;",
+    "  float bioRaw=sat((u_bio-bioDelay)/max(.001,1.0-bioDelay));",
+    "  float bioT=pow(smoother(bioRaw),mix(.68,1.42,a_seed.x));",
+    "  vec2 bioDelta=a_bioTarget-sceneTarget;",
+    "  float bioTravel=max(1.0,length(bioDelta));",
+    "  vec2 bioDir=bioDelta/bioTravel;",
+    "  vec2 bioNormal=vec2(-bioDir.y,bioDir.x);",
+    "  float bioMove=sin(PI*bioT)*(1.0-isTop);",
+    "  float bioArc=min(24.0,2.0+bioTravel*.028)*(.20+a_seed.w*.80);",
+    "  float bioArcSign=step(.5,a_seed.y)*2.0-1.0;",
+    "  vec2 target=mix(sceneTarget,a_bioTarget,bioT);",
+    "  target+=bioNormal*bioMove*bioArc*bioArcSign;",
+    "  target+=bioDir*bioMove*sin(bioT*PI*2.0+a_seed.x*PI*2.0)*(1.0+a_seed.z*3.5);",
+    "  vec4 activeMeta=mix(sceneMeta,a_bioMeta,bioT);",
+    "  vec3 activeColor=mix(sceneColor,a_bioColor,bioT);",
     "  float glow=activeMeta.x;",
     "  float zone=activeMeta.y;",
-    "  float pSize=mix(a_meta.z,a_bioMeta.z,u_bio);",
-    "  float structure=mix(a_meta.w,a_bioMeta.w,step(.52,u_bio));",
+    "  float pSize=mix(a_meta.z,a_bioMeta.z,bioT);",
+    "  float structure=mix(a_meta.w,a_bioMeta.w,step(.52,bioT));",
     "  float spine=step(.5,structure)*(1.0-step(1.5,structure));",
     "  float innerPage=step(1.5,structure)*(1.0-step(2.5,structure));",
     "  float pageStack=step(2.5,structure)*(1.0-step(3.5,structure));",
@@ -1703,15 +1732,6 @@ function createParticleField(){
     "  float bioWeb=step(12.5,structure)*(1.0-step(13.5,structure));",
     "  float bioSpark=step(13.5,structure);",
     "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
-    "  float isTop=step(1.5,zone);",
-    "  float discTransition=sin(PI*u_disc)*(1.0-isTop);",
-    "  float discPhase=a_seed.x*PI*2.0+a_seed.z*5.0;",
-    "  target.x+=sin(u_disc*PI*(2.2+a_seed.w*2.5)+discPhase)*discTransition*(8.0+a_seed.y*34.0);",
-    "  target.y+=cos(u_disc*PI*(1.8+a_seed.z*2.7)+discPhase*.83)*discTransition*(7.0+a_seed.x*28.0);",
-    "  float bioTransition=sin(PI*u_bio)*(1.0-isTop);",
-    "  float bioPhase=a_seed.y*PI*2.0+a_seed.w*4.7;",
-    "  target.x+=sin(u_bio*PI*(1.6+a_seed.x*2.2)+bioPhase)*bioTransition*(5.0+a_seed.z*18.0);",
-    "  target.y+=cos(u_bio*PI*(1.4+a_seed.w*2.0)+bioPhase*.76)*bioTransition*(4.0+a_seed.y*15.0);",
     "  float targetU=sat(target.x/max(1.0,u_resolution.x));",
     "  float groupIndex=floor(min(.9999,targetU)*6.0);",
     "  float groupNorm=groupIndex/5.0;",
@@ -2149,6 +2169,9 @@ function createParticleField(){
     albumSceneTargetId:"reall",
     albumSceneTransitioning:false,
     albumMatchSalt:1,
+    bookScene:null,
+    bioSceneRaw:null,
+    bioSceneMapped:null,
     bioCandidates:[],
     bioFlameCandidates:[],
     discMorph:0,
@@ -2877,7 +2900,7 @@ function createParticleField(){
     return out;
   }
 
-  function matchAlbumSceneNearest(fromScene,toScene,salt=1){
+  function matchParticleSceneNearest(fromScene,toScene,salt=1){
     // One particle -> one destination point. Destination points are bucketed
     // spatially, and each source particle consumes the nearest available bucket.
     // Nothing is grouped by strip/chunk/order, so neighbouring points are free
@@ -3080,19 +3103,39 @@ function createParticleField(){
 
     uploadBuffer(buffers.logo,data.logoData);
     uploadBuffer(buffers.target,data.targetData);
-    uploadBuffer(buffers.bioTarget,data.bioTargetData);
     uploadBuffer(buffers.seed,data.seedData);
     uploadBuffer(buffers.meta,data.metaData);
-    uploadBuffer(buffers.bioMeta,data.bioMetaData);
     uploadBuffer(buffers.color,data.colorData);
-    uploadBuffer(buffers.bioColor,data.bioColorData);
+
+    state.bookScene={
+      targetData:data.targetData,
+      metaData:data.metaData,
+      colorData:data.colorData
+    };
+    state.bioSceneRaw={
+      targetData:data.bioTargetData,
+      metaData:data.bioMetaData,
+      colorData:data.bioColorData
+    };
 
     state.albumScenes=data.albumScenes;
     const requestedId=ALBUMS[activeAlbumIndex]?.id||state.pendingAlbumSceneId||"reall";
     const initialId=state.albumScenes[requestedId]?requestedId:"reall";
-    const initialScene=state.albumScenes[initialId];
+    const initialScene=matchParticleSceneNearest(
+      state.bookScene,
+      state.albumScenes[initialId],
+      ++state.albumMatchSalt
+    );
+    const initialBio=matchParticleSceneNearest(
+      initialScene,
+      state.bioSceneRaw,
+      ++state.albumMatchSalt
+    );
+
     uploadAlbumScene(buffers.albumTarget,buffers.albumMeta,buffers.albumColor,initialScene);
     uploadAlbumScene(buffers.revenantTarget,buffers.revenantMeta,buffers.revenantColor,initialScene);
+    uploadAlbumScene(buffers.bioTarget,buffers.bioMeta,buffers.bioColor,initialBio);
+    state.bioSceneMapped=initialBio;
     state.albumFromData=initialScene;
     state.albumToData=initialScene;
     state.albumSceneCurrentId=initialId;
@@ -3207,9 +3250,12 @@ function createParticleField(){
     }
 
     const rawTo=state.albumScenes[id];
-    const to=matchAlbumSceneNearest(from,rawTo,++state.albumMatchSalt);
+    const to=matchParticleSceneNearest(from,rawTo,++state.albumMatchSalt);
+    const mappedBio=matchParticleSceneNearest(to,state.bioSceneRaw,++state.albumMatchSalt);
     uploadAlbumScene(buffers.revenantTarget,buffers.revenantMeta,buffers.revenantColor,to);
+    uploadAlbumScene(buffers.bioTarget,buffers.bioMeta,buffers.bioColor,mappedBio);
 
+    state.bioSceneMapped=mappedBio;
     state.albumFromData=from;
     state.albumToData=to;
     state.albumSceneTargetId=id;
