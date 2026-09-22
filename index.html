@@ -1719,12 +1719,12 @@ function createParticleField(){
     "  // Continuous displacement preserves neighbouring strands and architecture.",
     "  // The scene breathes as a field instead of independent particle noise.",
     "  vec2 albumUV=a_albumTarget/u_resolution;",
-    "  float flowTime=u_time*.00013;",
+    "  float flowTime=u_time*.00009;",
     "  vec2 albumFlow=vec2(",
     "    sin(albumUV.y*8.0+flowTime)+.35*sin(albumUV.x*6.0-flowTime*.7),",
     "    cos(albumUV.x*7.0+flowTime*.8)+.30*sin(albumUV.y*9.0+flowTime)",
     "  );",
-    "  pos+=albumFlow*1.15*u_disc*u_material*localLeave*(1.0-isTop)*(1.0-u_bio);",
+    "  pos+=albumFlow*.72*u_disc*u_material*localLeave*(1.0-isTop)*(1.0-u_bio);",
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
     "  gl_Position=vec4(clip,0.0,1.0);",
     "",
@@ -1841,12 +1841,15 @@ function createParticleField(){
     "  float albumWeight=u_disc*u_material*(1.0-isTop)*(1.0-u_bio);",
     "  passAlpha*=1.0-albumWeight;",
     "  if(u_pass>3.5){",
-    "    // Additive, energy-normalised splats retain the source tonal hierarchy.",
-    "    // Footprint compensates for sample density and viewport scale on the CPU.",
-    "    visible=albumWeight;",
+    "    // Keep the source hierarchy, but leave enough negative space for the",
+    "    // reconstruction to read as particles rather than a grainy bitmap.",
+    "    float albumKeep=1.0-step(.85,a_seed.x);",
+    "    float albumLum=a_albumMeta.x;",
+    "    float albumToneAlpha=mix(.40,.78,smoothstep(.018,.14,albumLum));",
+    "    visible=albumWeight*albumKeep;",
     "    passRadius=a_albumMeta.z;",
     "    color=a_albumColor;",
-    "    passAlpha=.94;",
+    "    passAlpha=albumToneAlpha;",
     "  }",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
     "  v_color=color;",
@@ -2231,14 +2234,22 @@ function createParticleField(){
         const g=data[k+1]/255*a;
         const b=data[k+2]/255*a;
         const lum=r*.2126+g*.7152+b*.0722;
+        const u=(x+.5)/sampleW;
+        const v=(y+.5)/sampleH;
+
+        // The reference already contains the band logo, while the site has its own
+        // global particle logo. Exclude only that small source-logo rectangle.
+        // This is not structural segmentation of the gates/ribbons.
+        const sourceLogoRegion=u>.385&&u<.615&&v<.155;
+        if(sourceLogoRegion)continue;
 
         // Preserve dim grid lines as well as bright ribbons and architecture.
         // No semantic gate/tower/ribbon masks, duplicated pixels or object quotas.
         if(lum<1/255)continue;
 
         list.push({
-          u:(x+.5)/sampleW,
-          v:(y+.5)/sampleH,
+          u,
+          v,
           zone:0,
           glow:lum,
           structure:0,
@@ -2258,7 +2269,7 @@ function createParticleField(){
       bands[p.glow>=24/255?0:(p.glow>=6/255?1:2)].push(p);
     }
 
-    const shares=[.66,.26,.08];
+    const shares=[.60,.32,.08];
     const active=bands
       .map((points,i)=>({points,share:shares[i]}))
       .filter(b=>b.points.length);
@@ -2274,7 +2285,7 @@ function createParticleField(){
       if(!n)return;
 
       const stride=band.points.length/n;
-      const radius=.80*Math.sqrt(stride);
+      const radius=[.72,.70,.62][bandIndex]*Math.sqrt(stride);
 
       for(let i=0;i<n;i++){
         const seed=i+bandIndex*104729;
