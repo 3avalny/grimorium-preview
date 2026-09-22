@@ -1655,8 +1655,7 @@ function createParticleField(){
     "uniform float u_alpha;",
     "uniform float u_pass;",
     "uniform float u_renderScale;",
-    "uniform vec4 u_pointer;",
-    "uniform vec2 u_pointerPrev;",
+    "uniform vec4 u_smoke[6];",
     "varying vec3 v_color;",
     "varying float v_alpha;",
     "varying float v_albumSharp;",
@@ -1800,26 +1799,26 @@ function createParticleField(){
     "  vec2 forwardTopPos=mix(a_logo.xy,target,topTeleport);",
     "  pos=mix(pos,forwardTopPos,forwardTop);",
     "",
-    "  // Large-logo interaction: dragging the pointer through the mark behaves",
-    "  // like a finger through smoke. The field is temporary, so particles",
-    "  // continuously relax back to their exact reference positions.",
-    "  float logoInteract=(1.0-smoother(u_morph/.16))*u_pointer.z;",
-    "  vec2 pointerTrail=u_pointer.xy-u_pointerPrev;",
-    "  float trailLen=max(1.0,length(pointerTrail));",
-    "  vec2 trailDir=pointerTrail/trailLen;",
-    "  float trailT=clamp(dot(pos-u_pointerPrev,pointerTrail)/max(1.0,dot(pointerTrail,pointerTrail)),0.0,1.0);",
-    "  vec2 trailClosest=u_pointerPrev+pointerTrail*trailT;",
-    "  vec2 smokeDelta=pos-trailClosest;",
-    "  float smokeDist=max(.001,length(smokeDelta));",
-    "  float smokeRadius=mix(44.0,82.0,u_pointer.w)+min(16.0,trailLen*.028);",
-    "  float smokeFalloff=pow(1.0-smoother(smokeDist/smokeRadius),1.18);",
-    "  float smoke=smokeFalloff*logoInteract;",
-    "  vec2 smokeDir=smokeDelta/smokeDist;",
-    "  vec2 smokeTangent=vec2(-smokeDir.y,smokeDir.x);",
-    "  float smokeCurl=sin(u_time*.0045+a_seed.x*13.0+a_seed.z*7.0);",
-    "  pos+=smokeDir*smoke*(4.0+17.0*u_pointer.w)*(.30+a_seed.y*.70);",
-    "  pos+=smokeTangent*smoke*smokeCurl*(10.0+32.0*u_pointer.w)*(.24+a_seed.w*.76);",
-    "  pos+=trailDir*smoke*(6.0+22.0*u_pointer.w)*(a_seed.z-.12);",
+    "  // Large-logo interaction: a short history of independent vortex nodes",
+    "  // behaves like turbulent smoke. There is intentionally no line segment",
+    "  // connecting the cursor to a lagging point, so no visible 'stick' can form.",
+    "  float logoInteract=1.0-smoother(u_morph/.16);",
+    "  for(int si=0;si<6;si++){",
+    "    vec4 node=u_smoke[si];",
+    "    float nodeStrength=node.z*logoInteract;",
+    "    vec2 smokeDelta=pos-node.xy;",
+    "    float smokeDist=max(.001,length(smokeDelta));",
+    "    float nodePhase=node.w*PI*2.0;",
+    "    float smokeRadius=42.0+24.0*abs(sin(nodePhase))+nodeStrength*24.0;",
+    "    float smokeFalloff=pow(1.0-smoother(smokeDist/smokeRadius),1.35);",
+    "    float smoke=smokeFalloff*nodeStrength;",
+    "    vec2 smokeDir=smokeDelta/smokeDist;",
+    "    vec2 smokeTangent=vec2(-smokeDir.y,smokeDir.x);",
+    "    float swirlSign=step(.5,fract(node.w*1.618))*2.0-1.0;",
+    "    float smokeCurl=sin(u_time*.0028+nodePhase+a_seed.x*9.0+a_seed.z*5.0);",
+    "    pos+=smokeDir*smoke*(5.0+13.0*a_seed.y);",
+    "    pos+=smokeTangent*smoke*swirlSign*smokeCurl*(10.0+24.0*a_seed.w);",
+    "  }",
     "",
 
     "  // Continuous displacement preserves neighbouring strands and architecture.",
@@ -2127,8 +2126,7 @@ function createParticleField(){
     alpha:gl.getUniformLocation(particleProgram,"u_alpha"),
     pass:gl.getUniformLocation(particleProgram,"u_pass"),
     renderScale:gl.getUniformLocation(particleProgram,"u_renderScale"),
-    pointer:gl.getUniformLocation(particleProgram,"u_pointer"),
-    pointerPrev:gl.getUniformLocation(particleProgram,"u_pointerPrev")
+    smoke:gl.getUniformLocation(particleProgram,"u_smoke[0]")
   };
   const blurLoc={
     position:gl.getAttribLocation(blurProgram,"a_position"),
@@ -2246,12 +2244,16 @@ function createParticleField(){
     topLogoHit:null,
     pointerX:0,
     pointerY:0,
-    pointerPrevX:0,
-    pointerPrevY:0,
-    pointerStrength:0,
-    pointerSpeed:0,
     pointerLastAt:0,
-    pointerInitialized:false
+    pointerInitialized:false,
+    smokeCursor:0,
+    smokeNodes:Array.from({length:6},(_,i)=>({
+      x:-9999,y:-9999,
+      strength:0,
+      phase:(i*.38196601125)%1,
+      vx:0,vy:0
+    })),
+    smokeUniformData:new Float32Array(24)
   };
 
   function desiredCount(){
@@ -3208,14 +3210,7 @@ function createParticleField(){
     gl.uniform1f(pLoc.alpha,alpha);
     gl.uniform1f(pLoc.renderScale,renderScale);
     gl.uniform1f(pLoc.pass,pass);
-    gl.uniform4f(
-      pLoc.pointer,
-      state.pointerX,
-      state.pointerY,
-      state.pointerStrength,
-      state.pointerSpeed
-    );
-    gl.uniform2f(pLoc.pointerPrev,state.pointerPrevX,state.pointerPrevY);
+    gl.uniform4fv(pLoc.smoke,state.smokeUniformData);
   }
 
   function bindQuad(program,positionLocation){
@@ -3295,29 +3290,25 @@ function createParticleField(){
 
     const dt=state.lastFrameAt?now-state.lastFrameAt:0;
     state.lastFrameAt=now;
-    if(dt>0&&state.pointerInitialized){
-      const idleFor=now-state.pointerLastAt;
-      const tailDx=state.pointerX-state.pointerPrevX;
-      const tailDy=state.pointerY-state.pointerPrevY;
-      const tailDist=Math.hypot(tailDx,tailDy);
-
-      // The wake anchor deliberately lags behind the real cursor.
-      const tailTau=idleFor<34?720:1180;
-      const follow=1-Math.exp(-dt/tailTau);
-      state.pointerPrevX+=tailDx*follow;
-      state.pointerPrevY+=tailDy*follow;
-
-      // Keep very fast swipes bounded so one event cannot create a screen-wide line.
-      if(tailDist>300){
-        const keep=300/tailDist;
-        state.pointerPrevX=state.pointerX-tailDx*keep;
-        state.pointerPrevY=state.pointerY-tailDy*keep;
-      }
-
-      if(state.pointerStrength>0&&idleFor>24){
-        state.pointerStrength*=Math.exp(-dt/1450);
-        state.pointerSpeed*=Math.exp(-dt/920);
-        if(state.pointerStrength<.003)state.pointerStrength=0;
+    if(dt>0){
+      const smokeData=state.smokeUniformData;
+      for(let i=0;i<state.smokeNodes.length;i++){
+        const node=state.smokeNodes[i];
+        if(node.strength>.001){
+          // Each eddy keeps a little cursor momentum, slowly rises like smoke,
+          // diffuses by losing strength, then the original particle field reforms.
+          node.x+=node.vx*dt*.055;
+          node.y+=node.vy*dt*.055-dt*.0025*(.45+node.phase);
+          node.vx*=Math.exp(-dt/720);
+          node.vy*=Math.exp(-dt/720);
+          node.strength*=Math.exp(-dt/1650);
+          if(node.strength<.002)node.strength=0;
+        }
+        const k=i*4;
+        smokeData[k]=node.x;
+        smokeData[k+1]=node.y;
+        smokeData[k+2]=node.strength;
+        smokeData[k+3]=node.phase;
       }
     }
     adaptPerformance(dt);
@@ -3533,6 +3524,17 @@ function createParticleField(){
     resizeTimer=window.setTimeout(rebuild,120);
   },{passive:true});
 
+  function spawnSmokeNode(x,y,vx,vy,strength){
+    const node=state.smokeNodes[state.smokeCursor%state.smokeNodes.length];
+    state.smokeCursor=(state.smokeCursor+1)%state.smokeNodes.length;
+    node.x=x;
+    node.y=y;
+    node.vx=vx;
+    node.vy=vy;
+    node.strength=particleClamp(strength,.12,1);
+    node.phase=particleHash(state.smokeCursor*977+Math.round(x)*13+Math.round(y)*7);
+  }
+
   window.addEventListener("pointermove",e=>{
     if(e.pointerType==="touch")return;
     const now=performance.now();
@@ -3540,8 +3542,8 @@ function createParticleField(){
     const y=e.clientY;
 
     if(!state.pointerInitialized){
-      state.pointerX=x;state.pointerY=y;
-      state.pointerPrevX=x;state.pointerPrevY=y;
+      state.pointerX=x;
+      state.pointerY=y;
       state.pointerInitialized=true;
       state.pointerLastAt=now;
       return;
@@ -3549,24 +3551,32 @@ function createParticleField(){
 
     const dx=x-state.pointerX;
     const dy=y-state.pointerY;
+    const dist=Math.hypot(dx,dy);
     const eventDt=Math.max(8,now-state.pointerLastAt);
-    const speed=Math.hypot(dx,dy)/eventDt;
+    const speed=dist/eventDt;
+
+    // Lay down discrete eddies roughly every 26 px. They overlap softly, but
+    // are never connected by a geometric strip.
+    if(dist>5&&state.morph<.18){
+      const steps=Math.min(4,Math.max(1,Math.ceil(dist/26)));
+      const vx=dx/eventDt;
+      const vy=dy/eventDt;
+      const baseStrength=particleClamp(.28+speed*.78,.22,1);
+      for(let s=1;s<=steps;s++){
+        const t=s/steps;
+        spawnSmokeNode(
+          state.pointerX+dx*t,
+          state.pointerY+dy*t,
+          vx,
+          vy,
+          baseStrength*(.82+.18*t)
+        );
+      }
+    }
 
     state.pointerX=x;
     state.pointerY=y;
-    state.pointerSpeed=Math.max(
-      state.pointerSpeed,
-      particleClamp(speed/1.10)
-    );
-    state.pointerStrength=Math.max(
-      state.pointerStrength,
-      particleClamp(.26+speed*.92)
-    );
     state.pointerLastAt=now;
-  },{passive:true});
-
-  window.addEventListener("pointerleave",()=>{
-    state.pointerLastAt=performance.now()-40;
   },{passive:true});
 
   document.addEventListener("visibilitychange",()=>{
