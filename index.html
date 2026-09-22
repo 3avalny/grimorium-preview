@@ -1666,10 +1666,9 @@ function createParticleField(){
     "  // Album-to-album morph is intentionally per-particle, not per-fragment.",
     "  // Every point starts at a slightly different moment and follows its own",
     "  // small local arc while still ending on its spatially-near destination.",
-    "  float albumDelay=a_seed.x*.46;",
-    "  float albumDuration=mix(.46,.78,a_seed.w);",
-    "  float albumRaw=sat((u_albumScene-albumDelay)/max(.001,albumDuration));",
-    "  float albumT=pow(smoother(albumRaw),mix(.64,1.48,a_seed.z));",
+    "  float albumDelay=a_seed.x*.44;",
+    "  float albumRaw=sat((u_albumScene-albumDelay)/max(.001,1.0-albumDelay));",
+    "  float albumT=pow(smoother(albumRaw),mix(.68,1.42,a_seed.z));",
     "  vec2 albumDelta=a_nextAlbumTarget-a_albumTarget;",
     "  float albumTravel=max(1.0,length(albumDelta));",
     "  vec2 albumDir=albumDelta/albumTravel;",
@@ -1815,17 +1814,6 @@ function createParticleField(){
     "    float jitter=(zone<.5?.38:.12)*bioMicro;",
     "    pos+=vec2(a_seed.x-.5,a_seed.z-.5)*jitter*u_material*localLeave*(1.0-u_disc);",
     "",
-    "    // Six flame groups move coherently but independently. The group id is",
-    "    // encoded in a_bioMeta.y as 0.1..0.6.",
-    "    float flameGroup=floor(a_bioMeta.y*10.0+.5);",
-    "    float groupPhaseBio=flameGroup*1.173+flameGroup*flameGroup*.071;",
-    "    float groupSpeed=.78+fract(flameGroup*.371)*.34;",
-    "    float flameSway=sin(t*groupSpeed+groupPhaseBio);",
-    "    float flameBreath=sin(t*(1.45+fract(flameGroup*.217)*.52)+groupPhaseBio*.63);",
-    "    float flameFine=sin(t*(2.15+a_seed.x*.55)+phase1)*.58;",
-    "    float flameAmount=bioFlame*u_bio*u_material*localLeave;",
-    "    pos.x+=flameAmount*(flameSway*1.45+flameFine*.42);",
-    "    pos.y+=flameAmount*(flameBreath*1.15+sin(t*1.83+phase2)*.34);",
     "  }",
     "",
     "  // Continuous displacement preserves neighbouring strands and architecture.",
@@ -1876,9 +1864,6 @@ function createParticleField(){
     "  float hot=smoothstep(.58,1.0,glow);",
     "  if(zone<1.5){",
     "    targetColor=mix(targetColor,vec3(1.0,.965,.90),hot*.18);",
-    "    targetColor=mix(targetColor,vec3(.91,.84,.72),bioCandle*.25*u_bio);",
-    "    targetColor=mix(targetColor,vec3(1.0,.93,.76),bioFlame*.30*u_bio);",
-    "    targetColor=mix(targetColor,vec3(.88,.82,.72),bioWeb*.18*u_bio);",
     "  }else{",
     "    targetColor=vec3(.80,.76,.68);",
     "  }",
@@ -1953,21 +1938,21 @@ function createParticleField(){
     "    passAlpha=visible*zoneAlpha*bloomGain*(.11+.19*glow);",
     "  }",
     "",
-    "  float albumWeight=u_disc*u_material*(1.0-isTop)*(1.0-u_bio);",
-    "  passAlpha*=1.0-albumWeight;",
+    "  float reconstructionWeight=u_disc*u_material*(1.0-isTop);",
+    "  passAlpha*=1.0-reconstructionWeight;",
     "  if(u_pass>3.5){",
-    "    // Keep the source hierarchy, but leave enough negative space for the",
-    "    // reconstruction to read as particles rather than a grainy bitmap.",
-    "    float albumKeep=1.0-step(.82,a_seed.x);",
-    "    float albumLum=albumSceneMeta.x;",
-    "    // Push the source hierarchy apart: dim atmosphere recedes while the",
-    "    // gate edges and ribbon filaments stay crisp and legible.",
-    "    float albumToneAlpha=mix(.22,.98,smoothstep(.012,.17,albumLum));",
-    "    float albumDetail=smoothstep(.055,.28,albumLum);",
-    "    visible=albumWeight*albumKeep;",
-    "    passRadius=albumSceneMeta.z*mix(.86,.68,albumDetail);",
-    "    color=mix(albumSceneColor,albumSceneColor*1.12,albumDetail);",
-    "    passAlpha=albumToneAlpha;",
+    "    // Albums and Biography share one reconstruction path. The only thing",
+    "    // that changes is the full-resolution source target itself.",
+    "    float materialKeep=1.0-step(.82,a_seed.x);",
+    "    vec4 reconstructionMeta=mix(albumSceneMeta,a_bioMeta,bioT);",
+    "    vec3 reconstructionColor=mix(albumSceneColor,a_bioColor,bioT);",
+    "    float materialLum=reconstructionMeta.x;",
+    "    float materialToneAlpha=mix(.22,.98,smoothstep(.012,.17,materialLum));",
+    "    float materialDetail=smoothstep(.055,.28,materialLum);",
+    "    visible=reconstructionWeight*materialKeep;",
+    "    passRadius=reconstructionMeta.z*mix(.86,.68,materialDetail);",
+    "    color=mix(reconstructionColor,reconstructionColor*1.12,materialDetail);",
+    "    passAlpha=materialToneAlpha;",
     "  }",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
     "  v_color=color;",
@@ -2179,7 +2164,7 @@ function createParticleField(){
     albumSceneMorphFrom:0,
     albumSceneMorphTo:0,
     albumSceneMorphStartedAt:0,
-    albumSceneMorphDuration:1050,
+    albumSceneMorphDuration:1950,
     albumSceneMorphInitialized:false,
     pendingAlbumSceneId:null,
     bioMorph:0,
@@ -2372,9 +2357,10 @@ function createParticleField(){
     state.referenceCandidates=list;
   }
 
-  function prepareDiscSceneCandidates(ref,excludeSourceLogo=false,sceneId=""){
-    // Every album scene is sampled directly from its supplied full-resolution
-    // artwork. No thumbnail stage, so fine wing feathers / ribbons stay available.
+  function prepareDiscSceneCandidates(ref,excludeSourceLogo=false,sceneId="",overlayRef=null){
+    // Album and Biography scenes use exactly the same native-resolution source
+    // reconstruction. Biography simply composites its flame reference on top
+    // before the same pixel sampler runs.
     const sampleW=ref.naturalWidth;
     const sampleH=ref.naturalHeight;
     const off=document.createElement("canvas");
@@ -2382,6 +2368,9 @@ function createParticleField(){
     off.height=sampleH;
     const ctx=off.getContext("2d",{willReadFrequently:true});
     ctx.drawImage(ref,0,0);
+    if(overlayRef?.naturalWidth){
+      ctx.drawImage(overlayRef,0,0,sampleW,sampleH);
+    }
     const data=ctx.getImageData(0,0,sampleW,sampleH).data;
     const list=[];
 
@@ -2500,157 +2489,28 @@ function createParticleField(){
   }
 
   function prepareBioCandidates(){
-    const ref=state.bioReference;
-    const flameRef=state.bioFlameReference;
-    const sampleW=ref.naturalWidth;
-    const sampleH=ref.naturalHeight;
-    const step=window.innerWidth>1100?1:2;
-
-    const baseCanvas=document.createElement("canvas");
-    baseCanvas.width=sampleW;
-    baseCanvas.height=sampleH;
-    const baseCtx=baseCanvas.getContext("2d",{willReadFrequently:true});
-    baseCtx.clearRect(0,0,sampleW,sampleH);
-    baseCtx.drawImage(ref,0,0,sampleW,sampleH);
-    const baseData=baseCtx.getImageData(0,0,sampleW,sampleH).data;
-
-    const flameCanvas=document.createElement("canvas");
-    flameCanvas.width=sampleW;
-    flameCanvas.height=sampleH;
-    const flameCtx=flameCanvas.getContext("2d",{willReadFrequently:true});
-    flameCtx.clearRect(0,0,sampleW,sampleH);
-    if(flameRef?.naturalWidth){
-      flameCtx.drawImage(flameRef,0,0,sampleW,sampleH);
-    }
-    const flameData=flameCtx.getImageData(0,0,sampleW,sampleH).data;
-
-    const baseLum=new Float32Array(sampleW*sampleH);
-    const flameLum=new Float32Array(sampleW*sampleH);
-    const baseList=[];
-    const flameList=[];
-
-    for(let y=0;y<sampleH;y++){
-      for(let x=0;x<sampleW;x++){
-        const k=(y*sampleW+x)*4;
-        const ba=baseData[k+3]/255;
-        const fa=flameData[k+3]/255;
-        baseLum[y*sampleW+x]=(baseData[k]*.2126+baseData[k+1]*.7152+baseData[k+2]*.0722)*ba;
-        flameLum[y*sampleW+x]=(flameData[k]*.2126+flameData[k+1]*.7152+flameData[k+2]*.0722)*fa;
-      }
-    }
-
-    const baseAt=(x,y)=>{
-      x=Math.max(0,Math.min(sampleW-1,x));
-      y=Math.max(0,Math.min(sampleH-1,y));
-      return baseLum[y*sampleW+x];
-    };
-    const flameAt=(x,y)=>{
-      x=Math.max(0,Math.min(sampleW-1,x));
-      y=Math.max(0,Math.min(sampleH-1,y));
-      return flameLum[y*sampleW+x];
-    };
-
-    const candleBoxes=[
-      [.018,.145,.405,.985],
-      [.158,.225,.490,.760],
-      [.218,.285,.300,.680],
-      [.653,.720,.305,.685],
-      [.704,.775,.555,.790],
-      [.846,.978,.455,.995]
-    ];
-    const flameCenters=[.091,.191,.249,.689,.735,.910];
-    const inBox=(u,v,b)=>u>=b[0]&&u<=b[1]&&v>=b[2]&&v<=b[3];
-
-    for(let y=0;y<sampleH;y+=step){
-      for(let x=0;x<sampleW;x+=step){
-        const idx=y*sampleW+x;
-        const k=idx*4;
-        const u=x/sampleW;
-        const v=y/sampleH;
-
-        // ----- static candles / wax / strings / cobweb / ambient sparks -----
-        // Any pixel represented by the flames-only source is excluded from this layer.
-        const lum=baseLum[idx];
-        const fLum=flameLum[idx];
-        if(lum>4.2 && fLum<3.0){
-          const dx=Math.abs(baseAt(x+1,y)-baseAt(x-1,y));
-          const dy=Math.abs(baseAt(x,y+1)-baseAt(x,y-1));
-          const edge=particleClamp((dx+dy)/82,0,1);
-          const localMass=
-            baseAt(x-2,y)+baseAt(x+2,y)+baseAt(x,y-2)+baseAt(x,y+2)+
-            baseAt(x-1,y-1)+baseAt(x+1,y-1)+baseAt(x-1,y+1)+baseAt(x+1,y+1);
-
-          const r=baseData[k]/255,g=baseData[k+1]/255,b=baseData[k+2]/255;
-          const glow=particleClamp((lum-2.5)/205,.02,1);
-          let candle=false;
-          for(const box of candleBoxes){
-            if(inBox(u,v,box)){candle=true;break}
-          }
-
-          const isolated=lum>58 && localMass<lum*3.15 && edge>.10;
-          let structure=13;
-          let copies=1;
-
-          if(candle){
-            structure=11;
-            copies=1+(edge>.10?1:0)+(lum>72?1:0);
-          }else if(isolated){
-            structure=14;
-            const keep=particleHash(x*17239+y*99371);
-            if(keep>.32)continue;
-          }else{
-            const coherent=(edge>.055||lum>15) && localMass>lum*1.55;
-            if(!coherent)continue;
-            structure=13;
-            const keep=particleHash(x*61357+y*37199);
-            const keepChance=lum>55?.88:(edge>.22?.78:.56);
-            if(keep>keepChance)continue;
-            copies=1+(edge>.27?1:0);
-          }
-
-          const p={u,v,zone:0,glow,structure,r,g,b};
-          for(let n=0;n<copies;n++)baseList.push(p);
-        }
-
-        // ----- flames-only layer -----
-        const flameValue=flameLum[idx];
-        if(flameValue>5.0){
-          const dx=Math.abs(flameAt(x+1,y)-flameAt(x-1,y));
-          const dy=Math.abs(flameAt(x,y+1)-flameAt(x,y-1));
-          const edge=particleClamp((dx+dy)/78,0,1);
-          const r=flameData[k]/255,g=flameData[k+1]/255,b=flameData[k+2]/255;
-          const glow=particleClamp((flameValue-2)/180,.08,1);
-
-          let nearest=0;
-          let nearestD=Infinity;
-          for(let fi=0;fi<flameCenters.length;fi++){
-            const d=Math.abs(u-flameCenters[fi]);
-            if(d<nearestD){nearestD=d;nearest=fi}
-          }
-
-          const p={
-            u,v,
-            zone:(nearest+1)*.1,
-            glow,
-            structure:12,
-            r,g,b
-          };
-          flameList.push(p);
-          if(flameValue>118&&edge>.20)flameList.push(p);
-        }
-      }
-    }
-
-    particleShuffle(baseList,0x5ca1ab1e);
-    particleShuffle(flameList,0x9a37f41b);
-    state.bioCandidates=baseList;
-    state.bioFlameCandidates=flameList;
+    // Biography is no longer a special semantic particle system. Treat the
+    // candles exactly like an album artwork: native-resolution pixels, the
+    // same brightness sampling and the same downstream nearest-point matching.
+    state.bioCandidates=prepareDiscSceneCandidates(
+      state.bioReference,
+      false,
+      "bio",
+      state.bioFlameReference
+    );
+    state.bioFlameCandidates=[];
   }
 
   function prepareCandidates(){
     if(state.candidatesReady)return true;
     const albumRefsReady=Object.values(state.albumReferences).every(ref=>ref.naturalWidth);
-    if(!source.naturalWidth||!state.bookReference.naturalWidth||!albumRefsReady||!state.bioReference.naturalWidth)return false;
+    if(
+      !source.naturalWidth||
+      !state.bookReference.naturalWidth||
+      !albumRefsReady||
+      !state.bioReference.naturalWidth||
+      !state.bioFlameReference.naturalWidth
+    )return false;
     prepareLogoCandidates();
     prepareReferenceCandidates();
     prepareAlbumCandidates();
@@ -2689,15 +2549,7 @@ function createParticleField(){
     for(const [id,ref] of Object.entries(state.albumReferences)){
       albumPointsById[id]=sampleAlbumPoints(state.albumCandidatesById[id],refCount,ref);
     }
-    const bioFlameCount=state.bioFlameCandidates.length
-      ? Math.max(120,Math.round(refCount*.075))
-      : 0;
-    const bioBaseCount=Math.max(1,refCount-bioFlameCount);
-    const bioPoints=[
-      ...sampleLowDiscrepancy(state.bioCandidates,bioBaseCount,0x52dce729),
-      ...(bioFlameCount?sampleLowDiscrepancy(state.bioFlameCandidates,bioFlameCount,0x913f5a21):[])
-    ];
-    particleShuffle(bioPoints,0x7314bc9d);
+    const bioPoints=sampleAlbumPoints(state.bioCandidates,refCount,state.bioReference);
     const topPoints=sampleLowDiscrepancy(state.logoCandidates,topLogoCount,0x7f4a7c15);
 
     const refAspect=state.bookReference.naturalWidth/Math.max(1,state.bookReference.naturalHeight);
@@ -2819,9 +2671,10 @@ function createParticleField(){
       return {
         x:bioX+p.u*bioW,
         y:bioY+p.v*bioH,
-        zone:p.zone,
+        zone:0,
         glow:p.glow,
-        structure:p.structure,
+        structure:0,
+        radius:p.radius*bioScale,
         r:p.r,g:p.g,b:p.b
       };
     });
@@ -2861,8 +2714,8 @@ function createParticleField(){
 
       bioMetaData[i*4]=bp.glow;
       bioMetaData[i*4+1]=bp.zone;
-      bioMetaData[i*4+2]=pSize;
-      bioMetaData[i*4+3]=bp.structure||0;
+      bioMetaData[i*4+2]=bp.radius||pSize;
+      bioMetaData[i*4+3]=0;
 
       colorData[i*3]=tp.r;
       colorData[i*3+1]=tp.g;
@@ -3263,7 +3116,7 @@ function createParticleField(){
     state.albumSceneMorphFrom=0;
     state.albumSceneMorphTo=1;
     state.albumSceneMorphStartedAt=now;
-    state.albumSceneMorphDuration=1050;
+    state.albumSceneMorphDuration=1950;
     state.albumSceneMorphInitialized=true;
     state.albumSceneTransitioning=true;
   }
@@ -3485,7 +3338,14 @@ function createParticleField(){
       particleRebornReference,
       particleRetaliationReference
     ].every(ref=>ref.naturalWidth);
-    if(started||!source.naturalWidth||!particleBookReference.naturalWidth||!albumRefsReady||!particleBioReference.naturalWidth)return;
+    if(
+      started||
+      !source.naturalWidth||
+      !particleBookReference.naturalWidth||
+      !albumRefsReady||
+      !particleBioReference.naturalWidth||
+      !particleBioFlameReference.naturalWidth
+    )return;
     started=true;
 
     gl.disable(gl.DEPTH_TEST);
@@ -3547,19 +3407,10 @@ function createParticleField(){
   particleRebornReference.addEventListener("load",boot,{once:true});
   particleRetaliationReference.addEventListener("load",boot,{once:true});
   particleBioReference.addEventListener("load",boot,{once:true});
-  particleBioFlameReference.addEventListener("load",()=>{
-    if(started){
-      state.candidatesReady=false;
-      state.bioCandidates=[];
-      state.bioFlameCandidates=[];
-      window.clearTimeout(resizeTimer);
-      resizeTimer=window.setTimeout(rebuild,0);
-    }else{
-      boot();
-    }
-  },{once:true});
+  particleBioFlameReference.addEventListener("load",boot,{once:true});
   particleBioFlameReference.addEventListener("error",()=>{
-    // Auxiliary flame source must never prevent the rest of the particle field.
+    // If the overlay fails, continue with the candle reference alone.
+    state.bioFlameReference=state.bioReference;
     boot();
   },{once:true});
   if(
@@ -3570,7 +3421,8 @@ function createParticleField(){
     particleRelictReference.complete&&particleRelictReference.naturalWidth&&
     particleRebornReference.complete&&particleRebornReference.naturalWidth&&
     particleRetaliationReference.complete&&particleRetaliationReference.naturalWidth&&
-    particleBioReference.complete&&particleBioReference.naturalWidth
+    particleBioReference.complete&&particleBioReference.naturalWidth&&
+    particleBioFlameReference.complete&&particleBioFlameReference.naturalWidth
   ){
     boot();
   }
