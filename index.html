@@ -1651,7 +1651,7 @@ function createParticleField(){
     "  float zoneRadius=zone<.5?.40:(zone>1.5?.88:1.0);",
     "  targetR*=zoneRadius;",
     "  targetR*=mix(1.0,.54,spine);",
-    "  targetR*=mix(1.0,1.04,pageEdge);"
+    "  targetR*=mix(1.0,1.04,pageEdge);",
     "  float radius=mix(logoR,targetR,u_material);",
     "",
     "  vec3 initialColor=vec3(.80,.76,.68);",
@@ -1664,7 +1664,7 @@ function createParticleField(){
     "  float passRadius=radius;",
     "  float zoneAlpha=zone<.5?.46:(zone>1.5?.60:1.0);",
     "  float structuralAlpha=mix(1.0,.72+.22*glow,spine);",
-    "  structuralAlpha*=mix(1.0,1.16,pageEdge);"
+    "  structuralAlpha*=mix(1.0,1.16,pageEdge);",
     "  float passAlpha=u_alpha*zoneAlpha*structuralAlpha*mix(1.0,mix(.58,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
