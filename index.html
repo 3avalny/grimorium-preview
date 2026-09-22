@@ -2204,6 +2204,10 @@ function createParticleField(){
     albumSceneTransitioning:false,
     albumMatchSalt:1,
     bioMapVersion:0,
+    bioMappedByAlbum:{},
+    bioWorker:null,
+    bioWorkerUrl:null,
+    bioWorkerBusyId:null,
     bookScene:null,
     bioSceneRaw:null,
     bioSceneMapped:null,
@@ -2241,6 +2245,7 @@ function createParticleField(){
     homeSceneStartedAt:0,
     homeSceneDuration:1950,
     lastFrameAt:0,
+    shaderTime:0,
     perfSum:0,
     perfCount:0,
     perfAdapted:false,
@@ -3014,6 +3019,7 @@ function createParticleField(){
     uploadAlbumScene(buffers.revenantTarget,buffers.revenantMeta,buffers.revenantColor,initialScene);
     uploadAlbumScene(buffers.bioTarget,buffers.bioMeta,buffers.bioColor,initialBio);
     state.bioSceneMapped=initialBio;
+    state.bioMappedByAlbum[initialId]=initialBio;
     state.albumFromData=initialScene;
     state.albumToData=initialScene;
     state.albumSceneCurrentId=initialId;
@@ -3125,6 +3131,9 @@ function createParticleField(){
     }
 
     if(desired!==state.bioMorphTo){
+      if(desired>.5){
+        applyBiographyMappingForCurrentAlbum();
+      }
       state.bioMorphFrom=state.bioMorph;
       state.bioMorphTo=desired;
       state.bioMorphStartedAt=now;
@@ -3136,40 +3145,191 @@ function createParticleField(){
     state.bioMorph=particleMix(state.bioMorphFrom,state.bioMorphTo,eased);
   }
 
-  function scheduleBiographyMapping(scene,id){
-    const version=++state.bioMapVersion;
-    const run=()=>{
-      if(
-        version!==state.bioMapVersion||
-        state.albumSceneTransitioning||
-        state.albumSceneCurrentId!==id||
-        !state.bioSceneRaw
-      )return;
+  function ensureBiographyWorker(){
+    if(state.bioWorker)return state.bioWorker;
+    if(typeof Worker==="undefined")return null;
 
-      const mapped=matchParticleSceneNearest(
-        scene,
-        state.bioSceneRaw,
-        ++state.albumMatchSalt
-      );
+    const workerSource=`
+      const hash=n=>{
+        const x=Math.sin(n*12.9898+78.233)*43758.5453123;
+        return x-Math.floor(x);
+      };
 
-      if(
-        version!==state.bioMapVersion||
-        state.albumSceneTransitioning||
-        state.albumSceneCurrentId!==id
-      )return;
+      self.onmessage=e=>{
+        const {id,version,width,height,salt,fromTarget,fromMeta,toTarget,toMeta,toColor}=e.data;
+        const count=fromTarget.length>>1;
+        const cellSize=34;
+        const cols=Math.max(1,Math.ceil(width/cellSize));
+        const rows=Math.max(1,Math.ceil(height/cellSize));
+        const buckets=new Array(cols*rows);
 
-      uploadAlbumScene(buffers.bioTarget,buffers.bioMeta,buffers.bioColor,mapped);
-      state.bioSceneMapped=mapped;
+        const clampCell=(v,max)=>Math.max(0,Math.min(max-1,v));
+        const cellIndex=(x,y)=>{
+          const cx=clampCell(Math.floor(x/cellSize),cols);
+          const cy=clampCell(Math.floor(y/cellSize),rows);
+          return cy*cols+cx;
+        };
+
+        for(let i=0;i<count;i++){
+          if(toMeta[i*4+1]>1.5)continue;
+          const key=cellIndex(toTarget[i*2],toTarget[i*2+1]);
+          (buckets[key]||(buckets[key]=[])).push(i);
+        }
+
+        for(let key=0;key<buckets.length;key++){
+          const bucket=buckets[key];
+          if(!bucket||bucket.length<2)continue;
+          for(let n=bucket.length-1;n>0;n--){
+            const j=Math.floor(hash((salt+1)*104729+key*8191+n*131)*(n+1));
+            const tmp=bucket[n];bucket[n]=bucket[j];bucket[j]=tmp;
+          }
+        }
+
+        const outTarget=new Float32Array(toTarget.length);
+        const outMeta=new Float32Array(toMeta.length);
+        const outColor=new Float32Array(toColor.length);
+
+        const copyTarget=(sourceIndex,targetIndex)=>{
+          outTarget[sourceIndex*2]=toTarget[targetIndex*2];
+          outTarget[sourceIndex*2+1]=toTarget[targetIndex*2+1];
+          outMeta[sourceIndex*4]=toMeta[targetIndex*4];
+          outMeta[sourceIndex*4+1]=toMeta[targetIndex*4+1];
+          outMeta[sourceIndex*4+2]=toMeta[targetIndex*4+2];
+          outMeta[sourceIndex*4+3]=toMeta[targetIndex*4+3];
+          outColor[sourceIndex*3]=toColor[targetIndex*3];
+          outColor[sourceIndex*3+1]=toColor[targetIndex*3+1];
+          outColor[sourceIndex*3+2]=toColor[targetIndex*3+2];
+        };
+
+        const takeNearest=(bucket,sx,sy)=>{
+          const inspect=Math.min(10,bucket.length);
+          let bestPos=bucket.length-1;
+          let bestD=Infinity;
+          for(let k=0;k<inspect;k++){
+            const pos=bucket.length-1-k;
+            const ti=bucket[pos];
+            const dx=toTarget[ti*2]-sx;
+            const dy=toTarget[ti*2+1]-sy;
+            const d=dx*dx+dy*dy;
+            if(d<bestD){bestD=d;bestPos=pos}
+          }
+          const ti=bucket[bestPos];
+          bucket[bestPos]=bucket[bucket.length-1];
+          bucket.pop();
+          return ti;
+        };
+
+        let matchSalt=salt>>>0;
+        for(let i=0;i<count;i++){
+          if(fromMeta[i*4+1]>1.5){
+            copyTarget(i,i);
+            continue;
+          }
+
+          const sx=fromTarget[i*2];
+          const sy=fromTarget[i*2+1];
+          const cx=clampCell(Math.floor(sx/cellSize),cols);
+          const cy=clampCell(Math.floor(sy/cellSize),rows);
+          let chosen=null;
+          let chosenD=Infinity;
+          const maxRing=Math.max(cols,rows);
+
+          for(let ring=0;ring<=maxRing&&!chosen;ring++){
+            const minX=Math.max(0,cx-ring),maxX=Math.min(cols-1,cx+ring);
+            const minY=Math.max(0,cy-ring),maxY=Math.min(rows-1,cy+ring);
+
+            const consider=(bx,by)=>{
+              const bucket=buckets[by*cols+bx];
+              if(!bucket||!bucket.length)return;
+              const dx=(bx+.5)*cellSize-sx;
+              const dy=(by+.5)*cellSize-sy;
+              const d=dx*dx+dy*dy;
+              if(d<chosenD){chosenD=d;chosen=bucket}
+            };
+
+            for(let bx=minX;bx<=maxX;bx++){
+              consider(bx,minY);
+              if(maxY!==minY)consider(bx,maxY);
+            }
+            for(let by=minY+1;by<maxY;by++){
+              consider(minX,by);
+              if(maxX!==minX)consider(maxX,by);
+            }
+          }
+
+          if(chosen&&chosen.length){
+            copyTarget(i,takeNearest(chosen,sx,sy));
+          }else{
+            matchSalt=(matchSalt+2654435761)>>>0;
+            copyTarget(i,Math.floor(hash(matchSalt)*count)%count);
+          }
+        }
+
+        self.postMessage(
+          {id,version,targetData:outTarget,metaData:outMeta,colorData:outColor},
+          [outTarget.buffer,outMeta.buffer,outColor.buffer]
+        );
+      };
+    `;
+
+    const url=URL.createObjectURL(new Blob([workerSource],{type:"application/javascript"}));
+    const worker=new Worker(url);
+    state.bioWorkerUrl=url;
+    state.bioWorker=worker;
+
+    worker.onmessage=e=>{
+      const {id,version,targetData,metaData,colorData}=e.data||{};
+      if(version!==state.bioMapVersion)return;
+      state.bioWorkerBusyId=null;
+      state.bioMappedByAlbum[id]={targetData,metaData,colorData};
+
+      // Do not upload here. Updating GPU buffers after an album has settled is
+      // exactly what caused the visible pause/jump. Apply only when Biography
+      // is actually about to enter.
     };
 
-    // Do the expensive Biography preparation only after the visible album morph
-    // has finished. requestIdleCallback keeps it off the animation frames where
-    // available; Safari falls back to a short delayed task on the settled scene.
-    if("requestIdleCallback" in window){
-      window.requestIdleCallback(run,{timeout:900});
-    }else{
-      window.setTimeout(run,120);
-    }
+    worker.onerror=()=>{
+      state.bioWorkerBusyId=null;
+    };
+
+    return worker;
+  }
+
+  function scheduleBiographyMapping(scene,id){
+    if(!scene||!state.bioSceneRaw||state.bioMappedByAlbum[id])return;
+
+    const worker=ensureBiographyWorker();
+    if(!worker)return;
+
+    const version=++state.bioMapVersion;
+    state.bioWorkerBusyId=id;
+
+    // Structured cloning these typed arrays is vastly cheaper than doing the
+    // nearest-neighbour search on the render thread, and does not mutate the
+    // live album buffers.
+    worker.postMessage({
+      id,
+      version,
+      width:state.width,
+      height:state.height,
+      salt:++state.albumMatchSalt,
+      fromTarget:scene.targetData,
+      fromMeta:scene.metaData,
+      toTarget:state.bioSceneRaw.targetData,
+      toMeta:state.bioSceneRaw.metaData,
+      toColor:state.bioSceneRaw.colorData
+    });
+  }
+
+  function applyBiographyMappingForCurrentAlbum(){
+    const id=state.albumSceneCurrentId;
+    const mapped=state.bioMappedByAlbum[id];
+    if(!mapped)return false;
+    if(state.bioSceneMapped===mapped)return true;
+
+    uploadAlbumScene(buffers.bioTarget,buffers.bioMeta,buffers.bioColor,mapped);
+    state.bioSceneMapped=mapped;
+    return true;
   }
 
   function setAlbumScene(id){
@@ -3203,6 +3363,8 @@ function createParticleField(){
     state.albumSceneMorphDuration=1950;
     state.albumSceneMorphInitialized=true;
     state.albumSceneTransitioning=true;
+
+    scheduleBiographyMapping(to,id);
   }
 
   function updateAlbumSceneMorph(now){
@@ -3223,7 +3385,6 @@ function createParticleField(){
       state.albumSceneTransitioning=false;
 
       const settledId=state.albumSceneCurrentId;
-      scheduleBiographyMapping(state.albumFromData,settledId);
 
       const queuedId=state.pendingAlbumSceneId;
       state.pendingAlbumSceneId=null;
@@ -3239,7 +3400,7 @@ function createParticleField(){
     gl.useProgram(particleProgram);
     bindParticleAttributes();
     gl.uniform2f(pLoc.resolution,state.width,state.height);
-    gl.uniform1f(pLoc.time,now);
+    gl.uniform1f(pLoc.time,state.shaderTime);
     gl.uniform1f(pLoc.morph,state.morph);
     gl.uniform1f(pLoc.disc,state.discMorph);
     gl.uniform1f(pLoc.albumScene,state.albumSceneMorph);
@@ -3331,6 +3492,9 @@ function createParticleField(){
 
     const dt=state.lastFrameAt?now-state.lastFrameAt:0;
     state.lastFrameAt=now;
+    if(dt>0){
+      state.shaderTime+=Math.min(dt,34);
+    }
     if(dt>0){
       const smokeData=state.smokeUniformData;
       for(let i=0;i<state.smokeNodes.length;i++){
@@ -3615,6 +3779,11 @@ function createParticleField(){
     state.pointerY=y;
     state.pointerLastAt=now;
   },{passive:true});
+
+  window.addEventListener("beforeunload",()=>{
+    if(state.bioWorker)state.bioWorker.terminate();
+    if(state.bioWorkerUrl)URL.revokeObjectURL(state.bioWorkerUrl);
+  },{once:true});
 
   document.addEventListener("visibilitychange",()=>{
     if(document.hidden){
