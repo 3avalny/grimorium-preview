@@ -479,6 +479,76 @@ nav{display:none!important}
     url("assets/bio-background2.webp?v=3c75c6af") center center/cover no-repeat;
   border-top:1px solid rgba(255,255,255,.05)
 }
+.bio-candle-stage{
+  position:absolute;z-index:0;inset:0;
+  overflow:hidden;pointer-events:none;
+  background:#000
+}
+.bio-candle-bg,
+.bio-flame-overlay{
+  position:absolute;inset:0;width:100%;height:100%;
+  display:block
+}
+.bio-candle-bg{
+  object-fit:cover;object-position:center center
+}
+.bio-flame-overlay{
+  overflow:hidden
+}
+.bio-flame-copy{
+  opacity:.58;
+  mix-blend-mode:screen;
+  transform-box:view-box;
+  will-change:transform,opacity;
+  animation:bioFlameDrift var(--flame-duration,2.8s) ease-in-out var(--flame-delay,0s) infinite alternate
+}
+.bio-flame-glow{
+  fill:#fff7e8;
+  opacity:.11;
+  filter:url(#bio-flame-soft);
+  transform-box:fill-box;
+  transform-origin:center bottom;
+  will-change:transform,opacity;
+  animation:bioFlameGlow var(--flame-duration,2.8s) ease-in-out var(--flame-delay,0s) infinite alternate
+}
+.bio-flame-1{--flame-duration:2.65s;--flame-delay:-.7s;transform-origin:153px 414px}
+.bio-flame-2{--flame-duration:3.10s;--flame-delay:-1.9s;transform-origin:322px 492px}
+.bio-flame-3{--flame-duration:2.92s;--flame-delay:-1.1s;transform-origin:410px 356px}
+.bio-flame-4{--flame-duration:3.23s;--flame-delay:-2.2s;transform-origin:1171px 385px}
+.bio-flame-5{--flame-duration:2.78s;--flame-delay:-.4s;transform-origin:1228px 563px}
+.bio-flame-6{--flame-duration:3.04s;--flame-delay:-1.55s;transform-origin:1519px 520px}
+
+@keyframes bioFlameDrift{
+  0%{
+    transform:translate3d(-1px,1px,0) rotate(-.32deg) scale(.996,1.006);
+    opacity:.48
+  }
+  32%{
+    transform:translate3d(2px,-2px,0) rotate(.42deg) scale(1.003,1.025);
+    opacity:.65
+  }
+  68%{
+    transform:translate3d(-2px,-1px,0) rotate(-.24deg) scale(.998,1.014);
+    opacity:.54
+  }
+  100%{
+    transform:translate3d(1px,-3px,0) rotate(.34deg) scale(1.002,1.032);
+    opacity:.61
+  }
+}
+@keyframes bioFlameGlow{
+  0%{transform:translate3d(-1px,1px,0) scale(.92,1.00);opacity:.07}
+  38%{transform:translate3d(2px,-2px,0) scale(1.03,1.13);opacity:.14}
+  72%{transform:translate3d(-2px,0,0) scale(.96,1.07);opacity:.09}
+  100%{transform:translate3d(1px,-3px,0) scale(1.01,1.16);opacity:.13}
+}
+@media(prefers-reduced-motion:reduce){
+  .bio-flame-copy,.bio-flame-glow{animation:none!important}
+}
+@media(max-width:720px){
+  .bio-candle-stage{display:none}
+}
+
 .bio:after{
   content:"";position:absolute;z-index:2;inset:0;pointer-events:none;
   background:
@@ -949,6 +1019,52 @@ nav{display:none!important}
 
 
 <section class="bio" id="biography">
+  <div class="bio-candle-stage" aria-hidden="true">
+    <img class="bio-candle-bg" src="assets/biography_candles.webp?v=87a3fe9d" alt="">
+    <svg class="bio-flame-overlay" viewBox="0 0 1672 941" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <filter id="bio-flame-soft" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="9"/>
+        </filter>
+        <clipPath id="bio-flame-clip-1"><ellipse cx="153" cy="334" rx="48" ry="103"/></clipPath>
+        <clipPath id="bio-flame-clip-2"><ellipse cx="322" cy="449" rx="26" ry="54"/></clipPath>
+        <clipPath id="bio-flame-clip-3"><ellipse cx="410" cy="305" rx="28" ry="63"/></clipPath>
+        <clipPath id="bio-flame-clip-4"><ellipse cx="1171" cy="330" rx="27" ry="62"/></clipPath>
+        <clipPath id="bio-flame-clip-5"><ellipse cx="1228" cy="518" rx="25" ry="54"/></clipPath>
+        <clipPath id="bio-flame-clip-6"><ellipse cx="1519" cy="413" rx="49" ry="112"/></clipPath>
+      </defs>
+
+      <g clip-path="url(#bio-flame-clip-1)">
+        <image class="bio-flame-copy bio-flame-1" href="assets/biography_candles.webp?v=87a3fe9d" width="1672" height="941"/>
+      </g>
+      <ellipse class="bio-flame-glow bio-flame-1" cx="153" cy="340" rx="23" ry="64"/>
+
+      <g clip-path="url(#bio-flame-clip-2)">
+        <image class="bio-flame-copy bio-flame-2" href="assets/biography_candles.webp?v=87a3fe9d" width="1672" height="941"/>
+      </g>
+      <ellipse class="bio-flame-glow bio-flame-2" cx="322" cy="449" rx="10" ry="30"/>
+
+      <g clip-path="url(#bio-flame-clip-3)">
+        <image class="bio-flame-copy bio-flame-3" href="assets/biography_candles.webp?v=87a3fe9d" width="1672" height="941"/>
+      </g>
+      <ellipse class="bio-flame-glow bio-flame-3" cx="410" cy="303" rx="11" ry="33"/>
+
+      <g clip-path="url(#bio-flame-clip-4)">
+        <image class="bio-flame-copy bio-flame-4" href="assets/biography_candles.webp?v=87a3fe9d" width="1672" height="941"/>
+      </g>
+      <ellipse class="bio-flame-glow bio-flame-4" cx="1171" cy="328" rx="11" ry="32"/>
+
+      <g clip-path="url(#bio-flame-clip-5)">
+        <image class="bio-flame-copy bio-flame-5" href="assets/biography_candles.webp?v=87a3fe9d" width="1672" height="941"/>
+      </g>
+      <ellipse class="bio-flame-glow bio-flame-5" cx="1228" cy="518" rx="10" ry="29"/>
+
+      <g clip-path="url(#bio-flame-clip-6)">
+        <image class="bio-flame-copy bio-flame-6" href="assets/biography_candles.webp?v=87a3fe9d" width="1672" height="941"/>
+      </g>
+      <ellipse class="bio-flame-glow bio-flame-6" cx="1519" cy="415" rx="24" ry="66"/>
+    </svg>
+  </div>
   <div class="bio-side-label">Biography</div>
 
   <div class="bio-desktop">
