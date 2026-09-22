@@ -2709,8 +2709,17 @@ function createParticleField(){
     const bioTargets=targets.map(tp=>{
       if(tp.zone>1.5)return {...tp};
       const p=bioPoints[bioCursor++%bioPoints.length];
+
+      // Shift only the two inner-right Biography candles (rear tall candle +
+      // shorter front candle) so their spacing mirrors the inner-left pair.
+      // Keep the far-right foreground candle and the rest of the artwork fixed.
+      let bioU=p.u;
+      if(p.u>.635&&p.u<.775&&p.v>.22&&p.v<.80){
+        bioU+=.082;
+      }
+
       return {
-        x:bioX+p.u*bioW,
+        x:bioX+bioU*bioW,
         y:bioY+p.v*bioH,
         zone:0,
         glow:p.glow,
