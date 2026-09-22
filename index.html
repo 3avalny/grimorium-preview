@@ -1658,7 +1658,7 @@ function createParticleField(){
     "  float normalShape=aa*.72+core*.28;",
     "  float bloomShape=pow(max(0.0,1.0-d*2.0),2.15);",
     "  float shape=mix(normalShape,bloomShape,v_soft);",
-    "  gl_FragColor=vec4(v_color,v_alpha*shape);"
+    "  gl_FragColor=vec4(v_color,v_alpha*shape);",
     "}"
   ].join("\n");
 
