@@ -1666,9 +1666,10 @@ function createParticleField(){
     "  // Album-to-album morph is intentionally per-particle, not per-fragment.",
     "  // Every point starts at a slightly different moment and follows its own",
     "  // small local arc while still ending on its spatially-near destination.",
-    "  float albumDelay=a_seed.x*.27;",
-    "  float albumRaw=sat((u_albumScene-albumDelay)/max(.001,1.0-albumDelay));",
-    "  float albumT=pow(smoother(albumRaw),mix(.72,1.34,a_seed.z));",
+    "  float albumDelay=a_seed.x*.46;",
+    "  float albumDuration=mix(.46,.78,a_seed.w);",
+    "  float albumRaw=sat((u_albumScene-albumDelay)/max(.001,albumDuration));",
+    "  float albumT=pow(smoother(albumRaw),mix(.64,1.48,a_seed.z));",
     "  vec2 albumDelta=a_nextAlbumTarget-a_albumTarget;",
     "  float albumTravel=max(1.0,length(albumDelta));",
     "  vec2 albumDir=albumDelta/albumTravel;",
@@ -2147,6 +2148,7 @@ function createParticleField(){
     albumSceneCurrentId:"reall",
     albumSceneTargetId:"reall",
     albumSceneTransitioning:false,
+    albumMatchSalt:1,
     bioCandidates:[],
     bioFlameCandidates:[],
     discMorph:0,
@@ -2425,59 +2427,7 @@ function createParticleField(){
     };
   }
 
-  function particleHilbertIndex(u,v){
-    const n=128;
-    let x=Math.max(0,Math.min(n-1,Math.floor(u*n)));
-    let y=Math.max(0,Math.min(n-1,Math.floor(v*n)));
-    let d=0;
-    for(let s=n>>1;s>0;s>>=1){
-      const rx=(x&s)?1:0;
-      const ry=(y&s)?1:0;
-      d+=s*s*((3*rx)^ry);
-      if(ry===0){
-        if(rx===1){
-          x=n-1-x;
-          y=n-1-y;
-        }
-        const t=x;x=y;y=t;
-      }
-    }
-    return d;
-  }
-
-  function spatiallyOrderAlbumPoints(points){
-    const bucketCount=128*128;
-    const buckets=new Array(bucketCount);
-    for(const p of points){
-      const key=particleHilbertIndex(p.u,p.v);
-      (buckets[key]||(buckets[key]=[])).push(p);
-    }
-    const ordered=[];
-    for(let i=0;i<bucketCount;i++){
-      const bucket=buckets[i];
-      if(!bucket)continue;
-      bucket.sort((a,b)=>a.v-b.v||a.u-b.u);
-      for(const p of bucket)ordered.push(p);
-    }
-    return ordered;
-  }
-
-  function locallyScrambleAlbumPoints(points,salt){
-    // Break visible moving fragments without destroying locality: shuffle only
-    // inside tiny consecutive Hilbert windows, never across the whole picture.
-    const blockSize=72;
-    for(let start=0;start<points.length;start+=blockSize){
-      const end=Math.min(points.length,start+blockSize);
-      for(let i=end-1;i>start;i--){
-        const h=particleHash((salt+1)*104729+i*8191+start*131);
-        const j=start+Math.floor(h*(i-start+1));
-        const tmp=points[i];points[i]=points[j];points[j]=tmp;
-      }
-    }
-    return points;
-  }
-
-  function sampleAlbumPoints(list,count,ref,sceneSalt=0){
+  function sampleAlbumPoints(list,count,ref){
     // Allocate density by brightness, not by guesses about semantic objects.
     // Bright hairlines get tight splats; dim grid/atmosphere get broad faint ones.
     const bands=[[],[],[]];
@@ -2523,7 +2473,7 @@ function createParticleField(){
       }
     });
 
-    return locallyScrambleAlbumPoints(spatiallyOrderAlbumPoints(out),sceneSalt);
+    return out;
   }
 
   function prepareBioCandidates(){
@@ -2713,14 +2663,8 @@ function createParticleField(){
     const sourcePoints=sampleLowDiscrepancy(state.logoCandidates,count,0x91e10da5);
     const refPoints=sampleLowDiscrepancy(state.referenceCandidates,refCount,0xc2b2ae35);
     const albumPointsById={};
-    const albumSceneSalts={reall:11,revenant:23,relict:37,reborn:53,retaliation:71};
     for(const [id,ref] of Object.entries(state.albumReferences)){
-      albumPointsById[id]=sampleAlbumPoints(
-        state.albumCandidatesById[id],
-        refCount,
-        ref,
-        albumSceneSalts[id]||0
-      );
+      albumPointsById[id]=sampleAlbumPoints(state.albumCandidatesById[id],refCount,ref);
     }
     const bioFlameCount=state.bioFlameCandidates.length
       ? Math.max(120,Math.round(refCount*.075))
@@ -2933,6 +2877,136 @@ function createParticleField(){
     return out;
   }
 
+  function matchAlbumSceneNearest(fromScene,toScene,salt=1){
+    // One particle -> one destination point. Destination points are bucketed
+    // spatially, and each source particle consumes the nearest available bucket.
+    // Nothing is grouped by strip/chunk/order, so neighbouring points are free
+    // to move independently while still avoiding full-screen crossovers.
+    const count=fromScene.targetData.length>>1;
+    const cellSize=34;
+    const cols=Math.max(1,Math.ceil(state.width/cellSize));
+    const rows=Math.max(1,Math.ceil(state.height/cellSize));
+    const buckets=new Array(cols*rows);
+
+    const clampCell=(v,max)=>Math.max(0,Math.min(max-1,v));
+    const cellIndex=(x,y)=>{
+      const cx=clampCell(Math.floor(x/cellSize),cols);
+      const cy=clampCell(Math.floor(y/cellSize),rows);
+      return cy*cols+cx;
+    };
+
+    for(let i=0;i<count;i++){
+      if(toScene.metaData[i*4+1]>1.5)continue;
+      const key=cellIndex(toScene.targetData[i*2],toScene.targetData[i*2+1]);
+      (buckets[key]||(buckets[key]=[])).push(i);
+    }
+
+    // Randomize only the candidates inside each tiny spatial cell so there is
+    // no persistent edge/scanline order inside the destination artwork.
+    for(let key=0;key<buckets.length;key++){
+      const bucket=buckets[key];
+      if(!bucket||bucket.length<2)continue;
+      for(let n=bucket.length-1;n>0;n--){
+        const h=particleHash((salt+1)*104729+key*8191+n*131);
+        const j=Math.floor(h*(n+1));
+        const tmp=bucket[n];bucket[n]=bucket[j];bucket[j]=tmp;
+      }
+    }
+
+    const out={
+      targetData:new Float32Array(toScene.targetData.length),
+      metaData:new Float32Array(toScene.metaData.length),
+      colorData:new Float32Array(toScene.colorData.length)
+    };
+
+    const copyTarget=(sourceIndex,targetIndex)=>{
+      out.targetData[sourceIndex*2]=toScene.targetData[targetIndex*2];
+      out.targetData[sourceIndex*2+1]=toScene.targetData[targetIndex*2+1];
+      out.metaData[sourceIndex*4]=toScene.metaData[targetIndex*4];
+      out.metaData[sourceIndex*4+1]=toScene.metaData[targetIndex*4+1];
+      out.metaData[sourceIndex*4+2]=toScene.metaData[targetIndex*4+2];
+      out.metaData[sourceIndex*4+3]=toScene.metaData[targetIndex*4+3];
+      out.colorData[sourceIndex*3]=toScene.colorData[targetIndex*3];
+      out.colorData[sourceIndex*3+1]=toScene.colorData[targetIndex*3+1];
+      out.colorData[sourceIndex*3+2]=toScene.colorData[targetIndex*3+2];
+    };
+
+    const takeNearestFromBucket=(bucket,sx,sy)=>{
+      const inspect=Math.min(10,bucket.length);
+      let bestPos=bucket.length-1;
+      let bestD=Infinity;
+      for(let k=0;k<inspect;k++){
+        const pos=bucket.length-1-k;
+        const ti=bucket[pos];
+        const dx=toScene.targetData[ti*2]-sx;
+        const dy=toScene.targetData[ti*2+1]-sy;
+        const d=dx*dx+dy*dy;
+        if(d<bestD){bestD=d;bestPos=pos}
+      }
+      const ti=bucket[bestPos];
+      bucket[bestPos]=bucket[bucket.length-1];
+      bucket.pop();
+      return ti;
+    };
+
+    let matchSalt=salt>>>0;
+    for(let i=0;i<count;i++){
+      // Header-logo particles are identical between album scenes and stay put.
+      if(fromScene.metaData[i*4+1]>1.5){
+        copyTarget(i,i);
+        continue;
+      }
+
+      const sx=fromScene.targetData[i*2];
+      const sy=fromScene.targetData[i*2+1];
+      const cx=clampCell(Math.floor(sx/cellSize),cols);
+      const cy=clampCell(Math.floor(sy/cellSize),rows);
+
+      let chosenBucket=null;
+      let chosenBucketD=Infinity;
+      const maxRing=Math.max(cols,rows);
+
+      for(let ring=0;ring<=maxRing&&!chosenBucket;ring++){
+        const minX=Math.max(0,cx-ring),maxX=Math.min(cols-1,cx+ring);
+        const minY=Math.max(0,cy-ring),maxY=Math.min(rows-1,cy+ring);
+
+        const consider=(bx,by)=>{
+          const bucket=buckets[by*cols+bx];
+          if(!bucket||!bucket.length)return;
+          const centerX=(bx+.5)*cellSize;
+          const centerY=(by+.5)*cellSize;
+          const dx=centerX-sx,dy=centerY-sy;
+          const d=dx*dx+dy*dy;
+          if(d<chosenBucketD){
+            chosenBucketD=d;
+            chosenBucket=bucket;
+          }
+        };
+
+        for(let bx=minX;bx<=maxX;bx++){
+          consider(bx,minY);
+          if(maxY!==minY)consider(bx,maxY);
+        }
+        for(let by=minY+1;by<maxY;by++){
+          consider(minX,by);
+          if(maxX!==minX)consider(maxX,by);
+        }
+      }
+
+      if(chosenBucket&&chosenBucket.length){
+        const ti=takeNearestFromBucket(chosenBucket,sx,sy);
+        copyTarget(i,ti);
+      }else{
+        // Safety fallback should be practically unreachable once all non-top
+        // destination points have been consumed one-to-one.
+        matchSalt=(matchSalt+2654435761)>>>0;
+        copyTarget(i,Math.floor(particleHash(matchSalt)*count)%count);
+      }
+    }
+
+    return out;
+  }
+
   function bindParticleAttributes(){
     const bind=(buffer,location,size)=>{
       gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
@@ -3132,7 +3206,8 @@ function createParticleField(){
       uploadAlbumScene(buffers.albumTarget,buffers.albumMeta,buffers.albumColor,from);
     }
 
-    const to=state.albumScenes[id];
+    const rawTo=state.albumScenes[id];
+    const to=matchAlbumSceneNearest(from,rawTo,++state.albumMatchSalt);
     uploadAlbumScene(buffers.revenantTarget,buffers.revenantMeta,buffers.revenantColor,to);
 
     state.albumFromData=from;
