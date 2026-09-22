@@ -2766,24 +2766,47 @@ function createParticleField(){
     });
     particleShuffle(targets,0x4cf5ad43);
 
-    const albumTargetsById={};
+    const albumScenes={};
     for(const id of Object.keys(state.albumReferences)){
       const points=albumPointsById[id];
       const placement=albumPlacements[id];
+      const sceneTargetData=new Float32Array(count*2);
+      const sceneMetaData=new Float32Array(count*4);
+      const sceneColorData=new Float32Array(count*3);
       let cursor=0;
-      albumTargetsById[id]=targets.map(tp=>{
-        if(tp.zone>1.5)return {...tp};
-        const p=points[cursor++%points.length];
-        return {
-          x:placement.x+p.u*placement.width,
-          y:placement.y+p.v*placement.height,
-          zone:0,
-          glow:p.glow,
-          structure:0,
-          radius:p.radius*placement.scale,
-          r:p.r,g:p.g,b:p.b
-        };
-      });
+
+      for(let i=0;i<count;i++){
+        const tp=targets[i];
+        let x=tp.x,y=tp.y,zone=tp.zone,glow=tp.glow,structure=tp.structure||0;
+        let radius=0,r=tp.r,g=tp.g,b=tp.b;
+
+        if(tp.zone<=1.5){
+          const p=points[cursor++%points.length];
+          x=placement.x+p.u*placement.width;
+          y=placement.y+p.v*placement.height;
+          zone=0;
+          glow=p.glow;
+          structure=0;
+          radius=p.radius*placement.scale;
+          r=p.r;g=p.g;b=p.b;
+        }
+
+        sceneTargetData[i*2]=x;
+        sceneTargetData[i*2+1]=y;
+        sceneMetaData[i*4]=glow;
+        sceneMetaData[i*4+1]=zone;
+        sceneMetaData[i*4+2]=radius;
+        sceneMetaData[i*4+3]=structure;
+        sceneColorData[i*3]=r;
+        sceneColorData[i*3+1]=g;
+        sceneColorData[i*3+2]=b;
+      }
+
+      albumScenes[id]={
+        targetData:sceneTargetData,
+        metaData:sceneMetaData,
+        colorData:sceneColorData
+      };
     }
 
     let bioCursor=0;
@@ -2844,26 +2867,6 @@ function createParticleField(){
       bioColorData[i*3]=bp.r;
       bioColorData[i*3+1]=bp.g;
       bioColorData[i*3+2]=bp.b;
-    }
-
-    const albumScenes={};
-    for(const [id,sceneTargets] of Object.entries(albumTargetsById)){
-      const sceneTargetData=new Float32Array(count*2);
-      const sceneMetaData=new Float32Array(count*4);
-      const sceneColorData=new Float32Array(count*3);
-      for(let i=0;i<count;i++){
-        const p=sceneTargets[i];
-        sceneTargetData[i*2]=p.x;
-        sceneTargetData[i*2+1]=p.y;
-        sceneMetaData[i*4]=p.glow;
-        sceneMetaData[i*4+1]=p.zone;
-        sceneMetaData[i*4+2]=p.radius||0;
-        sceneMetaData[i*4+3]=p.structure||0;
-        sceneColorData[i*3]=p.r;
-        sceneColorData[i*3+1]=p.g;
-        sceneColorData[i*3+2]=p.b;
-      }
-      albumScenes[id]={targetData:sceneTargetData,metaData:sceneMetaData,colorData:sceneColorData};
     }
 
     return {logoData,targetData,bioTargetData,seedData,metaData,bioMetaData,colorData,bioColorData,albumScenes};
