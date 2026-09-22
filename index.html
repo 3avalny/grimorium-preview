@@ -187,7 +187,7 @@ nav{display:none!important}
 }
 .hero h1{
   margin:0;font-family:var(--moon-display);font-weight:400;
-  font-size:clamp(54px,8.5vw,124px);line-height:.86;letter-spacing:.025em;text-transform:none;
+  font-size:clamp(54px,8.5vw,124px);line-height:.86;letter-spacing:.025em;text-transform:uppercase;
   text-shadow:
     0 2px 3px rgba(0,0,0,.96),
     0 8px 26px rgba(0,0,0,.90),
@@ -206,7 +206,7 @@ nav{display:none!important}
   transform:translateY(-.05em)
 }
 .hero-sub{
-  margin-top:26px;
+  margin-top:clamp(58px,5vw,76px);
   display:grid;justify-items:center;gap:3px;
   font-family:var(--serif);font-size:clamp(16px,1.7vw,27px);
   line-height:1.08;letter-spacing:.2em;text-transform:uppercase;color:#d0cec7
@@ -259,7 +259,7 @@ nav{display:none!important}
   transform:translate(-50%,-50%) rotate(-90deg);
   transform-origin:center;white-space:nowrap;
   font-family:var(--moon-display);font-size:clamp(24px,2.1vw,32px);font-weight:400;
-  letter-spacing:.07em;text-transform:none;color:#d3d0c8;
+  letter-spacing:.07em;text-transform:uppercase;color:#d3d0c8;
   text-shadow:
     0 1px 2px rgba(0,0,0,1),
     0 4px 8px rgba(0,0,0,.98),
@@ -309,6 +309,7 @@ nav{display:none!important}
 .particle-album-debug button:hover{color:#d2d0c8}
 .particle-album-debug button.active{color:#f0eee7}
 @media(max-width:720px){
+  .hero-sub{margin-top:44px}
   .particle-album-debug{
     bottom:12px;z-index:50;
     gap:10px;padding:9px 12px;
@@ -535,7 +536,7 @@ nav{display:none!important}
   transform:translate(-50%,-50%) rotate(-90deg);
   transform-origin:center;white-space:nowrap;
   font-family:var(--moon-display);font-size:clamp(24px,2.1vw,32px);font-weight:400;
-  letter-spacing:.07em;text-transform:none;color:#d3d0c8;
+  letter-spacing:.07em;text-transform:uppercase;color:#d3d0c8;
   text-shadow:
     0 1px 2px rgba(0,0,0,1),
     0 4px 8px rgba(0,0,0,.98),
