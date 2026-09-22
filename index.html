@@ -2374,10 +2374,10 @@ function createParticleField(){
       for(let x=0;x<sampleW;x++){
         const k=(y*sampleW+x)*4;
         const a=data[k+3]/255;
-        const r=data[k]/255*a;
-        const g=data[k+1]/255*a;
-        const b=data[k+2]/255*a;
-        const lum=r*.2126+g*.7152+b*.0722;
+        let r=data[k]/255*a;
+        let g=data[k+1]/255*a;
+        let b=data[k+2]/255*a;
+        let lum=r*.2126+g*.7152+b*.0722;
         const u=(x+.5)/sampleW;
         const v=(y+.5)/sampleH;
 
@@ -2387,8 +2387,9 @@ function createParticleField(){
         }
 
         if(sceneId==="revenant"){
-          // Remove the construction geometry from Wings while preserving the
-          // actual feather artwork: one central axis and two circular guides.
+          // The guide-removal mask used to simply delete these pixels, which
+          // produced visible black circular cuts through dense feathers. Heal
+          // the masked locations from the closest artwork on both sides instead.
           const px=x+.5;
           const py=y+.5;
           const cx=sampleW*.5;
@@ -2396,17 +2397,62 @@ function createParticleField(){
 
           const upperCy=sampleH*.4075;
           const upperR=sampleH*.2510;
-          const upperCircle=Math.abs(
-            Math.hypot(px-cx,py-upperCy)-upperR
-          )<3.2;
+          const upperDist=Math.hypot(px-cx,py-upperCy);
+          const upperCircle=Math.abs(upperDist-upperR)<3.2;
 
           const lowerCy=sampleH*.6980;
           const lowerR=sampleH*.2290;
-          const lowerCircle=Math.abs(
-            Math.hypot(px-cx,py-lowerCy)-lowerR
-          )<3.2;
+          const lowerDist=Math.hypot(px-cx,py-lowerCy);
+          const lowerCircle=Math.abs(lowerDist-lowerR)<3.2;
 
-          if(axis||upperCircle||lowerCircle)continue;
+          if(axis||upperCircle||lowerCircle){
+            const samples=[];
+            const addSample=(sx,sy)=>{
+              const ix=Math.max(0,Math.min(sampleW-1,Math.round(sx)));
+              const iy=Math.max(0,Math.min(sampleH-1,Math.round(sy)));
+              const sk=(iy*sampleW+ix)*4;
+              const sa=data[sk+3]/255;
+              const sr=data[sk]/255*sa;
+              const sg=data[sk+1]/255*sa;
+              const sb=data[sk+2]/255*sa;
+              const sl=sr*.2126+sg*.7152+sb*.0722;
+              if(sl>1/255)samples.push({r:sr,g:sg,b:sb,lum:sl});
+            };
+
+            if(axis){
+              addSample(px-6,py);
+              addSample(px+6,py);
+              addSample(px-10,py);
+              addSample(px+10,py);
+            }
+
+            const healCircle=(cy,dist)=>{
+              if(dist<1)return;
+              const nx=(px-cx)/dist;
+              const ny=(py-cy)/dist;
+              addSample(px-nx*6,py-ny*6);
+              addSample(px+nx*6,py+ny*6);
+              addSample(px-nx*10,py-ny*10);
+              addSample(px+nx*10,py+ny*10);
+            };
+
+            if(upperCircle)healCircle(upperCy,upperDist);
+            if(lowerCircle)healCircle(lowerCy,lowerDist);
+
+            if(samples.length){
+              // Brightest nearby material best preserves feather filaments while
+              // avoiding a new faint ring in otherwise empty background.
+              samples.sort((a,b)=>b.lum-a.lum);
+              const best=samples[0];
+              const second=samples[1]||best;
+              r=best.r*.72+second.r*.28;
+              g=best.g*.72+second.g*.28;
+              b=best.b*.72+second.b*.28;
+              lum=r*.2126+g*.7152+b*.0722;
+            }else{
+              continue;
+            }
+          }
         }
 
         if(lum<1/255)continue;
