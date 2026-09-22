@@ -1611,7 +1611,7 @@ function createParticleField(){
     "  float bendAmp=min(150.0,20.0+travel*(.046+.105*a_seed.z))*forwardMagic;",
     "  float groupPhase=(groupIndex+groupHash)*PI*.72;",
     "  float curl=sin(localLeave*PI*(1.10+a_seed.w*4.8)+a_seed.x*PI*2.0+groupPhase);",
-    "  float longitudinal=sin(localLeave*PI*(1.7+a_seed.y*1.1)+a_seed.z*PI*2.0-groupPhase*.52);"
+    "  float longitudinal=sin(localLeave*PI*(1.7+a_seed.y*1.1)+a_seed.z*PI*2.0-groupPhase*.52);",
     "",
     "  vec2 pos=mix(warped,a_target,localLeave);",
     "  pos+=normal*transition*bendAmp*(bendSign*.52+curl*.48);",
@@ -1662,7 +1662,7 @@ function createParticleField(){
     "  float zoneRadius=zone<.5?.40:(zone>1.5?.88:1.0);",
     "  targetR*=zoneRadius;",
     "  targetR*=mix(1.0,.54,spine);",
-    "  targetR*=mix(1.0,1.08,pageEdge);"
+    "  targetR*=mix(1.0,1.08,pageEdge);",
     "  float radius=mix(logoR,targetR,u_material);",
     "",
     "  vec3 initialColor=vec3(.80,.76,.68);",
@@ -1675,7 +1675,7 @@ function createParticleField(){
     "  float passRadius=radius;",
     "  float zoneAlpha=zone<.5?.46:(zone>1.5?.60:1.0);",
     "  float structuralAlpha=mix(1.0,.72+.22*glow,spine);",
-    "  structuralAlpha*=mix(1.0,1.10,pageEdge);"
+    "  structuralAlpha*=mix(1.0,1.10,pageEdge);",
     "  float passAlpha=u_alpha*zoneAlpha*structuralAlpha*mix(1.0,mix(.58,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
