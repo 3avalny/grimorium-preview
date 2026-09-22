@@ -2041,6 +2041,11 @@ function createParticleField(){
     morphDuration:1950,
     morphInitialized:false,
     forcedMorph:null,
+    homeSceneActive:false,
+    homeDiscFrom:0,
+    homeBioFrom:0,
+    homeSceneStartedAt:0,
+    homeSceneDuration:1950,
     lastFrameAt:0,
     perfSum:0,
     perfCount:0,
@@ -2934,15 +2939,35 @@ function createParticleField(){
       const recordTop=parallaxRecord?.offsetTop??(heroRange+state.height*1.4);
       const discStart=recordTop-state.height*1.12;
       const discEnd=recordTop-state.height*.08;
-      state.discMorph=particleSmoother((scrollY-discStart)/Math.max(1,discEnd-discStart));
-
       const bioTop=parallaxBio?.offsetTop??(recordTop+state.height);
-      const bioEnterThreshold=bioTop-state.height*.78;
-      const bioLeaveThreshold=bioTop-state.height*.90;
-      const shouldShowBio=state.bioMorphTo>.5
-        ? scrollY>bioLeaveThreshold
-        : scrollY>bioEnterThreshold;
-      updateBioMorph(now,shouldShowBio);
+
+      if(state.homeSceneActive){
+        // Returning via the header logo must collapse directly from whatever
+        // scene is currently visible instead of replaying intermediate pages.
+        const homeT=particleClamp((now-state.homeSceneStartedAt)/Math.max(1,state.homeSceneDuration));
+        const homeEase=particleSmoother(homeT);
+        state.discMorph=particleMix(state.homeDiscFrom,0,homeEase);
+        state.bioMorph=particleMix(state.homeBioFrom,0,homeEase);
+
+        if(homeT>=.999){
+          state.homeSceneActive=false;
+          state.discMorph=0;
+          state.bioMorph=0;
+          state.bioMorphFrom=0;
+          state.bioMorphTo=0;
+          state.bioMorphStartedAt=now;
+          state.bioMorphInitialized=true;
+        }
+      }else{
+        state.discMorph=particleSmoother((scrollY-discStart)/Math.max(1,discEnd-discStart));
+
+        const bioEnterThreshold=bioTop-state.height*.78;
+        const bioLeaveThreshold=bioTop-state.height*.90;
+        const shouldShowBio=state.bioMorphTo>.5
+          ? scrollY>bioLeaveThreshold
+          : scrollY>bioEnterThreshold;
+        updateBioMorph(now,shouldShowBio);
+      }
 
       const material=particleSmoother((state.morph-.38)/.62);
       const bloom=particleSmoother((state.morph-.60)/.40);
@@ -3009,8 +3034,23 @@ function createParticleField(){
       state.morphTo=0;
       state.morphStartedAt=now;
       state.morphDuration=1950;
+      state.homeSceneActive=true;
+      state.homeDiscFrom=state.discMorph;
+      state.homeBioFrom=state.bioMorph;
+      state.homeSceneStartedAt=now;
+      state.homeSceneDuration=1950;
       particleLogoHit?.classList.remove("is-active");
       if(particleLogoHit)particleLogoHit.tabIndex=-1;
+    };
+    state.releaseHome=()=>{
+      if(state.forcedMorph!==0&&!state.homeSceneActive)return;
+      const now=performance.now();
+      state.forcedMorph=null;
+      state.homeSceneActive=false;
+      state.morphFrom=state.morph;
+      state.morphTo=1;
+      state.morphStartedAt=now;
+      state.morphDuration=1950;
     };
 
     if(particleLogoHit&&!particleLogoHit.dataset.bound){
@@ -3020,12 +3060,8 @@ function createParticleField(){
       particleLogoHit.addEventListener("click",()=>{
         if(!particleLogoHit.classList.contains("is-active"))return;
         state.goHome();
-        if(window.innerWidth>720){
-          resetDesktopIntroSnap();
-          animateDesktopSnap(0);
-        }else{
-          document.querySelector("#top")?.scrollIntoView({behavior:"smooth"});
-        }
+        resetDesktopIntroSnap();
+        jumpHomeImmediately();
       });
     }
 
@@ -3277,7 +3313,7 @@ let desktopWheelGestureLocked=false;
 let desktopWheelDirection=0;
 let desktopWheelAccumulator=0;
 
-const DESKTOP_WHEEL_NEW_GESTURE_GAP=460;
+const DESKTOP_WHEEL_NEW_GESTURE_GAP=180;
 const DESKTOP_WHEEL_TRIGGER_DELTA=28;
 
 function desktopSnapTargets(){
@@ -3321,6 +3357,17 @@ function syncDesktopSnapKey(){
   if(nearest)desktopSnapKey=nearest.key;
 }
 
+function jumpHomeImmediately(){
+  if(desktopSnapFrame){
+    cancelAnimationFrame(desktopSnapFrame);
+    desktopSnapFrame=0;
+  }
+  desktopSnapAnimating=false;
+  document.documentElement.classList.remove("desktop-snapping");
+  window.scrollTo({top:0,left:0,behavior:"auto"});
+  requestScenes();
+}
+
 function animateDesktopSnap(target){
   if(desktopSnapFrame){
     cancelAnimationFrame(desktopSnapFrame);
@@ -3334,9 +3381,6 @@ function animateDesktopSnap(target){
   if(Math.abs(distance)<2){
     window.scrollTo(0,target);
     desktopSnapAnimating=false;
-    desktopWheelLastAt=performance.now();
-    desktopWheelGestureLocked=true;
-    desktopWheelAccumulator=0;
     document.documentElement.classList.remove("desktop-snapping");
     requestScenes();
     return;
@@ -3347,9 +3391,6 @@ function animateDesktopSnap(target){
   if(reducedMotionQuery.matches){
     window.scrollTo(0,target);
     desktopSnapAnimating=false;
-    desktopWheelLastAt=performance.now();
-    desktopWheelGestureLocked=true;
-    desktopWheelAccumulator=0;
     document.documentElement.classList.remove("desktop-snapping");
     requestScenes();
     return;
@@ -3370,9 +3411,6 @@ function animateDesktopSnap(target){
       desktopSnapFrame=0;
       window.scrollTo(0,target);
       desktopSnapAnimating=false;
-      desktopWheelLastAt=performance.now();
-      desktopWheelGestureLocked=true;
-      desktopWheelAccumulator=0;
       document.documentElement.classList.remove("desktop-snapping");
       requestScenes();
     }
@@ -3404,6 +3442,7 @@ function triggerDesktopSnap(direction){
   if(leavingLogo){
     // The large-logo screen exists only once per page load.
     desktopLogoAvailable=false;
+    particleField?.releaseHome?.();
   }
 
   animateDesktopSnap(next.y);
@@ -3470,15 +3509,21 @@ window.addEventListener("wheel",e=>{
   const now=performance.now();
   const gap=desktopWheelLastAt===0?Infinity:now-desktopWheelLastAt;
 
-  // Never let trackpad momentum interrupt or chain off an active snap.
-  if(desktopSnapAnimating){
-    desktopWheelLastAt=now;
-    return;
+  // Gesture locking is independent from the section animation. A deliberate
+  // second swipe can retarget an in-flight snap while low-amplitude momentum
+  // still gets swallowed by the accumulator threshold.
+  const reversingDuringSnap=
+    desktopSnapAnimating&&
+    desktopWheelGestureLocked&&
+    desktopWheelDirection&&
+    desktopWheelDirection!==direction&&
+    amount>=DESKTOP_WHEEL_TRIGGER_DELTA;
+
+  if(reversingDuringSnap){
+    desktopWheelGestureLocked=false;
+    desktopWheelAccumulator=0;
   }
 
-  // A real new gesture requires a substantial quiet period. 460 ms is long
-  // enough to swallow Safari/macOS momentum tails that previously became a
-  // second section jump.
   if(gap>DESKTOP_WHEEL_NEW_GESTURE_GAP){
     desktopWheelGestureLocked=false;
     desktopWheelDirection=0;
