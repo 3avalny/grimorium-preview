@@ -559,6 +559,30 @@ nav{display:none!important}
   letter-spacing:.075em;text-transform:uppercase;color:var(--ink)
 }
 .bio .rule{margin:20px auto 28px}
+.bio-desktop .bio-copy .rule{
+  opacity:0;
+  filter:blur(5px);
+  transform:scaleX(.08);
+  transform-origin:center;
+  transition:
+    opacity .15s ease var(--bio-rule-enter-delay,0ms),
+    filter .18s ease var(--bio-rule-enter-delay,0ms),
+    transform .18s cubic-bezier(.2,.78,.2,1) var(--bio-rule-enter-delay,0ms)
+}
+.bio-desktop .bio-copy.bio-text-visible .rule{
+  opacity:1;
+  filter:blur(0);
+  transform:scaleX(1)
+}
+.bio-desktop .bio-copy.bio-text-exit-up .rule{
+  opacity:0;
+  filter:blur(5px);
+  transform:scaleX(.08);
+  transition:
+    opacity .14s ease var(--bio-rule-exit-delay,0ms),
+    filter .17s ease var(--bio-rule-exit-delay,0ms),
+    transform .17s ease var(--bio-rule-exit-delay,0ms)
+}
 .bio p{
   margin:0 0 18px;font-family:var(--serif);
   font-size:clamp(18px,1.34vw,22px);line-height:1.54;
@@ -1025,7 +1049,7 @@ nav{display:none!important}
 
   <div class="bio-desktop">
     <div class="bio-copy">
-      <div class="bio-eyebrow">LEGEND, 1996 · SYKTYVKAR, KOMI REPUBLIC</div>
+      <div class="bio-eyebrow">SINCE 1996 · SYKTYVKAR, KOMI REPUBLIC</div>
       <div class="rule"></div>
       <p>Formed in Syktyvkar at the end of 1996, the band quickly stood apart on the local scene through drum machine, sharp guitars and growled vocals. After an active run of shows from 1997 to 1999, the first period came to an end in 2001.</p>
       <p>In 2005, Roma Diamond’s solo material included songs connected to the band, and renewed work with Andrey Zavalny helped bring the project back in 2006. Samples and orchestral layers became increasingly important to the sound, while <em>Retaliation</em> (2008) and <em>Reborn</em> (2011) established the direction of the later catalogue.</p>
@@ -1036,7 +1060,7 @@ nav{display:none!important}
   <div class="bio-mobile">
     <article class="mobile-bio-scene mobile-bio-andrey">
       <div class="mobile-bio-copy">
-        <div class="bio-eyebrow">LEGEND, 1996 · SYKTYVKAR, KOMI REPUBLIC</div>
+        <div class="bio-eyebrow">SINCE 1996 · SYKTYVKAR, KOMI REPUBLIC</div>
         <div class="rule"></div>
         <p>Formed in Syktyvkar at the end of 1996, the band quickly stood apart on the local scene through drum machine, sharp guitars and growled vocals. After an active run of shows from 1997 to 1999, the first period came to an end in 2001.</p>
         <p>Renewed work with Andrey Zavalny helped bring the project back in 2006. Samples and orchestral layers became increasingly important to the sound, while <em>Retaliation</em> and <em>Reborn</em> established the direction of the later catalogue.</p>
@@ -1574,6 +1598,8 @@ const reducedMotionQuery=window.matchMedia("(prefers-reduced-motion: reduce)");
 
 /* ---------- BIOGRAPHY TEXT REVEAL ---------- */
 const biographyCopy=document.querySelector(".bio-desktop .bio-copy");
+const biographyEyebrow=biographyCopy?.querySelector(".bio-eyebrow");
+const biographyRule=biographyCopy?.querySelector(".rule");
 let biographyWords=[];
 let biographyTextActive=false;
 let biographyLayoutFrame=0;
@@ -1636,18 +1662,42 @@ function paragraphHasShortTail(paragraph,minTailWords=7){
 function layoutBiographyWords(){
   if(!biographyCopy||!biographyWords.length||window.innerWidth<=720)return;
 
-  const lines=groupBiographyWordsByLine(biographyWords);
-  let wordIndex=0;
+  const eyebrowWords=Array.from(biographyEyebrow?.querySelectorAll(".bio-word")||[]);
+  const bodyWords=Array.from(biographyCopy.querySelectorAll("p .bio-word"));
+  const bodyLines=groupBiographyWordsByLine(bodyWords);
 
-  lines.forEach((line,lineIndex)=>{
-    const exitDelay=(lines.length-1-lineIndex)*38;
+  const eyebrowStep=14;
+  eyebrowWords.forEach((word,index)=>{
+    word.style.setProperty("--bio-enter-delay",`${index*eyebrowStep}ms`);
+    word.dataset.bioLine="eyebrow";
+  });
+
+  const eyebrowEnterEnd=Math.max(0,(eyebrowWords.length-1)*eyebrowStep)+360;
+  const ruleEnterDelay=eyebrowEnterEnd+55;
+  const bodyEnterStart=ruleEnterDelay+190;
+
+  bodyWords.forEach((word,index)=>{
+    word.style.setProperty("--bio-enter-delay",`${bodyEnterStart+index*14}ms`);
+  });
+
+  bodyLines.forEach((line,lineIndex)=>{
+    const exitDelay=(bodyLines.length-1-lineIndex)*38;
     line.words.forEach(word=>{
-      word.style.setProperty("--bio-enter-delay",`${wordIndex*14}ms`);
       word.style.setProperty("--bio-exit-delay",`${exitDelay}ms`);
       word.dataset.bioLine=String(lineIndex);
-      wordIndex+=1;
     });
   });
+
+  const bodyExitEnd=Math.max(0,(bodyLines.length-1)*38)+250;
+  const ruleExitDelay=bodyExitEnd+35;
+  const eyebrowExitDelay=ruleExitDelay+175;
+
+  eyebrowWords.forEach(word=>{
+    word.style.setProperty("--bio-exit-delay",`${eyebrowExitDelay}ms`);
+  });
+
+  biographyCopy.style.setProperty("--bio-rule-enter-delay",`${ruleEnterDelay}ms`);
+  biographyCopy.style.setProperty("--bio-rule-exit-delay",`${ruleExitDelay}ms`);
 }
 
 function fitBiographyWidth(){
@@ -1963,6 +2013,18 @@ function createParticleField(){
     "  pos+=normal*transition*bendAmp*bendSign;",
     "  pos+=dir*transition*sin(localLeave*PI*2.0+a_seed.y*PI*2.0)*(1.0+a_seed.x*4.0);",
     "",
+    "  // Large home GV has a very small independent anchor-local life. Each",
+    "  // particle moves differently, but the amplitude stays sub-pixel-ish so",
+    "  // thin calligraphic strokes remain crisp.",
+    "  float logoIdleGate=1.0-localLeave;",
+    "  float logoIdleT=u_time*.001;",
+    "  float logoIdleAmp=mix(.10,.88,pow(a_seed.y,1.45));",
+    "  vec2 logoIdle=vec2(",
+    "    sin(logoIdleT*mix(.24,.82,a_seed.x)+a_seed.z*PI*2.0)+.28*sin(logoIdleT*.37+a_seed.w*9.0),",
+    "    cos(logoIdleT*mix(.21,.74,a_seed.z)+a_seed.w*PI*2.0)+.25*sin(logoIdleT*.43+a_seed.x*11.0)",
+    "  );",
+    "  pos+=logoIdle*logoIdleAmp*logoIdleGate;",
+    "",
     "  // Header-logo particles are no longer teleported. They leave the large",
     "  // GV and assemble at the top through this same particle morph.",
     "",
@@ -2052,7 +2114,7 @@ function createParticleField(){
     "  );",
     "  float bioMotionEnergy=mix(.10,1.70,smoother((bioEnergy-.025)/.56));",
     "  float bioBrightFire=smoother((bioEnergy-.40)/.34)*smoother((a_bioMeta.x-.42)/.34);",
-    "  float bioBrightFireBoost=mix(1.0,2.0,bioBrightFire);",
+    "  float bioBrightFireBoost=mix(1.0,4.0,bioBrightFire);",
     "  bioDrift*=vec2(bioAmpX,bioAmpY)*3.60*bioAmpBreath*bioMotionEnergy*bioBrightFireBoost;",
     "  pos+=bioDrift*bioLifeGate;",
     "",
@@ -2070,33 +2132,26 @@ function createParticleField(){
     "    vec4 sf=u_sideFields[sfi];",
     "    if(sf.z>2.0&&sf.w>2.0){",
     "      vec2 screenDelta=pos-sf.xy;",
-    "      vec2 local=vec2(-screenDelta.y,screenDelta.x);",
-    "      vec2 luv=local/sf.zw+.5;",
+    "      vec2 luv=screenDelta/sf.zw+.5;",
     "      float inside=step(0.0,luv.x)*step(luv.x,1.0)*step(0.0,luv.y)*step(luv.y,1.0);",
     "      if(inside>.5){",
     "        float bandBase=float(sfi)*.5;",
     "        vec2 atlasUV=vec2(luv.x,bandBase+luv.y*.5);",
-    "        float stepX=10.0/max(1.0,sf.z);",
-    "        float stepY=10.0/max(1.0,sf.w)*.5;",
-    "        float diagX=stepX*.70710678;",
-    "        float diagY=stepY*.70710678;",
-    "        float c=texture2D(u_sideMask,atlasUV).r;",
-    "        float l=texture2D(u_sideMask,atlasUV+vec2(-stepX,0.0)).r;",
-    "        float r=texture2D(u_sideMask,atlasUV+vec2( stepX,0.0)).r;",
-    "        float d=texture2D(u_sideMask,atlasUV+vec2(0.0,-stepY)).r;",
-    "        float u=texture2D(u_sideMask,atlasUV+vec2(0.0, stepY)).r;",
-    "        float ld=texture2D(u_sideMask,atlasUV+vec2(-diagX,-diagY)).r;",
-    "        float lu=texture2D(u_sideMask,atlasUV+vec2(-diagX, diagY)).r;",
-    "        float rd=texture2D(u_sideMask,atlasUV+vec2( diagX,-diagY)).r;",
-    "        float ru=texture2D(u_sideMask,atlasUV+vec2( diagX, diagY)).r;",
-    "        float nearInk=max(c,max(max(l,r),max(d,u)));",
-    "        nearInk=max(nearInk,max(max(ld,lu),max(rd,ru)));",
-    "        sideLabelClear=max(sideLabelClear,smoothstep(.035,.22,nearInk));",
-    "        vec2 awayLocal=vec2(l-r,d-u);",
-    "        vec2 awayScreen=vec2(awayLocal.y,-awayLocal.x);",
+    "        vec4 glyphMask=texture2D(u_sideMask,atlasUV);",
+    "        float coreInk=glyphMask.r;",
+    "        float haloInk=glyphMask.g;",
+    "        sideLabelClear=max(sideLabelClear,smoothstep(.025,.18,haloInk));",
+    "",
+    "        float gradX=2.0/max(1.0,sf.z);",
+    "        float gradY=2.0/max(1.0,sf.w)*.5;",
+    "        float ml=texture2D(u_sideMask,atlasUV+vec2(-gradX,0.0)).g;",
+    "        float mr=texture2D(u_sideMask,atlasUV+vec2( gradX,0.0)).g;",
+    "        float mu=texture2D(u_sideMask,atlasUV+vec2(0.0,-gradY)).g;",
+    "        float md=texture2D(u_sideMask,atlasUV+vec2(0.0, gradY)).g;",
+    "        vec2 awayScreen=vec2(ml-mr,mu-md);",
     "        float awayLen=length(awayScreen);",
     "        if(awayLen>.001){",
-    "          float repel=smoother(nearInk)*(1.0-smoothstep(.05,.32,c))*7.0;",
+    "          float repel=smoother(haloInk)*(1.0-smoothstep(.05,.40,coreInk))*5.0;",
     "          pos+=awayScreen/awayLen*repel;",
     "        }",
     "      }",
@@ -2245,7 +2300,7 @@ function createParticleField(){
     "    // One sharp reconstruction pass owns BOTH endpoints: large GV <-> Book",
     "    // (and then Discography/Biography). Every point carries its logo material",
     "    // along its own path and becomes target material only as that point lands.",
-    "    float logoKeep=1.0-step(.38,a_seed.x);",
+    "    float logoKeep=1.0-step(.50,a_seed.x);",
     "    float logoPulseRaw=.5+.5*sin(u_time*.00072*(.72+a_seed.z*.92)+a_seed.y*31.0);",
     "    float logoPulseFine=.5+.5*sin(u_time*.00131*(.55+a_seed.x*.75)+a_seed.w*47.0);",
     "    float logoPulse=smoother(.62*logoPulseRaw+.38*logoPulseFine);",
@@ -3774,17 +3829,47 @@ function createParticleField(){
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,SIDE_MASK_W,SIDE_MASK_H,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
 
-  function drawSpacedMaskText(ctx,text,cx,cy,font,letterSpacing){
+  function drawSpacedMaskText(ctx,text,cx,cy,font,letterSpacing,dx=0,dy=0){
     ctx.font=font;
     ctx.textBaseline="middle";
     ctx.fillStyle="#fff";
-    const widths=Array.from(text).map(ch=>ctx.measureText(ch).width);
+    const chars=Array.from(text);
+    const widths=chars.map(ch=>ctx.measureText(ch).width);
     const total=widths.reduce((sum,w)=>sum+w,0)+Math.max(0,widths.length-1)*letterSpacing;
     let x=cx-total*.5;
-    Array.from(text).forEach((ch,i)=>{
-      ctx.fillText(ch,x,cy);
+    chars.forEach((ch,i)=>{
+      ctx.fillText(ch,x+dx,cy+dy);
       x+=widths[i]+letterSpacing;
     });
+  }
+
+  function renderSideLabelLocalMask(d,dilate){
+    const pad=12;
+    const w=Math.max(1,Math.ceil(d.rect.width)+pad*2);
+    const h=Math.max(1,Math.ceil(d.rect.height)+pad*2);
+    const canvas=document.createElement("canvas");
+    canvas.width=w;
+    canvas.height=h;
+    const ctx=canvas.getContext("2d");
+
+    ctx.save();
+    ctx.translate(w*.5,h*.5);
+    ctx.rotate(-Math.PI*.5);
+
+    const font=`${d.fontWeight} ${d.fontSize}px ${d.fontFamily}`;
+    if(dilate){
+      for(let dy=-10;dy<=10;dy+=2){
+        for(let dx=-10;dx<=10;dx+=2){
+          if(dx*dx+dy*dy>100)continue;
+          drawSpacedMaskText(ctx,d.text,0,0,font,d.letterSpacing,dx,dy);
+        }
+      }
+    }else{
+      drawSpacedMaskText(ctx,d.text,0,0,font,d.letterSpacing);
+    }
+
+    ctx.restore();
+    return canvas;
   }
 
   function rebuildSideMaskTexture(labels){
@@ -3811,31 +3896,35 @@ function createParticleField(){
     if(signature===state.sideMaskSignature)return;
     state.sideMaskSignature=signature;
 
-    sideMaskCtx.clearRect(0,0,SIDE_MASK_W,SIDE_MASK_H);
+    const coreAtlas=document.createElement("canvas");
+    const haloAtlas=document.createElement("canvas");
+    coreAtlas.width=haloAtlas.width=SIDE_MASK_W;
+    coreAtlas.height=haloAtlas.height=SIDE_MASK_H;
+    const coreCtx=coreAtlas.getContext("2d");
+    const haloCtx=haloAtlas.getContext("2d");
 
     descriptors.forEach((d,i)=>{
       if(!d||d.rect.width<1||d.rect.height<1)return;
-      const localW=Math.max(1,d.rect.height);
-      const localH=Math.max(1,d.rect.width);
       const bandY=i*(SIDE_MASK_H*.5);
       const bandH=SIDE_MASK_H*.5;
-      const sx=SIDE_MASK_W/localW;
-      const sy=bandH/localH;
-
-      sideMaskCtx.save();
-      sideMaskCtx.translate(0,bandY);
-      sideMaskCtx.scale(sx,sy);
-      drawSpacedMaskText(
-        sideMaskCtx,
-        d.text,
-        localW*.5,
-        localH*.5,
-        `${d.fontWeight} ${d.fontSize}px ${d.fontFamily}`,
-        d.letterSpacing
-      );
-      sideMaskCtx.restore();
+      const core=renderSideLabelLocalMask(d,false);
+      const halo=renderSideLabelLocalMask(d,true);
+      coreCtx.drawImage(core,0,0,core.width,core.height,0,bandY,SIDE_MASK_W,bandH);
+      haloCtx.drawImage(halo,0,0,halo.width,halo.height,0,bandY,SIDE_MASK_W,bandH);
     });
 
+    const coreData=coreCtx.getImageData(0,0,SIDE_MASK_W,SIDE_MASK_H);
+    const haloData=haloCtx.getImageData(0,0,SIDE_MASK_W,SIDE_MASK_H);
+    const out=sideMaskCtx.createImageData(SIDE_MASK_W,SIDE_MASK_H);
+
+    for(let p=0;p<out.data.length;p+=4){
+      out.data[p]=coreData.data[p+3];
+      out.data[p+1]=haloData.data[p+3];
+      out.data[p+2]=0;
+      out.data[p+3]=255;
+    }
+
+    sideMaskCtx.putImageData(out,0,0);
     gl.bindTexture(gl.TEXTURE_2D,sideMaskTexture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,sideMaskCanvas);
@@ -3864,9 +3953,9 @@ function createParticleField(){
 
       data[k]=rect.left+rect.width*.5;
       data[k+1]=rect.top+rect.height*.5;
-      // Local, unrotated label dimensions: screen height becomes text width.
-      data[k+2]=Math.max(1,rect.height);
-      data[k+3]=Math.max(1,rect.width);
+      // The atlas itself is screen-oriented and carries its own 12px padding.
+      data[k+2]=Math.max(1,rect.width+24);
+      data[k+3]=Math.max(1,rect.height+24);
     }
 
     rebuildSideMaskTexture(labels);
