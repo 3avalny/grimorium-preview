@@ -1025,7 +1025,7 @@ nav{display:none!important}
 
   <div class="bio-desktop">
     <div class="bio-copy">
-      <div class="bio-eyebrow">1996 · Syktyvkar, Komi Republic</div>
+      <div class="bio-eyebrow">LEGEND, 1996 · SYKTYVKAR, KOMI REPUBLIC</div>
       <div class="rule"></div>
       <p>Formed in Syktyvkar at the end of 1996, the band quickly stood apart on the local scene through drum machine, sharp guitars and growled vocals. After an active run of shows from 1997 to 1999, the first period came to an end in 2001.</p>
       <p>In 2005, Roma Diamond’s solo material included songs connected to the band, and renewed work with Andrey Zavalny helped bring the project back in 2006. Samples and orchestral layers became increasingly important to the sound, while <em>Retaliation</em> (2008) and <em>Reborn</em> (2011) established the direction of the later catalogue.</p>
@@ -1036,7 +1036,7 @@ nav{display:none!important}
   <div class="bio-mobile">
     <article class="mobile-bio-scene mobile-bio-andrey">
       <div class="mobile-bio-copy">
-        <div class="bio-eyebrow">1996 · Syktyvkar, Komi Republic</div>
+        <div class="bio-eyebrow">LEGEND, 1996 · SYKTYVKAR, KOMI REPUBLIC</div>
         <div class="rule"></div>
         <p>Formed in Syktyvkar at the end of 1996, the band quickly stood apart on the local scene through drum machine, sharp guitars and growled vocals. After an active run of shows from 1997 to 1999, the first period came to an end in 2001.</p>
         <p>Renewed work with Andrey Zavalny helped bring the project back in 2006. Samples and orchestral layers became increasingly important to the sound, while <em>Retaliation</em> and <em>Reborn</em> established the direction of the later catalogue.</p>
@@ -1582,7 +1582,7 @@ let biographyEnterTimer=0;
 function wrapBiographyWords(){
   if(!biographyCopy||biographyCopy.dataset.wordRevealReady==="1")return;
 
-  biographyCopy.querySelectorAll("p").forEach(paragraph=>{
+  biographyCopy.querySelectorAll(".bio-eyebrow, p").forEach(paragraph=>{
     const walker=document.createTreeWalker(paragraph,NodeFilter.SHOW_TEXT);
     const nodes=[];
     while(walker.nextNode())nodes.push(walker.currentNode);
@@ -1719,7 +1719,7 @@ function setBiographyTextActive(active,{immediate=false}={}){
     if(immediate||reducedMotionQuery.matches){
       biographyCopy.classList.add("bio-text-visible");
     }else{
-      biographyEnterTimer=window.setTimeout(reveal,2000);
+      biographyEnterTimer=window.setTimeout(reveal,500);
     }
   }else{
     if(!biographyCopy.classList.contains("bio-text-visible")){
@@ -2051,7 +2051,9 @@ function createParticleField(){
     "    cos(bookT*bioSpeedY+bioPhaseY)+.39*sin(bookT*bioSpeedX*.69+bioPhaseX*1.27)",
     "  );",
     "  float bioMotionEnergy=mix(.10,1.70,smoother((bioEnergy-.025)/.56));",
-    "  bioDrift*=vec2(bioAmpX,bioAmpY)*3.60*bioAmpBreath*bioMotionEnergy;",
+    "  float bioBrightFire=smoother((bioEnergy-.40)/.34)*smoother((a_bioMeta.x-.42)/.34);",
+    "  float bioBrightFireBoost=mix(1.0,2.0,bioBrightFire);",
+    "  bioDrift*=vec2(bioAmpX,bioAmpY)*3.60*bioAmpBreath*bioMotionEnergy*bioBrightFireBoost;",
     "  pos+=bioDrift*bioLifeGate;",
     "",
     "  float bioBrightnessRaw=.5+.5*sin(",
@@ -2062,7 +2064,7 @@ function createParticleField(){
     "  float bioBrightness=mix(1.0,mix(bioBrightnessFloor,1.0,bioBrightnessPhase),bioLifeGate);",
     "",
     "  // Pixel-accurate Moonscythe glyph anti-field for the vertical labels.",
-    "  // Particles only clear the actual letter strokes and a ~3px neighbourhood.",
+    "  // Particles clear the actual letter strokes and a tight ~10px neighbourhood.",
     "  float sideLabelClear=0.0;",
     "  for(int sfi=0;sfi<2;sfi++){",
     "    vec4 sf=u_sideFields[sfi];",
@@ -2074,20 +2076,27 @@ function createParticleField(){
     "      if(inside>.5){",
     "        float bandBase=float(sfi)*.5;",
     "        vec2 atlasUV=vec2(luv.x,bandBase+luv.y*.5);",
-    "        float stepX=3.0/max(1.0,sf.z);",
-    "        float stepY=3.0/max(1.0,sf.w)*.5;",
+    "        float stepX=10.0/max(1.0,sf.z);",
+    "        float stepY=10.0/max(1.0,sf.w)*.5;",
+    "        float diagX=stepX*.70710678;",
+    "        float diagY=stepY*.70710678;",
     "        float c=texture2D(u_sideMask,atlasUV).r;",
     "        float l=texture2D(u_sideMask,atlasUV+vec2(-stepX,0.0)).r;",
     "        float r=texture2D(u_sideMask,atlasUV+vec2( stepX,0.0)).r;",
     "        float d=texture2D(u_sideMask,atlasUV+vec2(0.0,-stepY)).r;",
     "        float u=texture2D(u_sideMask,atlasUV+vec2(0.0, stepY)).r;",
-    "        float nearInk=max(max(l,r),max(d,u));",
-    "        sideLabelClear=max(sideLabelClear,smoothstep(.06,.34,c));",
+    "        float ld=texture2D(u_sideMask,atlasUV+vec2(-diagX,-diagY)).r;",
+    "        float lu=texture2D(u_sideMask,atlasUV+vec2(-diagX, diagY)).r;",
+    "        float rd=texture2D(u_sideMask,atlasUV+vec2( diagX,-diagY)).r;",
+    "        float ru=texture2D(u_sideMask,atlasUV+vec2( diagX, diagY)).r;",
+    "        float nearInk=max(c,max(max(l,r),max(d,u)));",
+    "        nearInk=max(nearInk,max(max(ld,lu),max(rd,ru)));",
+    "        sideLabelClear=max(sideLabelClear,smoothstep(.035,.22,nearInk));",
     "        vec2 awayLocal=vec2(l-r,d-u);",
     "        vec2 awayScreen=vec2(awayLocal.y,-awayLocal.x);",
     "        float awayLen=length(awayScreen);",
     "        if(awayLen>.001){",
-    "          float repel=smoother(nearInk)*(1.0-smoothstep(.05,.32,c))*3.2;",
+    "          float repel=smoother(nearInk)*(1.0-smoothstep(.05,.32,c))*7.0;",
     "          pos+=awayScreen/awayLen*repel;",
     "        }",
     "      }",
@@ -2236,11 +2245,16 @@ function createParticleField(){
     "    // One sharp reconstruction pass owns BOTH endpoints: large GV <-> Book",
     "    // (and then Discography/Biography). Every point carries its logo material",
     "    // along its own path and becomes target material only as that point lands.",
-    "    float logoKeep=1.0-step(.82,a_seed.x);",
-    "    float logoToneAlpha=mix(.22,.98,smoothstep(.012,.17,logoGlow));",
+    "    float logoKeep=1.0-step(.38,a_seed.x);",
+    "    float logoPulseRaw=.5+.5*sin(u_time*.00072*(.72+a_seed.z*.92)+a_seed.y*31.0);",
+    "    float logoPulseFine=.5+.5*sin(u_time*.00131*(.55+a_seed.x*.75)+a_seed.w*47.0);",
+    "    float logoPulse=smoother(.62*logoPulseRaw+.38*logoPulseFine);",
+    "    float logoRandomBrightness=mix(.42,1.0,a_seed.z);",
+    "    float logoDynamicBrightness=logoRandomBrightness*mix(.62,1.0,logoPulse);",
+    "    float logoToneAlpha=mix(.18,.98,smoothstep(.012,.17,logoGlow))*logoDynamicBrightness;",
     "    float logoDetail=smoothstep(.055,.28,logoGlow);",
-    "    float logoSharpRadius=a_logo.z*mix(.86,.68,logoDetail);",
-    "    vec3 logoSharpColor=mix(initialColor,initialColor*1.12,logoDetail);",
+    "    float logoSharpRadius=a_logo.z*mix(.78,1.10,logoPulse)*mix(.86,.68,logoDetail);",
+    "    vec3 logoSharpColor=mix(initialColor*.82,initialColor*1.16,logoPulse*.68+logoDetail*.32);",
     "",
     "    float materialKeep=1.0-step(.82,a_seed.x);",
     "    float bookCenter=1.0-smoothstep(.045,.16,abs(bookU-.5));",
@@ -2257,12 +2271,17 @@ function createParticleField(){
     "    float bookSpineTone=1.0-bookSpine*(1.0-discT)*(1.0-bioT)*.13;",
     "    float materialProtection=mix(1.0,.22,topLogoField)*mix(1.0,.08,topLogoCore);",
     "",
-    "    float reconstructionBlend=localLeave;",
+    "    // Keep the logo unreadable until each individual point is actually close",
+    "    // to its logo anchor. This prevents a complete wordmark from appearing",
+    "    // while a large cloud of particles is still travelling toward it.",
+    "    float logoLanding=1.0-smoother((localLeave-.018)/.24);",
+    "    float reconstructionBlend=1.0-logoLanding;",
     "    float targetVisible=materialKeep*(1.0-isTop);",
-    "    visible=mix(logoKeep,targetVisible,reconstructionBlend);",
-    "    passRadius=mix(logoSharpRadius,reconstructionMeta.z*mix(.86,.68,materialDetail),reconstructionBlend);",
-    "    color=mix(logoSharpColor,mix(reconstructionColor,reconstructionColor*1.12,materialDetail),reconstructionBlend);",
-    "    passAlpha=mix(logoToneAlpha,materialToneAlpha*bookSpineTone*materialProtection,reconstructionBlend);",
+    "    float travellingVisible=targetVisible*mix(.62,1.0,reconstructionBlend);",
+    "    visible=mix(travellingVisible,logoKeep,logoLanding);",
+    "    passRadius=mix(reconstructionMeta.z*mix(.86,.68,materialDetail),logoSharpRadius,logoLanding);",
+    "    color=mix(mix(reconstructionColor,reconstructionColor*1.12,materialDetail),logoSharpColor,logoLanding);",
+    "    passAlpha=mix(materialToneAlpha*bookSpineTone*materialProtection*.72,logoToneAlpha,logoLanding);",
     "  }",
     "  passAlpha*=bookBrightness*bookRayTone*bioBrightness;",
     "  passAlpha*=1.0-sideLabelClear;",
