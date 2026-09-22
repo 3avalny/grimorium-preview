@@ -181,7 +181,8 @@ nav{display:none!important}
 .hero h1{
   margin:0;font-family:var(--album-display);font-weight:400;
   font-size:clamp(54px,8.5vw,124px);line-height:.86;letter-spacing:.075em;text-transform:uppercase;
-  text-shadow:0 8px 42px rgba(0,0,0,.86);white-space:nowrap
+  text-shadow:0 8px 42px rgba(0,0,0,.86);white-space:nowrap;
+  transform:translateY(20px)
 }
 .hero-carved-s{
   display:inline-block;
@@ -194,11 +195,19 @@ nav{display:none!important}
   transform:translateY(-.05em)
 }
 .hero-sub{
-  margin-top:26px;font-family:var(--serif);font-size:clamp(16px,1.7vw,27px);
-  letter-spacing:.2em;text-transform:uppercase;color:#d0cec7
+  margin-top:26px;
+  display:grid;justify-items:center;gap:3px;
+  font-family:var(--serif);font-size:clamp(16px,1.7vw,27px);
+  line-height:1.08;letter-spacing:.2em;text-transform:uppercase;color:#d0cec7
+}
+.hero-sub-line{display:block;white-space:nowrap}
+.hero-sub-coming{
+  font-size:.72em;
+  letter-spacing:.24em;
+  color:#aaa8a1
 }
 .services{
-  display:flex;align-items:center;justify-content:center;gap:14px;margin-top:34px
+  display:flex;align-items:center;justify-content:center;gap:14px;margin-top:24px
 }
 .services a{
   width:42px;height:42px;display:grid;place-items:center;
@@ -709,9 +718,10 @@ nav{display:none!important}
     object-position:center bottom
   }
   .hero-copy{width:calc(100% - 36px)}
-  .hero h1{font-size:clamp(38px,11.3vw,68px);letter-spacing:.038em;white-space:nowrap}
-  .hero-sub{font-size:14px;line-height:1.35;letter-spacing:.13em}
-  .services{gap:14px;margin-top:28px}
+  .hero h1{font-size:clamp(38px,11.3vw,68px);letter-spacing:.038em;white-space:nowrap;transform:translateY(12px)}
+  .hero-sub{font-size:14px;line-height:1.08;letter-spacing:.13em;gap:2px}
+  .hero-sub-coming{font-size:.74em;letter-spacing:.18em}
+  .services{gap:14px;margin-top:22px}
 
   .record{min-height:auto;display:block;padding:46px 0 62px;--disc-height:auto}
   .record-side-label{display:none}
@@ -892,7 +902,10 @@ nav{display:none!important}
     <img class="hero-rocks" src="assets/rocks.webp?v=8f46a97b" alt="" aria-hidden="true">
     <div class="hero-copy">
       <h1>Renai<span class="hero-carved-s">s</span>sance</h1>
-      <div class="hero-sub">New album — 2026</div>
+      <div class="hero-sub">
+        <span class="hero-sub-line">New Album</span>
+        <span class="hero-sub-line hero-sub-coming">Coming 2026</span>
+      </div>
       <div class="services" aria-label="Listen on streaming platforms">
         <a href="https://open.spotify.com/artist/65nL8HSKtOigMf9h8d4rUK" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify">
           <img src="assets/spotify-mono.svg" alt="">
