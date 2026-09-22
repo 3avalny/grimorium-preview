@@ -2028,6 +2028,7 @@ function createParticleField(){
     dpr:1,
     count:0,
     qualityScale:1,
+    effectQualityScale:1,
     raf:0,
     active:true,
     ready:false,
@@ -2724,7 +2725,7 @@ function createParticleField(){
   function rebuildBloomTargets(){
     deleteRenderTarget(state.bloomA);
     deleteRenderTarget(state.bloomB);
-    const scale=state.qualityScale<.7?.28:.36;
+    const scale=state.effectQualityScale<.7?.24:(state.effectQualityScale<.85?.30:.36);
     state.bloomScale=scale;
     const bw=Math.max(2,Math.round(particleCanvas.width*scale));
     const bh=Math.max(2,Math.round(particleCanvas.height*scale));
@@ -2919,14 +2920,18 @@ function createParticleField(){
     if(state.perfCount<180)return;
 
     const avg=state.perfSum/state.perfCount;
-    let scale=state.qualityScale;
+    let scale=state.effectQualityScale;
     if(avg>29)scale=.52;
     else if(avg>22)scale=.72;
 
     state.perfAdapted=true;
-    if(scale<state.qualityScale){
-      state.qualityScale=scale;
-      window.setTimeout(rebuild,0);
+    if(scale<state.effectQualityScale){
+      // Never reduce particle geometry after the scene has settled. Rebuilding
+      // with fewer samples visibly changes the Discography reconstruction and
+      // causes the one-time "blink/blur" after a few seconds. If needed, only
+      // lower the offscreen bloom resolution; the 240k desktop sample stays put.
+      state.effectQualityScale=scale;
+      rebuildBloomTargets();
     }
   }
 
