@@ -3242,7 +3242,10 @@ function refreshScenes(){
   requestScenes();
 }
 
-window.addEventListener("scroll",requestScenes,{passive:true});
+window.addEventListener("scroll",()=>{
+  requestScenes();
+  if(!desktopSnapAnimating)syncDesktopSnapKey();
+},{passive:true});
 let lastSceneWidth=window.innerWidth;
 window.addEventListener("resize",()=>{
   const widthChanged=Math.abs(window.innerWidth-lastSceneWidth)>2;
@@ -3272,8 +3275,10 @@ let desktopLogoAvailable=true;
 let desktopWheelLastAt=0;
 let desktopWheelGestureLocked=false;
 let desktopWheelDirection=0;
+let desktopWheelAccumulator=0;
 
-const DESKTOP_WHEEL_NEW_GESTURE_GAP=180;
+const DESKTOP_WHEEL_NEW_GESTURE_GAP=460;
+const DESKTOP_WHEEL_TRIGGER_DELTA=28;
 
 function desktopSnapTargets(){
   const record=document.querySelector(".record");
@@ -3308,6 +3313,14 @@ function nearestDesktopSnapTarget(targets){
   return best;
 }
 
+function syncDesktopSnapKey(){
+  if(window.innerWidth<=720||desktopSnapAnimating)return;
+  const targets=desktopSnapTargets();
+  if(!targets.length)return;
+  const nearest=nearestDesktopSnapTarget(targets);
+  if(nearest)desktopSnapKey=nearest.key;
+}
+
 function animateDesktopSnap(target){
   if(desktopSnapFrame){
     cancelAnimationFrame(desktopSnapFrame);
@@ -3321,6 +3334,9 @@ function animateDesktopSnap(target){
   if(Math.abs(distance)<2){
     window.scrollTo(0,target);
     desktopSnapAnimating=false;
+    desktopWheelLastAt=performance.now();
+    desktopWheelGestureLocked=true;
+    desktopWheelAccumulator=0;
     document.documentElement.classList.remove("desktop-snapping");
     requestScenes();
     return;
@@ -3331,6 +3347,9 @@ function animateDesktopSnap(target){
   if(reducedMotionQuery.matches){
     window.scrollTo(0,target);
     desktopSnapAnimating=false;
+    desktopWheelLastAt=performance.now();
+    desktopWheelGestureLocked=true;
+    desktopWheelAccumulator=0;
     document.documentElement.classList.remove("desktop-snapping");
     requestScenes();
     return;
@@ -3351,6 +3370,9 @@ function animateDesktopSnap(target){
       desktopSnapFrame=0;
       window.scrollTo(0,target);
       desktopSnapAnimating=false;
+      desktopWheelLastAt=performance.now();
+      desktopWheelGestureLocked=true;
+      desktopWheelAccumulator=0;
       document.documentElement.classList.remove("desktop-snapping");
       requestScenes();
     }
@@ -3441,24 +3463,44 @@ window.addEventListener("wheel",e=>{
   e.preventDefault();
 
   const direction=Math.sign(e.deltaY);
-  const amount=Math.abs(e.deltaY);
-  if(!direction || amount<.01)return;
+  if(!direction)return;
 
+  const unit=e.deltaMode===1?16:(e.deltaMode===2?window.innerHeight:1);
+  const amount=Math.abs(e.deltaY)*unit;
   const now=performance.now();
   const gap=desktopWheelLastAt===0?Infinity:now-desktopWheelLastAt;
 
-  // A gesture only unlocks after a real quiet period. Momentum/inertia from
-  // the same physical swipe may continue for many wheel events, but can never
-  // trigger another section while the gesture remains locked.
+  // Never let trackpad momentum interrupt or chain off an active snap.
+  if(desktopSnapAnimating){
+    desktopWheelLastAt=now;
+    return;
+  }
+
+  // A real new gesture requires a substantial quiet period. 460 ms is long
+  // enough to swallow Safari/macOS momentum tails that previously became a
+  // second section jump.
   if(gap>DESKTOP_WHEEL_NEW_GESTURE_GAP){
     desktopWheelGestureLocked=false;
     desktopWheelDirection=0;
+    desktopWheelAccumulator=0;
+    syncDesktopSnapKey();
   }
 
   desktopWheelLastAt=now;
 
   if(desktopWheelGestureLocked)return;
 
+  if(desktopWheelDirection && desktopWheelDirection!==direction){
+    desktopWheelAccumulator=0;
+  }
+  desktopWheelDirection=direction;
+  desktopWheelAccumulator+=amount;
+
+  // Ignore tiny trackpad noise. A mouse wheel notch easily exceeds this;
+  // a trackpad needs a deliberate swipe before a section transition begins.
+  if(desktopWheelAccumulator<DESKTOP_WHEEL_TRIGGER_DELTA)return;
+
+  desktopWheelAccumulator=0;
   startDesktopWheelGesture(direction,now);
 },{passive:false});
 
@@ -3468,6 +3510,7 @@ function resetDesktopIntroSnap(){
   desktopWheelLastAt=0;
   desktopWheelGestureLocked=false;
   desktopWheelDirection=0;
+  desktopWheelAccumulator=0;
 }
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{
