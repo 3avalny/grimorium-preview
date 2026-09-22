@@ -182,7 +182,7 @@ nav{display:none!important}
   margin:0;font-family:var(--album-display);font-weight:400;
   font-size:clamp(54px,8.5vw,124px);line-height:.86;letter-spacing:.075em;text-transform:uppercase;
   text-shadow:0 8px 42px rgba(0,0,0,.86);white-space:nowrap;
-  transform:translateY(20px)
+  transform:translateY(38px)
 }
 .hero-carved-s{
   display:inline-block;
@@ -718,7 +718,7 @@ nav{display:none!important}
     object-position:center bottom
   }
   .hero-copy{width:calc(100% - 36px)}
-  .hero h1{font-size:clamp(38px,11.3vw,68px);letter-spacing:.038em;white-space:nowrap;transform:translateY(12px)}
+  .hero h1{font-size:clamp(38px,11.3vw,68px);letter-spacing:.038em;white-space:nowrap;transform:translateY(22px)}
   .hero-sub{font-size:14px;line-height:1.08;letter-spacing:.13em;gap:2px}
   .hero-sub-coming{font-size:.74em;letter-spacing:.18em}
   .services{gap:14px;margin-top:22px}
@@ -905,17 +905,6 @@ nav{display:none!important}
       <div class="hero-sub">
         <span class="hero-sub-line">New Album</span>
         <span class="hero-sub-line hero-sub-coming">Coming 2026</span>
-      </div>
-      <div class="services" aria-label="Listen on streaming platforms">
-        <a href="https://open.spotify.com/artist/65nL8HSKtOigMf9h8d4rUK" target="_blank" rel="noopener" aria-label="Spotify" title="Spotify">
-          <img src="assets/spotify-mono.svg" alt="">
-        </a>
-        <a class="apple" href="https://music.apple.com/us/search?term=Grimorium%20Verum" target="_blank" rel="noopener" aria-label="Apple Music" title="Apple Music">
-          <img src="assets/apple-music-mono.svg" alt="">
-        </a>
-        <a class="yandex" href="https://music.yandex.ru/search?text=Grimorium%20Verum" target="_blank" rel="noopener" aria-label="Yandex Music" title="Yandex Music">
-          <img src="assets/yandex-music-mono.svg" alt="">
-        </a>
       </div>
     </div>
   </div>
@@ -1584,21 +1573,21 @@ function createParticleField(){
     "  float spine=step(.5,structure)*(1.0-step(1.5,structure));",
     "  float pageEdge=step(1.5,structure);",
     "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
+    "  float isTop=step(1.5,zone);",
     "  float side=step(u_resolution.x*.5,a_target.x);",
-    "  float group=floor(a_seed.z*5.0)/5.0;",
+    "  float group=floor(a_seed.z*7.0)/7.0;",
     "  float reverseStagger=a_seed.w*.060;",
-    "  float forwardDelay=.004+a_seed.w*.035+group*.060;",
-    "  // The right half starts a little later, so the two pages never assemble",
-    "  // like a mirrored synchronized animation.",
-    "  forwardDelay+=side*.050*(1.0-step(1.5,zone));",
-    "  // The small header logo is deliberately the final thing to form.",
-    "  forwardDelay=mix(forwardDelay,.70+a_seed.w*.080,step(1.5,zone));",
-    "  float forwardLeave=smoother((u_morph-forwardDelay)/max(.001,1.0-forwardDelay));",
+    "  // Forward motion begins immediately for essentially every book particle.",
+    "  // Desynchronisation comes mostly from different durations, not from waiting.",
+    "  float forwardDelay=.001+a_seed.w*.012+group*.014;",
+    "  forwardDelay+=side*(.012+a_seed.x*.018)*(1.0-isTop);",
+    "  float forwardDuration=mix(.62,.82,side)+group*.105+a_seed.y*.070;",
+    "  forwardDuration=min(.97,forwardDuration);",
+    "  float forwardLeave=smoother((u_morph-forwardDelay)/max(.001,forwardDuration));",
     "  float reverseLeave=smoother((u_morph-reverseStagger)/(1.0-reverseStagger));",
     "  float rawLeave=mix(reverseLeave,forwardLeave,u_direction);",
-    "  // Independent speed curves make separate particle groups arrive at",
-    "  // different moments instead of behaving like one cloud.",
-    "  float speedPower=mix(.62,1.48,seed5);",
+    "  // Independent speed curves make local groups accelerate differently.",
+    "  float speedPower=mix(.54,1.62,seed5);",
     "  float localLeave=pow(rawLeave,speedPower);",
     "  float transition=sin(PI*localLeave);",
     "",
@@ -1618,19 +1607,29 @@ function createParticleField(){
     "  vec2 dir=delta/travel;",
     "  vec2 normal=vec2(-dir.y,dir.x);",
     "  float bendSign=step(.5,a_seed.y)*2.0-1.0;",
-    "  float forwardMagic=mix(1.0,1.30,u_direction);",
-    "  float bendAmp=min(108.0,18.0+travel*(.038+.082*a_seed.z))*forwardMagic;",
-    "  float curl=sin(localLeave*PI*(1.25+a_seed.w*3.35)+a_seed.x*PI*2.0+group*2.4);",
-    "  float longitudinal=sin(localLeave*PI*2.0+a_seed.z*PI*2.0);",
+    "  float forwardMagic=mix(1.0,1.48,u_direction);",
+    "  float bendAmp=min(132.0,20.0+travel*(.042+.096*a_seed.z))*forwardMagic;",
+    "  float groupPhase=group*PI*2.0;",
+    "  float curl=sin(localLeave*PI*(1.15+a_seed.w*4.15)+a_seed.x*PI*2.0+groupPhase);",
+    "  float longitudinal=sin(localLeave*PI*(1.8+a_seed.y*.9)+a_seed.z*PI*2.0-groupPhase*.45);"
     "",
     "  vec2 pos=mix(warped,a_target,localLeave);",
     "  pos+=normal*transition*bendAmp*(bendSign*.58+curl*.42);",
     "  pos+=dir*transition*longitudinal*(5.0+a_seed.x*22.0);",
     "  // Fine independent distortion gives different pieces distinct magical",
     "  // routes while keeping them inside the source-to-target corridor.",
-    "  pos.x+=sin(localLeave*(9.0+a_seed.z*5.0)+a_seed.y*37.0+group*3.0)*transition*(3.0+a_seed.w*14.0)*forwardMagic;",
-    "  pos.y+=cos(localLeave*(8.0+a_seed.w*5.0)+a_seed.x*41.0-group*2.2)*transition*(3.0+a_seed.z*13.0)*forwardMagic;",
+    "  pos.x+=sin(localLeave*(8.0+a_seed.z*7.0)+a_seed.y*37.0+groupPhase)*transition*(4.0+a_seed.w*18.0)*forwardMagic;",
+    "  pos.y+=cos(localLeave*(7.0+a_seed.w*7.0)+a_seed.x*41.0-groupPhase*.75)*transition*(4.0+a_seed.z*17.0)*forwardMagic;",
+    "  pos+=normal*sin(localLeave*PI*3.0+groupPhase+a_seed.x*5.0)*transition*(3.0+a_seed.y*13.0)*u_direction;",
     "",
+    "  // Forward only: the small header logo does not fly out of the central logo.",
+    "  // Its source particles fade immediately, teleport while invisible, then",
+    "  // crystallize in place after the book is essentially formed.",
+    "  float forwardTop=u_direction*isTop;",
+    "  float topTeleport=step(.26,u_morph);",
+    "  vec2 forwardTopPos=mix(a_logo,a_target,topTeleport);",
+    "  pos=mix(pos,forwardTopPos,forwardTop);",
+    ""
     "  if(zone<1.5){",
     "    float t=u_time*.001;",
     "    float speed1=.095+a_seed.w*.070;",
@@ -1667,6 +1666,10 @@ function createParticleField(){
     "  float structuralAlpha=mix(1.0,.72+.22*glow,spine);",
     "  structuralAlpha*=mix(1.0,1.10,pageEdge);",
     "  float passAlpha=u_alpha*zoneAlpha*structuralAlpha*mix(1.0,mix(.58,1.0,glow),u_material);",
+    "  float topSourceFade=1.0-smoother(u_morph/.13);",
+    "  float topCrystal=smoother((u_morph-.78)/.18);",
+    "  float forwardTopAlpha=max(topSourceFade,topCrystal);",
+    "  passAlpha*=mix(1.0,forwardTopAlpha,forwardTop);",
     "",
     "  if(u_pass>.5&&u_pass<1.5){",
     "    visible=step(.44,glow)*u_material*(1.0-step(1.5,zone));",
@@ -1862,7 +1865,7 @@ function createParticleField(){
     let base;
     if(state.width<=720)base=1800;
     else if(state.width<=1100)base=18000;
-    else base=150000;
+    else base=220000;
     return Math.max(600,Math.round(base*state.qualityScale));
   }
 
@@ -2026,7 +2029,7 @@ function createParticleField(){
     const sourceLogoW=Math.min(w*.56,820);
     const sourceLogoH=sourceLogoW/logoAspect;
 
-    const logoShare=w>1100?.20:(w>720?.16:.12);
+    const logoShare=w>1100?.12:(w>720?.14:.12);
     const topLogoCount=Math.max(1,Math.round(count*logoShare));
     const refCount=Math.max(1,count-topLogoCount);
 
