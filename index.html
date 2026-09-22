@@ -1713,8 +1713,8 @@ function createParticleField(){
     "    float flameBreath=sin(t*(1.45+fract(flameGroup*.217)*.52)+groupPhaseBio*.63);",
     "    float flameFine=sin(t*(2.15+a_seed.x*.55)+phase1)*.58;",
     "    float flameAmount=bioFlame*u_bio*u_material*localLeave;",
-    "    pos.x+=flameAmount*(flameSway*2.7+flameFine*.75);",
-    "    pos.y+=flameAmount*(flameBreath*2.15+sin(t*1.83+phase2)*.65);",
+    "    pos.x+=flameAmount*(flameSway*1.45+flameFine*.42);",
+    "    pos.y+=flameAmount*(flameBreath*1.15+sin(t*1.83+phase2)*.34);",
     "  }",
     "",
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
@@ -1734,7 +1734,7 @@ function createParticleField(){
     "  classRadius*=mix(1.0,.31,albumRibbon);",
     "  classRadius*=mix(1.0,.46,albumSpark);",
     "  classRadius*=mix(1.0,.84,bioCandle);",
-    "  classRadius*=mix(1.0,1.05,bioFlame);",
+    "  classRadius*=mix(1.0,.78,bioFlame);",
     "  classRadius*=mix(1.0,.58,bioWeb);",
     "  classRadius*=mix(1.0,.52,bioSpark);",
     "  classRadius*=mix(1.0,.86,step(1.5,zone));",
@@ -1760,7 +1760,7 @@ function createParticleField(){
     "    targetColor=mix(targetColor,vec3(.88,.83,.74),albumTower*.34*u_disc);",
     "    targetColor=mix(targetColor,vec3(.94,.89,.80),albumGate*.46*u_disc);",
     "    targetColor=mix(targetColor,vec3(.91,.84,.72),bioCandle*.25*u_bio);",
-    "    targetColor=mix(targetColor,vec3(1.0,.94,.78),bioFlame*.48*u_bio);",
+    "    targetColor=mix(targetColor,vec3(1.0,.93,.76),bioFlame*.30*u_bio);",
     "    targetColor=mix(targetColor,vec3(.88,.82,.72),bioWeb*.18*u_bio);",
     "  }else{",
     "    targetColor=vec3(.80,.76,.68);",
@@ -1792,10 +1792,10 @@ function createParticleField(){
     "  structuralAlpha*=mix(1.0,2.80,albumGate);",
     "  structuralAlpha*=mix(1.0,2.30,albumTower);",
     "  structuralAlpha*=mix(1.0,1.08,bioCandle);",
-    "  structuralAlpha*=mix(1.0,1.62,bioFlame);",
+    "  structuralAlpha*=mix(1.0,1.18,bioFlame);",
     "  structuralAlpha*=mix(1.0,.88,bioWeb);",
     "  structuralAlpha*=mix(1.0,.82,bioSpark);",
-    "  float effectiveGlow=glow+spineAccent*.30+spineHalo*.035+innerPage*.050+pageStack*.105+outerEdge*.006+albumGate*.22+albumTower*.11+albumSpark*.015+bioFlame*.22+bioCandle*.035+bioSpark*.08;",
+    "  float effectiveGlow=glow+spineAccent*.30+spineHalo*.035+innerPage*.050+pageStack*.105+outerEdge*.006+albumGate*.22+albumTower*.11+albumSpark*.015+bioFlame*.075+bioCandle*.035+bioSpark*.08;",
     "  float highlightGain=1.0;",
     "  highlightGain*=mix(1.0,.38,spineHalo);",
     "  highlightGain*=mix(1.0,1.55,spineAccent);",
@@ -1809,7 +1809,7 @@ function createParticleField(){
     "  highlightGain*=mix(1.0,.10,albumRibbon);",
     "  highlightGain*=mix(1.0,.36,albumSpark);",
     "  highlightGain*=mix(1.0,1.08,bioCandle);",
-    "  highlightGain*=mix(1.0,1.72,bioFlame);",
+    "  highlightGain*=mix(1.0,1.22,bioFlame);",
     "  highlightGain*=mix(1.0,.54,bioWeb);",
     "  highlightGain*=mix(1.0,.88,bioSpark);",
     "  float bloomGain=1.0;",
@@ -1825,7 +1825,7 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.025,albumRibbon);",
     "  bloomGain*=mix(1.0,.28,albumSpark);",
     "  bloomGain*=mix(1.0,.26,bioCandle);",
-    "  bloomGain*=mix(1.0,1.48,bioFlame);",
+    "  bloomGain*=mix(1.0,.42,bioFlame);",
     "  bloomGain*=mix(1.0,.055,bioWeb);",
     "  bloomGain*=mix(1.0,.72,bioSpark);",
     "  float passAlpha=u_alpha*albumBaseGain*bioBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
@@ -2380,12 +2380,12 @@ function createParticleField(){
     // Six flame regions in normalized coordinates, matching the supplied
     // full-resolution composition. Each gets its own coherent motion phase.
     const flames=[
-      [.083,.335,.055,.205],
-      [.192,.490,.035,.105],
-      [.249,.315,.038,.125],
-      [.688,.325,.038,.125],
-      [.735,.565,.034,.105],
-      [.909,.390,.058,.205]
+      [.091,.365,.023,.092,34],
+      [.191,.477,.014,.047,28],
+      [.249,.300,.015,.052,28],
+      [.689,.315,.015,.052,28],
+      [.735,.553,.014,.046,28],
+      [.910,.420,.024,.096,34]
     ];
 
     const candleBoxes=[
@@ -2422,9 +2422,10 @@ function createParticleField(){
 
         let flameId=0;
         for(let fi=0;fi<flames.length;fi++){
-          const [cx,cy,rx,ry]=flames[fi];
+          const [cx,cy,rx,ry,minLum]=flames[fi];
           const ex=(u-cx)/rx, ey=(v-cy)/ry;
-          if(ex*ex+ey*ey<=1 && lum>10){
+          const flameShape=ex*ex+ey*ey;
+          if(flameShape<=1 && lum>minLum && (edge>.045||lum>72)){
             flameId=fi+1;
             break;
           }
@@ -2446,7 +2447,7 @@ function createParticleField(){
         if(flameId){
           structure=12;
           zone=flameId*.1;
-          copies=2+(lum>90?2:0)+(edge>.24?1:0);
+          copies=1+(lum>150&&edge>.24?1:0);
         }else if(candle){
           structure=11;
           copies=1+(edge>.10?1:0)+(lum>72?1:0);
