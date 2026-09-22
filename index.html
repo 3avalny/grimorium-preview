@@ -268,7 +268,7 @@ nav{display:none!important}
 .particle-album-debug{
   position:fixed;z-index:9999;
   left:50%;bottom:22px;transform:translateX(-50%);
-  display:flex;align-items:center;justify-content:center;gap:18px;
+  display:flex!important;align-items:center;justify-content:center;gap:18px;
   width:max-content;max-width:calc(100% - 40px);
   padding:10px 16px;
   font-family:var(--sans);font-size:10px;line-height:1;
@@ -929,13 +929,13 @@ nav{display:none!important}
 <div class="site-parallax-bg" aria-hidden="true"></div>
 <canvas id="particle-field" class="particle-field" aria-hidden="true"></canvas>
 <button id="particle-logo-hit" class="particle-logo-hit" type="button" aria-label="Return to Grimorium Verum logo"></button>
-<nav class="particle-album-debug" id="particleAlbumDebug" aria-label="Temporary album particle switcher">
+<div class="particle-album-debug" id="particleAlbumDebug" role="navigation" aria-label="Temporary album particle switcher">
   <button type="button" data-id="reall">REALL</button>
   <button type="button" data-id="revenant">Revenant</button>
   <button type="button" data-id="relict">Relict</button>
   <button type="button" data-id="reborn">Reborn</button>
   <button type="button" data-id="retaliation">Retaliation</button>
-</nav>
+</div>
 <header>
   <div class="brand" aria-hidden="true"><img src="assets/GV_PNG_bez_fona.png?v=13836c25" alt=""></div>
 </header>
