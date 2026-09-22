@@ -3568,9 +3568,12 @@ function createParticleField(){
 
         const bioEnterThreshold=bioTop-state.height*.78;
         const bioLeaveThreshold=bioTop-state.height*.90;
-        const shouldShowBio=state.bioMorphTo>.5
+        const scrollSuggestsBio=state.bioMorphTo>.5
           ? scrollY>bioLeaveThreshold
           : scrollY>bioEnterThreshold;
+        const shouldShowBio=state.width>720
+          ? desktopSnapKey==="biography"
+          : scrollSuggestsBio;
         updateBioMorph(now,shouldShowBio);
       }
 
