@@ -3352,7 +3352,10 @@ function createParticleField(){
         gl.drawArrays(gl.POINTS,0,state.count);
       }
 
-      if(state.discMorph>.001&&state.bioMorph<.999){
+      if(state.discMorph>.001){
+        // The sharp reconstruction pass now owns both Discography and Biography.
+        // Keep it alive after bioMorph reaches 1 so the fully assembled candles
+        // remain visible instead of disappearing at the end of the transition.
         gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
         setParticleUniforms(now,material,bloom,alpha,1,4);
         gl.drawArrays(gl.POINTS,0,state.count);
