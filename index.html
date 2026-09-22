@@ -182,7 +182,7 @@ nav{display:none!important}
   margin:0;font-family:var(--album-display);font-weight:400;
   font-size:clamp(54px,8.5vw,124px);line-height:.86;letter-spacing:.075em;text-transform:uppercase;
   text-shadow:0 8px 42px rgba(0,0,0,.86);white-space:nowrap;
-  transform:translateY(38px)
+  transform:translateY(52px)
 }
 .hero-carved-s{
   display:inline-block;
@@ -718,7 +718,7 @@ nav{display:none!important}
     object-position:center bottom
   }
   .hero-copy{width:calc(100% - 36px)}
-  .hero h1{font-size:clamp(38px,11.3vw,68px);letter-spacing:.038em;white-space:nowrap;transform:translateY(22px)}
+  .hero h1{font-size:clamp(38px,11.3vw,68px);letter-spacing:.038em;white-space:nowrap;transform:translateY(30px)}
   .hero-sub{font-size:14px;line-height:1.08;letter-spacing:.13em;gap:2px}
   .hero-sub-coming{font-size:.74em;letter-spacing:.18em}
   .services{gap:14px;margin-top:22px}
@@ -1651,7 +1651,7 @@ function createParticleField(){
     "  float zoneRadius=zone<.5?.40:(zone>1.5?.88:1.0);",
     "  targetR*=zoneRadius;",
     "  targetR*=mix(1.0,.54,spine);",
-    "  targetR*=mix(1.0,1.08,pageEdge);",
+    "  targetR*=mix(1.0,1.04,pageEdge);"
     "  float radius=mix(logoR,targetR,u_material);",
     "",
     "  vec3 initialColor=vec3(.80,.76,.68);",
@@ -1664,7 +1664,7 @@ function createParticleField(){
     "  float passRadius=radius;",
     "  float zoneAlpha=zone<.5?.46:(zone>1.5?.60:1.0);",
     "  float structuralAlpha=mix(1.0,.72+.22*glow,spine);",
-    "  structuralAlpha*=mix(1.0,1.10,pageEdge);",
+    "  structuralAlpha*=mix(1.0,1.16,pageEdge);"
     "  float passAlpha=u_alpha*zoneAlpha*structuralAlpha*mix(1.0,mix(.58,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
@@ -1865,7 +1865,7 @@ function createParticleField(){
     let base;
     if(state.width<=720)base=1800;
     else if(state.width<=1100)base=18000;
-    else base=220000;
+    else base=260000;
     return Math.max(600,Math.round(base*state.qualityScale));
   }
 
@@ -2023,18 +2023,144 @@ function createParticleField(){
     return out;
   }
 
+  function buildBookStructureCandidates(){
+    const out=[];
+    const add=(u,v,glow=.36,structure=2,r=.82,g=.78,b=.70,copies=1)=>{
+      if(u<0||u>1||v<0||v>1)return;
+      const p={u,v,zone:1,glow,structure,r,g,b};
+      for(let i=0;i<copies;i++)out.push(p);
+    };
+    const sampleCurve=(steps,fn,opts={})=>{
+      const {
+        glow=.36,structure=2,r=.82,g=.78,b=.70,copies=1
+      }=opts;
+      for(let i=0;i<=steps;i++){
+        const t=i/steps;
+        const p=fn(t);
+        add(p.u,p.v,glow,structure,r,g,b,copies);
+      }
+    };
+
+    // Thin luminous spine / gutter. Keep it narrow so it reads as a fold,
+    // not as a solid vertical beam.
+    for(const xOff of [-.0022,0,.0022]){
+      sampleCurve(360,t=>({
+        u:.5+xOff+Math.sin(t*Math.PI*2)*.0008,
+        v:.255+t*.492
+      }),{glow:xOff===0?.82:.54,structure:1,r:.92,g:.87,b:.78,copies:xOff===0?2:1});
+    }
+
+    for(const sign of [-1,1]){
+      // Nested page frames: multiple contours make the open sheets feel layered.
+      for(let layer=0;layer<6;layer++){
+        const inset=layer*.0105;
+        const fade=1-layer*.075;
+        const glow=.48*fade;
+
+        sampleCurve(220,t=>({
+          u:.5+sign*(.026+(.345-inset)*t),
+          v:.305-(.105-layer*.004)*t+.014*Math.sin(Math.PI*t)+layer*.0055
+        }),{glow,structure:2,copies:layer<2?2:1});
+
+        sampleCurve(210,t=>({
+          u:.5+sign*(.365-inset*.65),
+          v:.215+(.355-layer*.006)*t+.010*Math.sin(Math.PI*t)
+        }),{glow:glow*.82,structure:2});
+
+        sampleCurve(240,t=>({
+          u:.5+sign*(.030+(.335-inset)*t),
+          v:.713-(.135-layer*.004)*t+.012*Math.sin(Math.PI*t)+layer*.004
+        }),{glow:glow*.92,structure:2,copies:layer<2?2:1});
+      }
+
+      // The visible thickness of the page stack at the bottom edge.
+      for(let stack=0;stack<11;stack++){
+        sampleCurve(260,t=>({
+          u:.5+sign*(.025+.342*t),
+          v:.705-.132*t+stack*.0044+.009*Math.sin(Math.PI*t)
+        }),{
+          glow:.24+stack*.012,
+          structure:2,
+          r:.78,g:.74,b:.67,
+          copies:stack<4?2:1
+        });
+      }
+
+      // Inner fan lines from the gutter into the pages.
+      for(let fan=0;fan<9;fan++){
+        const spread=(fan+1)/10;
+        sampleCurve(150,t=>({
+          u:.5+sign*(.012+(.285*spread)*Math.pow(t,.92)),
+          v:.324+.345*t-.070*spread*t+.012*Math.sin(Math.PI*t)
+        }),{
+          glow:.20+.10*(1-spread),
+          structure:2,
+          r:.76,g:.72,b:.66
+        });
+      }
+
+      // Faint pseudo-manuscript strokes. They suggest writing without producing
+      // readable text or visual clutter behind the hero typography.
+      for(let row=0;row<13;row++){
+        const baseV=.355+row*.0205;
+        const rowSeed=particleHash(row+(sign>0?700:300));
+        const startD=.055+.010*(row%3);
+        const endD=.245+.045*rowSeed;
+        const segments=4+(row%3);
+        for(let seg=0;seg<segments;seg++){
+          const s0=seg/segments;
+          const s1=Math.min(1,s0+.11+.08*particleHash(row*17+seg*31+(sign>0?11:3)));
+          sampleCurve(22,t=>{
+            const s=s0+(s1-s0)*t;
+            const d=startD+(endD-startD)*s;
+            return {
+              u:.5+sign*d,
+              v:baseV+.010*Math.sin((s*2.8+rowSeed)*Math.PI)+sign*.003*Math.sin(t*Math.PI)
+            };
+          },{
+            glow:.085+.055*particleHash(row*23+seg*7),
+            structure:0,
+            r:.68,g:.65,b:.60
+          });
+        }
+      }
+    }
+
+    // Bottom binding lip / small horizontal arcs around the spine.
+    for(let ring=0;ring<5;ring++){
+      sampleCurve(180,t=>{
+        const a=(t-.5)*Math.PI*.92;
+        return {
+          u:.5+Math.sin(a)*(.052+ring*.007),
+          v:.724+Math.cos(a)*(.018+ring*.003)+ring*.004
+        };
+      },{
+        glow:.34-ring*.035,
+        structure:2,
+        r:.82,g:.78,b:.70
+      });
+    }
+
+    return out;
+  }
+
   function buildParticleData(count){
     const w=state.width,h=state.height;
     const logoAspect=source.naturalWidth/Math.max(1,source.naturalHeight);
     const sourceLogoW=Math.min(w*.56,820);
     const sourceLogoH=sourceLogoW/logoAspect;
 
-    const logoShare=w>1100?.12:(w>720?.14:.12);
+    const logoShare=w>1100?.085:(w>720?.13:.12);
     const topLogoCount=Math.max(1,Math.round(count*logoShare));
     const refCount=Math.max(1,count-topLogoCount);
+    const structureCandidates=buildBookStructureCandidates();
+    const structureShare=w>1100?.30:(w>720?.18:.10);
+    const structureCount=Math.max(1,Math.round(refCount*structureShare));
+    const imageRefCount=Math.max(1,refCount-structureCount);
 
     const sourcePoints=sampleLowDiscrepancy(state.logoCandidates,count,0x91e10da5);
-    const refPoints=sampleLowDiscrepancy(state.referenceCandidates,refCount,0xc2b2ae35);
+    const refPoints=sampleLowDiscrepancy(state.referenceCandidates,imageRefCount,0xc2b2ae35);
+    const structurePoints=sampleLowDiscrepancy(structureCandidates,structureCount,0x68bc21e7);
     const topPoints=sampleLowDiscrepancy(state.logoCandidates,topLogoCount,0x7f4a7c15);
 
     const refAspect=state.bookReference.naturalWidth/Math.max(1,state.bookReference.naturalHeight);
@@ -2058,6 +2184,16 @@ function createParticleField(){
 
     const targets=[];
     refPoints.forEach(p=>{
+      targets.push({
+        x:targetRefX+p.u*targetRefW,
+        y:targetRefY+p.v*targetRefH,
+        zone:p.zone,
+        glow:p.glow,
+        structure:p.structure||0,
+        r:p.r,g:p.g,b:p.b
+      });
+    });
+    structurePoints.forEach(p=>{
       targets.push({
         x:targetRefX+p.u*targetRefW,
         y:targetRefY+p.v*targetRefH,
@@ -2564,12 +2700,12 @@ function renderScenes(){
     if(reducedMotion){
       introBrand.style.transform=`translate(-50%,-50%) translate3d(0,${headerDeltaY.toFixed(2)}px,0) scale(${finalScale.toFixed(4)})`;
       introCopy.style.opacity="1";
-      introCopy.style.transform="translate3d(0,0,0) scale(1)";
+      introCopy.style.transform="translate3d(0,16px,0) scale(1)";
       introCopy.style.pointerEvents="auto";
       introHero.querySelector(".hero-inner").style.visibility=isMobile?"visible":(raw>=.995?"hidden":"visible");
     }else{
       introBrand.style.transform=`translate(-50%,-50%) translate3d(0,${deltaY.toFixed(2)}px,0) scale(${scale.toFixed(4)})`;
-      const introCopyY=(1-revealIn)*24-(isMobile?0:desktopExit*42);
+      const introCopyY=(isMobile?9:16)+(1-revealIn)*24-(isMobile?0:desktopExit*42);
       introCopy.style.opacity=reveal.toFixed(3);
       introCopy.style.transform=`translate3d(0,${introCopyY.toFixed(2)}px,0) scale(${(.992+revealIn*.008).toFixed(4)})`;
       introCopy.style.pointerEvents=reveal>.88?"auto":"none";
