@@ -1807,9 +1807,13 @@ function createParticleField(){
     "    sin(reconstructionUV.y*7.2+flowTime)+.42*sin(reconstructionUV.x*5.4-flowTime*.63),",
     "    cos(reconstructionUV.x*6.4+flowTime*.82)+.36*sin(reconstructionUV.y*8.1+flowTime*.91)",
     "  );",
-    "  // Book and albums share the same coherent drift field.",
+    "  // Book keeps the luminous center stable and breathes toward the edges.",
+    "  float bookU=a_target.x/max(1.0,u_resolution.x);",
+    "  float bookEdge=smoothstep(.055,.43,abs(bookU-.5));",
+    "  float bookDriftAmp=mix(.28,4.8,bookEdge);",
+    "  float reconstructionDriftAmp=mix(bookDriftAmp,4.8,discT);",
     "  float albumDriftGate=u_material*localLeave*(1.0-isTop)*(1.0-u_bio);",
-    "  pos+=albumFlow*4.8*albumDriftGate;",
+    "  pos+=albumFlow*reconstructionDriftAmp*albumDriftGate;",
     "",
     "  // Biography uses the exact same coherent flow as the album scenes,",
     "  // only with a much smaller amplitude.",
@@ -1933,10 +1937,18 @@ function createParticleField(){
     "",
     "  float reconstructionWeight=u_material*(1.0-isTop);",
     "  passAlpha*=1.0-reconstructionWeight;",
-    "  if(u_pass>3.5){",
-    "    // Albums and Biography share one reconstruction path. The only thing",
-    "    // that changes is the full-resolution source target itself.",
+    "  if(u_pass>4.5){",
+    "    // Final top-logo overlay pass.",
+    "    visible=isTop*u_material;",
+    "    passRadius=max(.34,a_meta.z*.72);",
+    "    color=vec3(.80,.76,.68);",
+    "    passAlpha=u_alpha*.82;",
+    "  }else if(u_pass>3.5){",
+    "    // Book, albums and Biography share one reconstruction path.",
     "    float materialKeep=1.0-step(.82,a_seed.x);",
+    "    float bookCenter=1.0-smoothstep(.045,.16,abs(bookU-.5));",
+    "    float bookCenterKeep=bookCenter*(1.0-discT)*(1.0-bioT);",
+    "    materialKeep=max(materialKeep,bookCenterKeep);",
     "    vec4 bookAlbumMeta=mix(a_meta,albumSceneMeta,discT);",
     "    vec3 bookAlbumColor=mix(a_color,albumSceneColor,discT);",
     "    vec4 reconstructionMeta=mix(bookAlbumMeta,a_bioMeta,bioT);",
@@ -3340,6 +3352,13 @@ function createParticleField(){
       }
 
       renderBloom(now,material,bloom,alpha);
+
+      if(material>.001){
+        gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+        setParticleUniforms(now,material,bloom,alpha,1,5);
+        gl.drawArrays(gl.POINTS,0,state.count);
+      }
+
       gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
     }
 
