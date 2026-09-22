@@ -1574,20 +1574,20 @@ function createParticleField(){
     "  float pageEdge=step(1.5,structure);",
     "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
     "  float isTop=step(1.5,zone);",
-    "  float side=step(u_resolution.x*.5,a_target.x);",
-    "  float group=floor(a_seed.z*7.0)/7.0;",
+    "  float targetU=sat(a_target.x/max(1.0,u_resolution.x));",
+    "  float groupIndex=floor(min(.9999,targetU)*6.0);",
+    "  float groupNorm=groupIndex/5.0;",
+    "  float groupHash=fract(groupIndex*.6180339+.173);",
     "  float reverseStagger=a_seed.w*.060;",
-    "  // Forward motion begins immediately for essentially every book particle.",
-    "  // Desynchronisation comes mostly from different durations, not from waiting.",
-    "  float forwardDelay=.001+a_seed.w*.012+group*.014;",
-    "  forwardDelay+=side*(.012+a_seed.x*.018)*(1.0-isTop);",
-    "  float forwardDuration=mix(.62,.82,side)+group*.105+a_seed.y*.070;",
-    "  forwardDuration=min(.97,forwardDuration);",
+    "  // Six spatial chunks across the whole book. Every chunk starts quickly,",
+    "  // but each has a small independent lag and duration.",
+    "  float forwardDelay=.002+groupHash*.050+a_seed.w*.016;",
+    "  float forwardDuration=.78+groupNorm*.035+(groupHash-.5)*.075+a_seed.y*.045;",
+    "  forwardDuration=clamp(forwardDuration,.72,.91);",
     "  float forwardLeave=smoother((u_morph-forwardDelay)/max(.001,forwardDuration));",
     "  float reverseLeave=smoother((u_morph-reverseStagger)/(1.0-reverseStagger));",
     "  float rawLeave=mix(reverseLeave,forwardLeave,u_direction);",
-    "  // Independent speed curves make local groups accelerate differently.",
-    "  float speedPower=mix(.54,1.62,seed5);",
+    "  float speedPower=mix(.58,1.52,seed5);",
     "  float localLeave=pow(rawLeave,speedPower);",
     "  float transition=sin(PI*localLeave);",
     "",
@@ -1607,20 +1607,31 @@ function createParticleField(){
     "  vec2 dir=delta/travel;",
     "  vec2 normal=vec2(-dir.y,dir.x);",
     "  float bendSign=step(.5,a_seed.y)*2.0-1.0;",
-    "  float forwardMagic=mix(1.0,1.48,u_direction);",
-    "  float bendAmp=min(132.0,20.0+travel*(.042+.096*a_seed.z))*forwardMagic;",
-    "  float groupPhase=group*PI*2.0;",
-    "  float curl=sin(localLeave*PI*(1.15+a_seed.w*4.15)+a_seed.x*PI*2.0+groupPhase);",
-    "  float longitudinal=sin(localLeave*PI*(1.8+a_seed.y*.9)+a_seed.z*PI*2.0-groupPhase*.45);",
+    "  float forwardMagic=mix(1.0,1.62,u_direction);",
+    "  float bendAmp=min(150.0,20.0+travel*(.046+.105*a_seed.z))*forwardMagic;",
+    "  float groupPhase=(groupIndex+groupHash)*PI*.72;",
+    "  float curl=sin(localLeave*PI*(1.10+a_seed.w*4.8)+a_seed.x*PI*2.0+groupPhase);",
+    "  float longitudinal=sin(localLeave*PI*(1.7+a_seed.y*1.1)+a_seed.z*PI*2.0-groupPhase*.52);"
     "",
     "  vec2 pos=mix(warped,a_target,localLeave);",
-    "  pos+=normal*transition*bendAmp*(bendSign*.58+curl*.42);",
-    "  pos+=dir*transition*longitudinal*(5.0+a_seed.x*22.0);",
-    "  // Fine independent distortion gives different pieces distinct magical",
-    "  // routes while keeping them inside the source-to-target corridor.",
-    "  pos.x+=sin(localLeave*(8.0+a_seed.z*7.0)+a_seed.y*37.0+groupPhase)*transition*(4.0+a_seed.w*18.0)*forwardMagic;",
-    "  pos.y+=cos(localLeave*(7.0+a_seed.w*7.0)+a_seed.x*41.0-groupPhase*.75)*transition*(4.0+a_seed.z*17.0)*forwardMagic;",
-    "  pos+=normal*sin(localLeave*PI*3.0+groupPhase+a_seed.x*5.0)*transition*(3.0+a_seed.y*13.0)*u_direction;",
+    "  pos+=normal*transition*bendAmp*(bendSign*.52+curl*.48);",
+    "  pos+=dir*transition*longitudinal*(6.0+a_seed.x*26.0);",
+    "  // Independent micro-paths inside each chunk.",
+    "  pos.x+=sin(localLeave*(8.0+a_seed.z*8.5)+a_seed.y*39.0+groupPhase)*transition*(5.0+a_seed.w*22.0)*forwardMagic;",
+    "  pos.y+=cos(localLeave*(7.0+a_seed.w*8.0)+a_seed.x*43.0-groupPhase*.78)*transition*(5.0+a_seed.z*20.0)*forwardMagic;",
+    "  pos+=normal*sin(localLeave*PI*3.4+groupPhase+a_seed.x*6.0)*transition*(4.0+a_seed.y*16.0)*u_direction;",
+    "",
+    "  // Mid-transition bundle stage: particles in the same spatial chunk briefly",
+    "  // converge into coherent strands before opening into the final reference.",
+    "  float bundleIn=smoother((localLeave-.32)/.18);",
+    "  float bundleOut=1.0-smoother((localLeave-.66)/.22);",
+    "  float bundle=bundleIn*bundleOut*u_direction*(1.0-isTop);",
+    "  float chunkCenterX=(groupIndex+.5)/6.0*u_resolution.x;",
+    "  float laneY=mix(warped.y,a_target.y,.72);",
+    "  vec2 bundleAnchor=vec2(chunkCenterX,laneY);",
+    "  float bundleStrength=.075+.065*groupHash;",
+    "  pos=mix(pos,bundleAnchor,bundle*bundleStrength);",
+    "  pos+=normal*sin(groupPhase+a_seed.x*PI*2.0)*bundle*(5.0+a_seed.z*12.0);",
     "",
     "  // Forward only: the small header logo does not fly out of the central logo.",
     "  // Its source particles fade immediately, teleport while invisible, then",
@@ -1651,7 +1662,7 @@ function createParticleField(){
     "  float zoneRadius=zone<.5?.40:(zone>1.5?.88:1.0);",
     "  targetR*=zoneRadius;",
     "  targetR*=mix(1.0,.54,spine);",
-    "  targetR*=mix(1.0,1.04,pageEdge);",
+    "  targetR*=mix(1.0,1.08,pageEdge);"
     "  float radius=mix(logoR,targetR,u_material);",
     "",
     "  vec3 initialColor=vec3(.80,.76,.68);",
@@ -1664,7 +1675,7 @@ function createParticleField(){
     "  float passRadius=radius;",
     "  float zoneAlpha=zone<.5?.46:(zone>1.5?.60:1.0);",
     "  float structuralAlpha=mix(1.0,.72+.22*glow,spine);",
-    "  structuralAlpha*=mix(1.0,1.16,pageEdge);",
+    "  structuralAlpha*=mix(1.0,1.10,pageEdge);"
     "  float passAlpha=u_alpha*zoneAlpha*structuralAlpha*mix(1.0,mix(.58,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
@@ -1865,7 +1876,7 @@ function createParticleField(){
     let base;
     if(state.width<=720)base=1800;
     else if(state.width<=1100)base=18000;
-    else base=260000;
+    else base=240000;
     return Math.max(600,Math.round(base*state.qualityScale));
   }
 
@@ -2023,126 +2034,6 @@ function createParticleField(){
     return out;
   }
 
-  function buildBookStructureCandidates(){
-    const out=[];
-    const add=(u,v,glow=.36,structure=2,r=.82,g=.78,b=.70,copies=1)=>{
-      if(u<0||u>1||v<0||v>1)return;
-      const p={u,v,zone:1,glow,structure,r,g,b};
-      for(let i=0;i<copies;i++)out.push(p);
-    };
-    const sampleCurve=(steps,fn,opts={})=>{
-      const {
-        glow=.36,structure=2,r=.82,g=.78,b=.70,copies=1
-      }=opts;
-      for(let i=0;i<=steps;i++){
-        const t=i/steps;
-        const p=fn(t);
-        add(p.u,p.v,glow,structure,r,g,b,copies);
-      }
-    };
-
-    // Thin luminous spine / gutter. Keep it narrow so it reads as a fold,
-    // not as a solid vertical beam.
-    for(const xOff of [-.0022,0,.0022]){
-      sampleCurve(360,t=>({
-        u:.5+xOff+Math.sin(t*Math.PI*2)*.0008,
-        v:.255+t*.492
-      }),{glow:xOff===0?.82:.54,structure:1,r:.92,g:.87,b:.78,copies:xOff===0?2:1});
-    }
-
-    for(const sign of [-1,1]){
-      // Nested page frames: multiple contours make the open sheets feel layered.
-      for(let layer=0;layer<6;layer++){
-        const inset=layer*.0105;
-        const fade=1-layer*.075;
-        const glow=.48*fade;
-
-        sampleCurve(220,t=>({
-          u:.5+sign*(.026+(.345-inset)*t),
-          v:.305-(.105-layer*.004)*t+.014*Math.sin(Math.PI*t)+layer*.0055
-        }),{glow,structure:2,copies:layer<2?2:1});
-
-        sampleCurve(210,t=>({
-          u:.5+sign*(.365-inset*.65),
-          v:.215+(.355-layer*.006)*t+.010*Math.sin(Math.PI*t)
-        }),{glow:glow*.82,structure:2});
-
-        sampleCurve(240,t=>({
-          u:.5+sign*(.030+(.335-inset)*t),
-          v:.713-(.135-layer*.004)*t+.012*Math.sin(Math.PI*t)+layer*.004
-        }),{glow:glow*.92,structure:2,copies:layer<2?2:1});
-      }
-
-      // The visible thickness of the page stack at the bottom edge.
-      for(let stack=0;stack<11;stack++){
-        sampleCurve(260,t=>({
-          u:.5+sign*(.025+.342*t),
-          v:.705-.132*t+stack*.0044+.009*Math.sin(Math.PI*t)
-        }),{
-          glow:.24+stack*.012,
-          structure:2,
-          r:.78,g:.74,b:.67,
-          copies:stack<4?2:1
-        });
-      }
-
-      // Inner fan lines from the gutter into the pages.
-      for(let fan=0;fan<9;fan++){
-        const spread=(fan+1)/10;
-        sampleCurve(150,t=>({
-          u:.5+sign*(.012+(.285*spread)*Math.pow(t,.92)),
-          v:.324+.345*t-.070*spread*t+.012*Math.sin(Math.PI*t)
-        }),{
-          glow:.20+.10*(1-spread),
-          structure:2,
-          r:.76,g:.72,b:.66
-        });
-      }
-
-      // Faint pseudo-manuscript strokes. They suggest writing without producing
-      // readable text or visual clutter behind the hero typography.
-      for(let row=0;row<13;row++){
-        const baseV=.355+row*.0205;
-        const rowSeed=particleHash(row+(sign>0?700:300));
-        const startD=.055+.010*(row%3);
-        const endD=.245+.045*rowSeed;
-        const segments=4+(row%3);
-        for(let seg=0;seg<segments;seg++){
-          const s0=seg/segments;
-          const s1=Math.min(1,s0+.11+.08*particleHash(row*17+seg*31+(sign>0?11:3)));
-          sampleCurve(22,t=>{
-            const s=s0+(s1-s0)*t;
-            const d=startD+(endD-startD)*s;
-            return {
-              u:.5+sign*d,
-              v:baseV+.010*Math.sin((s*2.8+rowSeed)*Math.PI)+sign*.003*Math.sin(t*Math.PI)
-            };
-          },{
-            glow:.085+.055*particleHash(row*23+seg*7),
-            structure:0,
-            r:.68,g:.65,b:.60
-          });
-        }
-      }
-    }
-
-    // Bottom binding lip / small horizontal arcs around the spine.
-    for(let ring=0;ring<5;ring++){
-      sampleCurve(180,t=>{
-        const a=(t-.5)*Math.PI*.92;
-        return {
-          u:.5+Math.sin(a)*(.052+ring*.007),
-          v:.724+Math.cos(a)*(.018+ring*.003)+ring*.004
-        };
-      },{
-        glow:.34-ring*.035,
-        structure:2,
-        r:.82,g:.78,b:.70
-      });
-    }
-
-    return out;
-  }
 
   function buildParticleData(count){
     const w=state.width,h=state.height;
@@ -2153,14 +2044,9 @@ function createParticleField(){
     const logoShare=w>1100?.085:(w>720?.13:.12);
     const topLogoCount=Math.max(1,Math.round(count*logoShare));
     const refCount=Math.max(1,count-topLogoCount);
-    const structureCandidates=buildBookStructureCandidates();
-    const structureShare=w>1100?.30:(w>720?.18:.10);
-    const structureCount=Math.max(1,Math.round(refCount*structureShare));
-    const imageRefCount=Math.max(1,refCount-structureCount);
 
     const sourcePoints=sampleLowDiscrepancy(state.logoCandidates,count,0x91e10da5);
-    const refPoints=sampleLowDiscrepancy(state.referenceCandidates,imageRefCount,0xc2b2ae35);
-    const structurePoints=sampleLowDiscrepancy(structureCandidates,structureCount,0x68bc21e7);
+    const refPoints=sampleLowDiscrepancy(state.referenceCandidates,refCount,0xc2b2ae35);
     const topPoints=sampleLowDiscrepancy(state.logoCandidates,topLogoCount,0x7f4a7c15);
 
     const refAspect=state.bookReference.naturalWidth/Math.max(1,state.bookReference.naturalHeight);
@@ -2184,16 +2070,6 @@ function createParticleField(){
 
     const targets=[];
     refPoints.forEach(p=>{
-      targets.push({
-        x:targetRefX+p.u*targetRefW,
-        y:targetRefY+p.v*targetRefH,
-        zone:p.zone,
-        glow:p.glow,
-        structure:p.structure||0,
-        r:p.r,g:p.g,b:p.b
-      });
-    });
-    structurePoints.forEach(p=>{
       targets.push({
         x:targetRefX+p.u*targetRefW,
         y:targetRefY+p.v*targetRefH,
