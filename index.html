@@ -1725,7 +1725,9 @@ function createParticleField(){
     "  vec3 targetColor=activeColor;",
     "  float hot=smoothstep(.58,1.0,glow);",
     "  if(zone<1.5)targetColor=mix(targetColor,vec3(1.0,.965,.90),hot*.18);",
-    "  else targetColor=vec3(.80,.76,.68);",
+    "  targetColor=mix(targetColor,vec3(.88,.83,.74),albumTower*.34*u_disc);",
+    "  targetColor=mix(targetColor,vec3(.94,.89,.80),albumGate*.46*u_disc);",
+    "  else targetColor=vec3(.80,.76,.68);"
     "  vec3 color=mix(initialColor,targetColor,u_material);",
     "  float visible=1.0;",
     "  float passRadius=radius;",
@@ -1733,9 +1735,9 @@ function createParticleField(){
     "  zoneAlpha*=mix(1.0,.24,filament);",
     "  zoneAlpha*=mix(1.0,.065,dust);",
     "  zoneAlpha*=mix(1.0,1.00,albumGate);",
-    "  zoneAlpha*=mix(1.0,.88,albumTower);",
-    "  zoneAlpha*=mix(1.0,.20,albumRibbon);",
-    "  zoneAlpha*=mix(1.0,.54,albumSpark);",
+    "  zoneAlpha*=mix(1.0,.96,albumTower);",
+    "  zoneAlpha*=mix(1.0,.18,albumRibbon);",
+    "  zoneAlpha*=mix(1.0,.16,albumSpark);",
     "  float bookBaseGain=1.0+.06*(1.0-filament)*(1.0-dust)*(1.0-step(1.5,zone));",
     "  float albumBaseGain=mix(1.0,1.58,u_disc);",
     "  float structuralAlpha=1.0;",
@@ -1745,7 +1747,9 @@ function createParticleField(){
     "  structuralAlpha*=mix(1.0,.75,outerEdge);",
     "  structuralAlpha*=mix(1.0,.42,upperCenter);",
     "  structuralAlpha*=mix(1.0,1.72,spineAccent);",
-    "  float effectiveGlow=glow+spineAccent*.30+spineHalo*.035+innerPage*.050+pageStack*.105+outerEdge*.006+albumGate*.13+albumTower*.065+albumSpark*.20;",
+    "  structuralAlpha*=mix(1.0,2.80,albumGate);",
+    "  structuralAlpha*=mix(1.0,2.30,albumTower);",
+    "  float effectiveGlow=glow+spineAccent*.30+spineHalo*.035+innerPage*.050+pageStack*.105+outerEdge*.006+albumGate*.22+albumTower*.11+albumSpark*.015;",
     "  float highlightGain=1.0;",
     "  highlightGain*=mix(1.0,.38,spineHalo);",
     "  highlightGain*=mix(1.0,1.55,spineAccent);",
@@ -1754,10 +1758,10 @@ function createParticleField(){
     "  highlightGain*=mix(1.0,.72,outerEdge);",
     "  highlightGain*=mix(1.0,.18,filament);",
     "  highlightGain*=mix(1.0,.025,dust);",
-    "  highlightGain*=mix(1.0,1.62,albumGate);",
-    "  highlightGain*=mix(1.0,1.30,albumTower);",
-    "  highlightGain*=mix(1.0,.12,albumRibbon);",
-    "  highlightGain*=mix(1.0,1.45,albumSpark);",
+    "  highlightGain*=mix(1.0,1.72,albumGate);",
+    "  highlightGain*=mix(1.0,1.38,albumTower);",
+    "  highlightGain*=mix(1.0,.10,albumRibbon);",
+    "  highlightGain*=mix(1.0,.36,albumSpark);",
     "  float bloomGain=1.0;",
     "  bloomGain*=mix(1.0,.18,spineHalo);",
     "  bloomGain*=mix(1.0,1.45,spineAccent);",
@@ -1766,10 +1770,10 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.24,outerEdge);",
     "  bloomGain*=mix(1.0,.075,filament);",
     "  bloomGain*=mix(1.0,.008,dust);",
-    "  bloomGain*=mix(1.0,.58,albumGate);",
-    "  bloomGain*=mix(1.0,.34,albumTower);",
-    "  bloomGain*=mix(1.0,.035,albumRibbon);",
-    "  bloomGain*=mix(1.0,1.15,albumSpark);",
+    "  bloomGain*=mix(1.0,.52,albumGate);",
+    "  bloomGain*=mix(1.0,.28,albumTower);",
+    "  bloomGain*=mix(1.0,.025,albumRibbon);",
+    "  bloomGain*=mix(1.0,.28,albumSpark);",
     "  float passAlpha=u_alpha*albumBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
@@ -2177,13 +2181,22 @@ function createParticleField(){
         if(a<=.01)continue;
 
         const lum=lumMap[y*sampleW+x];
-        if(lum<6.0)continue;
 
         const u=x/sampleW;
         const v=y/sampleH;
+
+        // Spatial architecture masks are evaluated before luminance rejection so
+        // very faint real edges of the gate/towers survive extraction.
+        const gateRegion=Math.abs(u-.5)<.122 && v>.235 && v<.805;
+        const leftTower=u>.165&&u<.455;
+        const rightTower=u>.545&&u<.835;
+        const towerRegion=(leftTower||rightTower)&&v>.045&&v<.875;
+        const architectureRegion=gateRegion||towerRegion;
+        if(lum<(architectureRegion?2.15:7.2))continue;
+
         const dx=Math.abs(lumAt(x+1,y)-lumAt(x-1,y));
         const dy=Math.abs(lumAt(x,y+1)-lumAt(x,y-1));
-        const edge=particleClamp((dx+dy)/88,0,1);
+        const edge=particleClamp((dx+dy)/82,0,1);
         const verticality=dx/Math.max(1,dx+dy);
 
         const localMass=
@@ -2191,24 +2204,21 @@ function createParticleField(){
           lumAt(x-1,y-1)+lumAt(x+1,y-1)+lumAt(x-1,y+1)+lumAt(x+1,y+1);
 
         const r=data[k]/255,g=data[k+1]/255,b=data[k+2]/255;
-        const glow=particleClamp((lum-3.5)/190,.03,1);
+        const glow=particleClamp((lum-2.0)/176,.025,1);
 
         // Central iron gate / bars / ornament.
-        const gateRegion=Math.abs(u-.5)<.115 && v>.255 && v<.785;
         const gatePixel=gateRegion && (
-          verticality>.43 ||
-          edge>.135 ||
-          lum>38
+          verticality>.30 ||
+          edge>.070 ||
+          lum>16
         );
 
-        // Two architectural tower bodies and spires. The spatial masks stop
-        // full-screen ribbons from stealing the majority of the sample.
-        const leftTower=u>.185&&u<.445;
-        const rightTower=u>.555&&u<.815;
-        const towerRegion=(leftTower||rightTower)&&v>.055&&v<.86;
+        // Two architectural tower bodies and spires.
+        const spireZone=v<.34;
         const towerPixel=towerRegion && !gatePixel && (
-          (edge>.105&&verticality>.30) ||
-          lum>46
+          (edge>.065&&verticality>.20) ||
+          (spireZone&&edge>.045) ||
+          lum>20
         );
 
         // Small bright isolated points are sparks. Require low local mass so
@@ -2216,18 +2226,23 @@ function createParticleField(){
         const isolatedBright=lum>58 && localMass<lum*3.3 && edge>.12;
 
         if(gatePixel){
-          gate.push({u,v,zone:0,glow:Math.max(glow,.34),structure:7,r,g,b});
+          const boost=1+(verticality>.48?2:0)+(edge>.24?1:0);
+          const p={u,v,zone:0,glow:Math.max(glow,.30),structure:7,r,g,b};
+          for(let n=0;n<boost;n++)gate.push(p);
           continue;
         }
 
         if(towerPixel){
-          towers.push({u,v,zone:0,glow:Math.max(glow,.22),structure:8,r,g,b});
+          const spireBoost=v<.34&&edge>.075?2:0;
+          const verticalBoost=verticality>.44?1:0;
+          const p={u,v,zone:0,glow:Math.max(glow,.18),structure:8,r,g,b};
+          for(let n=0;n<1+spireBoost+verticalBoost;n++)towers.push(p);
           continue;
         }
 
         if(isolatedBright){
           const keep=particleHash(x*224737+y*99139);
-          if(keep<.52)sparks.push({u,v,zone:0,glow,structure:10,r,g,b});
+          if(keep<.25)sparks.push({u,v,zone:0,glow:glow*.42,structure:10,r,g,b});
           continue;
         }
 
@@ -2244,8 +2259,8 @@ function createParticleField(){
       }
     }
 
-    // Explicit composition quotas. Architecture gets ~64%, ribbons ~23%,
-    // sparks ~13%, independent of how much bright ribbon area exists in the image.
+    // Explicit composition quotas. Architecture now owns the frame decisively;
+    // sparks are deliberately rare and ribbons remain secondary.
     const available=gate.length+towers.length+ribbons.length+sparks.length;
     const budget=Math.max(12000,Math.min(90000,available*2));
     const take=(arr,count,salt)=>{
@@ -2254,10 +2269,10 @@ function createParticleField(){
     };
 
     let list=[
-      ...take(gate,Math.round(budget*.25),0x0f3c27a1),
-      ...take(towers,Math.round(budget*.39),0x24d8a91b),
-      ...take(ribbons,Math.round(budget*.23),0x93ac117d),
-      ...take(sparks,Math.round(budget*.13),0xc4614e39)
+      ...take(gate,Math.round(budget*.28),0x0f3c27a1),
+      ...take(towers,Math.round(budget*.44),0x24d8a91b),
+      ...take(ribbons,Math.round(budget*.22),0x93ac117d),
+      ...take(sparks,Math.round(budget*.06),0xc4614e39)
     ];
 
     // Fallback if one spatial class happened to be empty on a different crop.
