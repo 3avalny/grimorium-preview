@@ -1600,9 +1600,10 @@ function createParticleField(){
     "  float outerEdge=step(3.5,structure)*(1.0-step(4.5,structure));",
     "  float filament=step(4.5,structure)*(1.0-step(5.5,structure));",
     "  float dust=step(5.5,structure)*(1.0-step(6.5,structure));",
-    "  float albumCore=step(6.5,structure)*(1.0-step(7.5,structure));",
-    "  float albumRibbon=step(7.5,structure)*(1.0-step(8.5,structure));",
-    "  float albumDust=step(8.5,structure);",
+    "  float albumGate=step(6.5,structure)*(1.0-step(7.5,structure));",
+    "  float albumTower=step(7.5,structure)*(1.0-step(8.5,structure));",
+    "  float albumRibbon=step(8.5,structure)*(1.0-step(9.5,structure));",
+    "  float albumSpark=step(9.5,structure);",
     "  float seed5=fract(a_seed.x*17.17+a_seed.y*31.73+a_seed.z*7.91+a_seed.w*53.11);",
     "  float isTop=step(1.5,zone);",
     "  float discTransition=sin(PI*u_disc)*(1.0-isTop);",
@@ -1701,14 +1702,15 @@ function createParticleField(){
     "  classRadius*=mix(1.0,.57,outerEdge);",
     "  classRadius*=mix(1.0,.29,filament);",
     "  classRadius*=mix(1.0,.19,dust);",
-    "  classRadius*=mix(1.0,.82,albumCore);",
-    "  classRadius*=mix(1.0,.48,albumRibbon);",
-    "  classRadius*=mix(1.0,.24,albumDust);",
+    "  classRadius*=mix(1.0,.78,albumGate);",
+    "  classRadius*=mix(1.0,.72,albumTower);",
+    "  classRadius*=mix(1.0,.31,albumRibbon);",
+    "  classRadius*=mix(1.0,.46,albumSpark);",
     "  classRadius*=mix(1.0,.86,step(1.5,zone));",
     "  float materialU=target.x/max(1.0,u_resolution.x);",
     "  float materialV=target.y/max(1.0,u_resolution.y);",
     "  float centerBand=1.0-smoothstep(.010,.045,abs(materialU-.5));",
-    "  float upperCenter=(1.0-smoothstep(.18,.52,materialV))*centerBand*(1.0-spine);",
+    "  float upperCenter=(1.0-smoothstep(.18,.52,materialV))*centerBand*(1.0-spine)*(1.0-u_disc);",
     "  float spineCenter=spine*(1.0-smoothstep(.0016,.0048,abs(materialU-.5)));",
     "  float spineSideDist=abs(abs(materialU-.5)-.0062);",
     "  float spineSides=spine*(1.0-smoothstep(.0012,.0032,spineSideDist));",
@@ -1730,11 +1732,12 @@ function createParticleField(){
     "  float zoneAlpha=zone>1.5?.60:1.0;",
     "  zoneAlpha*=mix(1.0,.24,filament);",
     "  zoneAlpha*=mix(1.0,.065,dust);",
-    "  zoneAlpha*=mix(1.0,.94,albumCore);",
-    "  zoneAlpha*=mix(1.0,.58,albumRibbon);",
-    "  zoneAlpha*=mix(1.0,.14,albumDust);",
+    "  zoneAlpha*=mix(1.0,1.00,albumGate);",
+    "  zoneAlpha*=mix(1.0,.88,albumTower);",
+    "  zoneAlpha*=mix(1.0,.20,albumRibbon);",
+    "  zoneAlpha*=mix(1.0,.54,albumSpark);",
     "  float bookBaseGain=1.0+.06*(1.0-filament)*(1.0-dust)*(1.0-step(1.5,zone));",
-    "  float albumBaseGain=mix(1.0,1.34,u_disc);",
+    "  float albumBaseGain=mix(1.0,1.58,u_disc);",
     "  float structuralAlpha=1.0;",
     "  structuralAlpha*=mix(1.0,.72,spine);",
     "  structuralAlpha*=mix(1.0,1.50,innerPage);",
@@ -1742,7 +1745,7 @@ function createParticleField(){
     "  structuralAlpha*=mix(1.0,.75,outerEdge);",
     "  structuralAlpha*=mix(1.0,.42,upperCenter);",
     "  structuralAlpha*=mix(1.0,1.72,spineAccent);",
-    "  float effectiveGlow=glow+spineAccent*.30+spineHalo*.035+innerPage*.050+pageStack*.105+outerEdge*.006;",
+    "  float effectiveGlow=glow+spineAccent*.30+spineHalo*.035+innerPage*.050+pageStack*.105+outerEdge*.006+albumGate*.13+albumTower*.065+albumSpark*.20;",
     "  float highlightGain=1.0;",
     "  highlightGain*=mix(1.0,.38,spineHalo);",
     "  highlightGain*=mix(1.0,1.55,spineAccent);",
@@ -1751,9 +1754,10 @@ function createParticleField(){
     "  highlightGain*=mix(1.0,.72,outerEdge);",
     "  highlightGain*=mix(1.0,.18,filament);",
     "  highlightGain*=mix(1.0,.025,dust);",
-    "  highlightGain*=mix(1.0,1.22,albumCore);",
-    "  highlightGain*=mix(1.0,.72,albumRibbon);",
-    "  highlightGain*=mix(1.0,.08,albumDust);",
+    "  highlightGain*=mix(1.0,1.62,albumGate);",
+    "  highlightGain*=mix(1.0,1.30,albumTower);",
+    "  highlightGain*=mix(1.0,.12,albumRibbon);",
+    "  highlightGain*=mix(1.0,1.45,albumSpark);",
     "  float bloomGain=1.0;",
     "  bloomGain*=mix(1.0,.18,spineHalo);",
     "  bloomGain*=mix(1.0,1.45,spineAccent);",
@@ -1762,9 +1766,10 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.24,outerEdge);",
     "  bloomGain*=mix(1.0,.075,filament);",
     "  bloomGain*=mix(1.0,.008,dust);",
-    "  bloomGain*=mix(1.0,.82,albumCore);",
-    "  bloomGain*=mix(1.0,.22,albumRibbon);",
-    "  bloomGain*=mix(1.0,.02,albumDust);",
+    "  bloomGain*=mix(1.0,.58,albumGate);",
+    "  bloomGain*=mix(1.0,.34,albumTower);",
+    "  bloomGain*=mix(1.0,.035,albumRibbon);",
+    "  bloomGain*=mix(1.0,1.15,albumSpark);",
     "  float passAlpha=u_alpha*albumBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
@@ -2134,7 +2139,7 @@ function createParticleField(){
 
   function prepareAlbumCandidates(){
     const ref=state.albumReference;
-    const sampleW=Math.min(720,ref.naturalWidth||360);
+    const sampleW=Math.min(900,ref.naturalWidth||450);
     const aspect=ref.naturalWidth/Math.max(1,ref.naturalHeight);
     const sampleH=Math.max(1,Math.round(sampleW/aspect));
     const off=document.createElement("canvas");
@@ -2145,7 +2150,11 @@ function createParticleField(){
     ctx.drawImage(ref,0,0,sampleW,sampleH);
     const data=ctx.getImageData(0,0,sampleW,sampleH).data;
     const lumMap=new Float32Array(sampleW*sampleH);
-    const list=[];
+
+    const gate=[];
+    const towers=[];
+    const ribbons=[];
+    const sparks=[];
 
     for(let y=0;y<sampleH;y++){
       for(let x=0;x<sampleW;x++){
@@ -2154,6 +2163,7 @@ function createParticleField(){
         lumMap[y*sampleW+x]=(data[k]*.2126+data[k+1]*.7152+data[k+2]*.0722)*a;
       }
     }
+
     const lumAt=(x,y)=>{
       x=Math.max(0,Math.min(sampleW-1,x));
       y=Math.max(0,Math.min(sampleH-1,y));
@@ -2165,33 +2175,97 @@ function createParticleField(){
         const k=(y*sampleW+x)*4;
         const a=data[k+3]/255;
         if(a<=.01)continue;
-        const lum=lumMap[y*sampleW+x];
-        if(lum<6.5)continue;
 
-        const dx=Math.abs(lumAt(x+1,y)-lumAt(x-1,y));
-        const dy=Math.abs(lumAt(x,y+1)-lumAt(x,y-1));
-        const edge=particleClamp((dx+dy)/92,0,1);
+        const lum=lumMap[y*sampleW+x];
+        if(lum<6.0)continue;
+
         const u=x/sampleW;
         const v=y/sampleH;
+        const dx=Math.abs(lumAt(x+1,y)-lumAt(x-1,y));
+        const dy=Math.abs(lumAt(x,y+1)-lumAt(x,y-1));
+        const edge=particleClamp((dx+dy)/88,0,1);
+        const verticality=dx/Math.max(1,dx+dy);
+
+        const localMass=
+          lumAt(x-2,y)+lumAt(x+2,y)+lumAt(x,y-2)+lumAt(x,y+2)+
+          lumAt(x-1,y-1)+lumAt(x+1,y-1)+lumAt(x-1,y+1)+lumAt(x+1,y+1);
+
         const r=data[k]/255,g=data[k+1]/255,b=data[k+2]/255;
+        const glow=particleClamp((lum-3.5)/190,.03,1);
 
-        let structure=9;
-        if(edge>.20||lum>82)structure=7;
-        else if(edge>.065||lum>22)structure=8;
+        // Central iron gate / bars / ornament.
+        const gateRegion=Math.abs(u-.5)<.115 && v>.255 && v<.785;
+        const gatePixel=gateRegion && (
+          verticality>.43 ||
+          edge>.135 ||
+          lum>38
+        );
 
-        const glow=particleClamp((lum-4)/205,.025,1);
-        let copies=1;
-        if(structure===7)copies=3+(lum>100?1:0)+(edge>.38?1:0);
-        else if(structure===8)copies=lum<55?3:2;
-        else{
-          const keep=particleHash(x*98317+y*196613);
-          if(keep>.18)continue;
+        // Two architectural tower bodies and spires. The spatial masks stop
+        // full-screen ribbons from stealing the majority of the sample.
+        const leftTower=u>.185&&u<.445;
+        const rightTower=u>.555&&u<.815;
+        const towerRegion=(leftTower||rightTower)&&v>.055&&v<.86;
+        const towerPixel=towerRegion && !gatePixel && (
+          (edge>.105&&verticality>.30) ||
+          lum>46
+        );
+
+        // Small bright isolated points are sparks. Require low local mass so
+        // bright architectural edges are not misclassified as dust.
+        const isolatedBright=lum>58 && localMass<lum*3.3 && edge>.12;
+
+        if(gatePixel){
+          gate.push({u,v,zone:0,glow:Math.max(glow,.34),structure:7,r,g,b});
+          continue;
         }
 
-        const p={u,v,zone:0,glow,structure,r,g,b};
-        for(let n=0;n<copies;n++)list.push(p);
+        if(towerPixel){
+          towers.push({u,v,zone:0,glow:Math.max(glow,.22),structure:8,r,g,b});
+          continue;
+        }
+
+        if(isolatedBright){
+          const keep=particleHash(x*224737+y*99139);
+          if(keep<.52)sparks.push({u,v,zone:0,glow,structure:10,r,g,b});
+          continue;
+        }
+
+        // Decorative ribbons: retain only coherent/strong strands. Faint
+        // full-screen wisps are deliberately discarded in this first pass.
+        const ribbonPixel=(edge>.13||lum>26) && localMass>lum*2.0;
+        if(ribbonPixel){
+          const keep=particleHash(x*31847+y*89753);
+          const keepChance=lum>72?.72:(edge>.30?.52:.27);
+          if(keep<keepChance){
+            ribbons.push({u,v,zone:0,glow:Math.min(glow,.68),structure:9,r,g,b});
+          }
+        }
       }
     }
+
+    // Explicit composition quotas. Architecture gets ~64%, ribbons ~23%,
+    // sparks ~13%, independent of how much bright ribbon area exists in the image.
+    const available=gate.length+towers.length+ribbons.length+sparks.length;
+    const budget=Math.max(12000,Math.min(90000,available*2));
+    const take=(arr,count,salt)=>{
+      if(!arr.length)return [];
+      return sampleLowDiscrepancy(arr,Math.max(1,count),salt);
+    };
+
+    let list=[
+      ...take(gate,Math.round(budget*.25),0x0f3c27a1),
+      ...take(towers,Math.round(budget*.39),0x24d8a91b),
+      ...take(ribbons,Math.round(budget*.23),0x93ac117d),
+      ...take(sparks,Math.round(budget*.13),0xc4614e39)
+    ];
+
+    // Fallback if one spatial class happened to be empty on a different crop.
+    if(list.length<1000){
+      list=[...gate,...towers,...ribbons,...sparks];
+    }
+
+    particleShuffle(list,0x7139e28d);
     state.albumCandidates=list;
   }
 
@@ -2595,7 +2669,7 @@ function createParticleField(){
 
       const material=particleSmoother((state.morph-.38)/.62);
       const bloom=particleSmoother((state.morph-.60)/.40);
-      const alpha=particleMix(.94,.72,material)*(1+state.discMorph*.20);
+      const alpha=particleMix(.94,.72,material)*(1+state.discMorph*.12);
 
       if(particleLogoHit){
         const logoClickable=
