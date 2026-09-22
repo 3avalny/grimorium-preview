@@ -1485,7 +1485,7 @@ const particleGL=particleCanvas?.getContext("webgl",{
   antialias:false,
   depth:false,
   stencil:false,
-  premultipliedAlpha:false,
+  premultipliedAlpha:true,
   preserveDrawingBuffer:false,
   powerPreference:"high-performance"
 })||particleCanvas?.getContext("experimental-webgl",{
@@ -1493,7 +1493,7 @@ const particleGL=particleCanvas?.getContext("webgl",{
   antialias:false,
   depth:false,
   stencil:false,
-  premultipliedAlpha:false,
+  premultipliedAlpha:true,
   preserveDrawingBuffer:false
 });
 let particleField=null;
@@ -1534,7 +1534,7 @@ function particleMix(a,b,t){return a+(b-a)*t}
 
 const particleAlbumReference=new Image();
 particleAlbumReference.decoding="async";
-particleAlbumReference.src="data:image/webp;base64,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";
+particleAlbumReference.src="assets/album-particles-desktop.png";
 
 const particleBioReference=new Image();
 particleBioReference.decoding="async";
@@ -1598,19 +1598,14 @@ function createParticleField(){
     "  vec3 activeColor=mix(sceneColor,a_bioColor,u_bio);",
     "  float glow=activeMeta.x;",
     "  float zone=activeMeta.y;",
-    "  float pSize=activeMeta.z;",
-    "  float sceneStructure=mix(a_meta.w,a_albumMeta.w,step(.56,u_disc));",
-    "  float structure=mix(sceneStructure,a_bioMeta.w,step(.52,u_bio));",
+    "  float pSize=mix(a_meta.z,a_bioMeta.z,u_bio);",
+    "  float structure=mix(a_meta.w,a_bioMeta.w,step(.52,u_bio));",
     "  float spine=step(.5,structure)*(1.0-step(1.5,structure));",
     "  float innerPage=step(1.5,structure)*(1.0-step(2.5,structure));",
     "  float pageStack=step(2.5,structure)*(1.0-step(3.5,structure));",
     "  float outerEdge=step(3.5,structure)*(1.0-step(4.5,structure));",
     "  float filament=step(4.5,structure)*(1.0-step(5.5,structure));",
     "  float dust=step(5.5,structure)*(1.0-step(6.5,structure));",
-    "  float albumGate=step(6.5,structure)*(1.0-step(7.5,structure));",
-    "  float albumTower=step(7.5,structure)*(1.0-step(8.5,structure));",
-    "  float albumRibbon=step(8.5,structure)*(1.0-step(9.5,structure));",
-    "  float albumSpark=step(9.5,structure)*(1.0-step(10.5,structure));",
     "  float bioCandle=step(10.5,structure)*(1.0-step(11.5,structure));",
     "  float bioFlame=step(11.5,structure)*(1.0-step(12.5,structure));",
     "  float bioWeb=step(12.5,structure)*(1.0-step(13.5,structure));",
@@ -1703,10 +1698,10 @@ function createParticleField(){
     "    bioMicro*=mix(1.0,.55,bioSpark*u_bio);",
     "    bioMicro*=mix(1.0,.55,bioWeb*u_bio);",
     "    bioMicro*=mix(1.0,.42,bioCandle*u_bio);",
-    "    pos.x+=(sin(t*speed1+phase1)+.40*sin(t*speed2+phase2))*amp*u_material*localLeave*bioMicro;",
-    "    pos.y+=(cos(t*speed1*.91+phase2)+.36*sin(t*speed2*1.17+phase1))*amp*.80*u_material*localLeave*bioMicro;",
+    "    pos.x+=(sin(t*speed1+phase1)+.40*sin(t*speed2+phase2))*amp*u_material*localLeave*bioMicro*(1.0-u_disc);",
+    "    pos.y+=(cos(t*speed1*.91+phase2)+.36*sin(t*speed2*1.17+phase1))*amp*.80*u_material*localLeave*bioMicro*(1.0-u_disc);",
     "    float jitter=(zone<.5?.38:.12)*bioMicro;",
-    "    pos+=vec2(a_seed.x-.5,a_seed.z-.5)*jitter*u_material*localLeave;",
+    "    pos+=vec2(a_seed.x-.5,a_seed.z-.5)*jitter*u_material*localLeave*(1.0-u_disc);",
     "",
     "    // Six flame groups move coherently but independently. The group id is",
     "    // encoded in a_bioMeta.y as 0.1..0.6.",
@@ -1721,6 +1716,15 @@ function createParticleField(){
     "    pos.y+=flameAmount*(flameBreath*1.15+sin(t*1.83+phase2)*.34);",
     "  }",
     "",
+    "  // Continuous displacement preserves neighbouring strands and architecture.",
+    "  // The scene breathes as a field instead of independent particle noise.",
+    "  vec2 albumUV=a_albumTarget/u_resolution;",
+    "  float flowTime=u_time*.00013;",
+    "  vec2 albumFlow=vec2(",
+    "    sin(albumUV.y*8.0+flowTime)+.35*sin(albumUV.x*6.0-flowTime*.7),",
+    "    cos(albumUV.x*7.0+flowTime*.8)+.30*sin(albumUV.y*9.0+flowTime)",
+    "  );",
+    "  pos+=albumFlow*1.15*u_disc*u_material*localLeave*(1.0-isTop)*(1.0-u_bio);",
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
     "  gl_Position=vec4(clip,0.0,1.0);",
     "",
@@ -1733,10 +1737,6 @@ function createParticleField(){
     "  classRadius*=mix(1.0,.57,outerEdge);",
     "  classRadius*=mix(1.0,.29,filament);",
     "  classRadius*=mix(1.0,.19,dust);",
-    "  classRadius*=mix(1.0,.78,albumGate);",
-    "  classRadius*=mix(1.0,.72,albumTower);",
-    "  classRadius*=mix(1.0,.31,albumRibbon);",
-    "  classRadius*=mix(1.0,.46,albumSpark);",
     "  classRadius*=mix(1.0,.84,bioCandle);",
     "  classRadius*=mix(1.0,.78,bioFlame);",
     "  classRadius*=mix(1.0,.58,bioWeb);",
@@ -1761,8 +1761,6 @@ function createParticleField(){
     "  float hot=smoothstep(.58,1.0,glow);",
     "  if(zone<1.5){",
     "    targetColor=mix(targetColor,vec3(1.0,.965,.90),hot*.18);",
-    "    targetColor=mix(targetColor,vec3(.88,.83,.74),albumTower*.34*u_disc);",
-    "    targetColor=mix(targetColor,vec3(.94,.89,.80),albumGate*.46*u_disc);",
     "    targetColor=mix(targetColor,vec3(.91,.84,.72),bioCandle*.25*u_bio);",
     "    targetColor=mix(targetColor,vec3(1.0,.93,.76),bioFlame*.30*u_bio);",
     "    targetColor=mix(targetColor,vec3(.88,.82,.72),bioWeb*.18*u_bio);",
@@ -1775,16 +1773,11 @@ function createParticleField(){
     "  float zoneAlpha=zone>1.5?.60:1.0;",
     "  zoneAlpha*=mix(1.0,.24,filament);",
     "  zoneAlpha*=mix(1.0,.065,dust);",
-    "  zoneAlpha*=mix(1.0,1.00,albumGate);",
-    "  zoneAlpha*=mix(1.0,.96,albumTower);",
-    "  zoneAlpha*=mix(1.0,.18,albumRibbon);",
-    "  zoneAlpha*=mix(1.0,.16,albumSpark);",
     "  zoneAlpha*=mix(1.0,.96,bioCandle);",
     "  zoneAlpha*=mix(1.0,1.00,bioFlame);",
     "  zoneAlpha*=mix(1.0,.58,bioWeb);",
     "  zoneAlpha*=mix(1.0,.62,bioSpark);",
     "  float bookBaseGain=1.0+.06*(1.0-filament)*(1.0-dust)*(1.0-step(1.5,zone));",
-    "  float albumBaseGain=mix(1.0,1.58,u_disc)*(1.0-u_bio)+u_bio;",
     "  float bioBaseGain=mix(1.0,1.20,u_bio);",
     "  float structuralAlpha=1.0;",
     "  structuralAlpha*=mix(1.0,.72,spine);",
@@ -1793,13 +1786,11 @@ function createParticleField(){
     "  structuralAlpha*=mix(1.0,.75,outerEdge);",
     "  structuralAlpha*=mix(1.0,.42,upperCenter);",
     "  structuralAlpha*=mix(1.0,1.72,spineAccent);",
-    "  structuralAlpha*=mix(1.0,2.80,albumGate);",
-    "  structuralAlpha*=mix(1.0,2.30,albumTower);",
     "  structuralAlpha*=mix(1.0,1.08,bioCandle);",
     "  structuralAlpha*=mix(1.0,1.18,bioFlame);",
     "  structuralAlpha*=mix(1.0,.88,bioWeb);",
     "  structuralAlpha*=mix(1.0,.82,bioSpark);",
-    "  float effectiveGlow=glow+spineAccent*.30+spineHalo*.035+innerPage*.050+pageStack*.105+outerEdge*.006+albumGate*.22+albumTower*.11+albumSpark*.015+bioFlame*.075+bioCandle*.035+bioSpark*.08;",
+    "  float effectiveGlow=glow+spineAccent*.30+spineHalo*.035+innerPage*.050+pageStack*.105+outerEdge*.006+bioFlame*.075+bioCandle*.035+bioSpark*.08;",
     "  float highlightGain=1.0;",
     "  highlightGain*=mix(1.0,.38,spineHalo);",
     "  highlightGain*=mix(1.0,1.55,spineAccent);",
@@ -1808,10 +1799,6 @@ function createParticleField(){
     "  highlightGain*=mix(1.0,.72,outerEdge);",
     "  highlightGain*=mix(1.0,.18,filament);",
     "  highlightGain*=mix(1.0,.025,dust);",
-    "  highlightGain*=mix(1.0,1.72,albumGate);",
-    "  highlightGain*=mix(1.0,1.38,albumTower);",
-    "  highlightGain*=mix(1.0,.10,albumRibbon);",
-    "  highlightGain*=mix(1.0,.36,albumSpark);",
     "  highlightGain*=mix(1.0,1.08,bioCandle);",
     "  highlightGain*=mix(1.0,1.22,bioFlame);",
     "  highlightGain*=mix(1.0,.54,bioWeb);",
@@ -1824,15 +1811,11 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.24,outerEdge);",
     "  bloomGain*=mix(1.0,.075,filament);",
     "  bloomGain*=mix(1.0,.008,dust);",
-    "  bloomGain*=mix(1.0,.52,albumGate);",
-    "  bloomGain*=mix(1.0,.28,albumTower);",
-    "  bloomGain*=mix(1.0,.025,albumRibbon);",
-    "  bloomGain*=mix(1.0,.28,albumSpark);",
     "  bloomGain*=mix(1.0,.26,bioCandle);",
     "  bloomGain*=mix(1.0,.42,bioFlame);",
     "  bloomGain*=mix(1.0,.055,bioWeb);",
     "  bloomGain*=mix(1.0,.72,bioSpark);",
-    "  float passAlpha=u_alpha*albumBaseGain*bioBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
+    "  float passAlpha=u_alpha*bioBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
     "  float forwardTopAlpha=max(topSourceFade,topCrystal);",
@@ -1855,6 +1838,16 @@ function createParticleField(){
     "    passAlpha=visible*zoneAlpha*bloomGain*(.11+.19*glow);",
     "  }",
     "",
+    "  float albumWeight=u_disc*u_material*(1.0-isTop)*(1.0-u_bio);",
+    "  passAlpha*=1.0-albumWeight;",
+    "  if(u_pass>3.5){",
+    "    // Additive, energy-normalised splats retain the source tonal hierarchy.",
+    "    // Footprint compensates for sample density and viewport scale on the CPU.",
+    "    visible=albumWeight;",
+    "    passRadius=a_albumMeta.z;",
+    "    color=a_albumColor;",
+    "    passAlpha=.94;",
+    "  }",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
     "  v_color=color;",
     "  v_alpha=passAlpha*visible;",
@@ -2218,145 +2211,93 @@ function createParticleField(){
 
   function prepareAlbumCandidates(){
     const ref=state.albumReference;
-    const sampleW=Math.min(900,ref.naturalWidth||450);
-    const aspect=ref.naturalWidth/Math.max(1,ref.naturalHeight);
-    const sampleH=Math.max(1,Math.round(sampleW/aspect));
+    // Keep the supplied full-resolution drawing. Sampling a thumbnail cannot
+    // recover its fine filaments, even with hundreds of thousands of particles.
+    const sampleW=ref.naturalWidth;
+    const sampleH=ref.naturalHeight;
     const off=document.createElement("canvas");
     off.width=sampleW;
     off.height=sampleH;
     const ctx=off.getContext("2d",{willReadFrequently:true});
-    ctx.clearRect(0,0,sampleW,sampleH);
-    ctx.drawImage(ref,0,0,sampleW,sampleH);
+    ctx.drawImage(ref,0,0);
     const data=ctx.getImageData(0,0,sampleW,sampleH).data;
-    const lumMap=new Float32Array(sampleW*sampleH);
-
-    const gate=[];
-    const towers=[];
-    const ribbons=[];
-    const sparks=[];
+    const list=[];
 
     for(let y=0;y<sampleH;y++){
       for(let x=0;x<sampleW;x++){
         const k=(y*sampleW+x)*4;
         const a=data[k+3]/255;
-        lumMap[y*sampleW+x]=(data[k]*.2126+data[k+1]*.7152+data[k+2]*.0722)*a;
+        const r=data[k]/255*a;
+        const g=data[k+1]/255*a;
+        const b=data[k+2]/255*a;
+        const lum=r*.2126+g*.7152+b*.0722;
+
+        // Preserve dim grid lines as well as bright ribbons and architecture.
+        // No semantic gate/tower/ribbon masks, duplicated pixels or object quotas.
+        if(lum<1/255)continue;
+
+        list.push({
+          u:(x+.5)/sampleW,
+          v:(y+.5)/sampleH,
+          zone:0,
+          glow:lum,
+          structure:0,
+          r,g,b
+        });
       }
     }
 
-    const lumAt=(x,y)=>{
-      x=Math.max(0,Math.min(sampleW-1,x));
-      y=Math.max(0,Math.min(sampleH-1,y));
-      return lumMap[y*sampleW+x];
-    };
-
-    for(let y=0;y<sampleH;y++){
-      for(let x=0;x<sampleW;x++){
-        const k=(y*sampleW+x)*4;
-        const a=data[k+3]/255;
-        if(a<=.01)continue;
-
-        const lum=lumMap[y*sampleW+x];
-
-        const u=x/sampleW;
-        const v=y/sampleH;
-
-        // Spatial architecture masks are evaluated before luminance rejection so
-        // very faint real edges of the gate/towers survive extraction.
-        const gateRegion=Math.abs(u-.5)<.122 && v>.235 && v<.805;
-        const leftTower=u>.165&&u<.455;
-        const rightTower=u>.545&&u<.835;
-        const towerRegion=(leftTower||rightTower)&&v>.045&&v<.875;
-        const architectureRegion=gateRegion||towerRegion;
-        if(lum<(architectureRegion?2.15:7.2))continue;
-
-        const dx=Math.abs(lumAt(x+1,y)-lumAt(x-1,y));
-        const dy=Math.abs(lumAt(x,y+1)-lumAt(x,y-1));
-        const edge=particleClamp((dx+dy)/82,0,1);
-        const verticality=dx/Math.max(1,dx+dy);
-
-        const localMass=
-          lumAt(x-2,y)+lumAt(x+2,y)+lumAt(x,y-2)+lumAt(x,y+2)+
-          lumAt(x-1,y-1)+lumAt(x+1,y-1)+lumAt(x-1,y+1)+lumAt(x+1,y+1);
-
-        const r=data[k]/255,g=data[k+1]/255,b=data[k+2]/255;
-        const glow=particleClamp((lum-2.0)/176,.025,1);
-
-        // Central iron gate / bars / ornament.
-        const gatePixel=gateRegion && (
-          verticality>.30 ||
-          edge>.070 ||
-          lum>16
-        );
-
-        // Two architectural tower bodies and spires.
-        const spireZone=v<.34;
-        const towerPixel=towerRegion && !gatePixel && (
-          (edge>.065&&verticality>.20) ||
-          (spireZone&&edge>.045) ||
-          lum>20
-        );
-
-        // Small bright isolated points are sparks. Require low local mass so
-        // bright architectural edges are not misclassified as dust.
-        const isolatedBright=lum>58 && localMass<lum*3.3 && edge>.12;
-
-        if(gatePixel){
-          const boost=1+(verticality>.48?2:0)+(edge>.24?1:0);
-          const p={u,v,zone:0,glow:Math.max(glow,.30),structure:7,r,g,b};
-          for(let n=0;n<boost;n++)gate.push(p);
-          continue;
-        }
-
-        if(towerPixel){
-          const spireBoost=v<.34&&edge>.075?2:0;
-          const verticalBoost=verticality>.44?1:0;
-          const p={u,v,zone:0,glow:Math.max(glow,.18),structure:8,r,g,b};
-          for(let n=0;n<1+spireBoost+verticalBoost;n++)towers.push(p);
-          continue;
-        }
-
-        if(isolatedBright){
-          const keep=particleHash(x*224737+y*99139);
-          if(keep<.25)sparks.push({u,v,zone:0,glow:glow*.42,structure:10,r,g,b});
-          continue;
-        }
-
-        // Decorative ribbons: retain only coherent/strong strands. Faint
-        // full-screen wisps are deliberately discarded in this first pass.
-        const ribbonPixel=(edge>.13||lum>26) && localMass>lum*2.0;
-        if(ribbonPixel){
-          const keep=particleHash(x*31847+y*89753);
-          const keepChance=lum>72?.72:(edge>.30?.52:.27);
-          if(keep<keepChance){
-            ribbons.push({u,v,zone:0,glow:Math.min(glow,.68),structure:9,r,g,b});
-          }
-        }
-      }
-    }
-
-    // Explicit composition quotas. Architecture now owns the frame decisively;
-    // sparks are deliberately rare and ribbons remain secondary.
-    const available=gate.length+towers.length+ribbons.length+sparks.length;
-    const budget=Math.max(12000,Math.min(90000,available*2));
-    const take=(arr,count,salt)=>{
-      if(!arr.length)return [];
-      return sampleLowDiscrepancy(arr,Math.max(1,count),salt);
-    };
-
-    let list=[
-      ...take(gate,Math.round(budget*.28),0x0f3c27a1),
-      ...take(towers,Math.round(budget*.44),0x24d8a91b),
-      ...take(ribbons,Math.round(budget*.22),0x93ac117d),
-      ...take(sparks,Math.round(budget*.06),0xc4614e39)
-    ];
-
-    // Fallback if one spatial class happened to be empty on a different crop.
-    if(list.length<1000){
-      list=[...gate,...towers,...ribbons,...sparks];
-    }
-
-    particleShuffle(list,0x7139e28d);
     state.albumCandidates=list;
+  }
+
+  function sampleAlbumPoints(list,count){
+    // Allocate density by brightness, not by guesses about semantic objects.
+    // Bright hairlines get tight splats; dim grid/atmosphere get broad faint ones.
+    const bands=[[],[],[]];
+    for(const p of list){
+      bands[p.glow>=24/255?0:(p.glow>=6/255?1:2)].push(p);
+    }
+
+    const shares=[.66,.26,.08];
+    const active=bands
+      .map((points,i)=>({points,share:shares[i]}))
+      .filter(b=>b.points.length);
+    const totalShare=active.reduce((sum,b)=>sum+b.share,0);
+    const out=[];
+    const rw=state.albumReference.naturalWidth;
+    const rh=state.albumReference.naturalHeight;
+
+    active.forEach((band,bandIndex)=>{
+      const n=bandIndex===active.length-1
+        ? count-out.length
+        : Math.round(count*band.share/totalShare);
+      if(!n)return;
+
+      const stride=band.points.length/n;
+      const radius=.80*Math.sqrt(stride);
+
+      for(let i=0;i<n;i++){
+        const seed=i+bandIndex*104729;
+        // Non-overlapping strata keep source pixels unique whenever n <= length.
+        const start=Math.floor(i*stride);
+        const end=Math.floor((i+1)*stride);
+        const index=Math.min(
+          band.points.length-1,
+          start+Math.floor(particleHash(seed+0x361a)*Math.max(1,end-start))
+        );
+        const p=band.points[index];
+
+        out.push({
+          ...p,
+          radius,
+          u:p.u+(particleHash(seed+0x65ab)-.5)*.30/rw,
+          v:p.v+(particleHash(seed+0x77cd)-.5)*.30/rh
+        });
+      }
+    });
+
+    particleShuffle(out,0x1f123bb5);
+    return out;
   }
 
   function prepareBioCandidates(){
@@ -2543,7 +2484,7 @@ function createParticleField(){
 
     const sourcePoints=sampleLowDiscrepancy(state.logoCandidates,count,0x91e10da5);
     const refPoints=sampleLowDiscrepancy(state.referenceCandidates,refCount,0xc2b2ae35);
-    const albumPoints=sampleLowDiscrepancy(state.albumCandidates,refCount,0x1f123bb5);
+    const albumPoints=sampleAlbumPoints(state.albumCandidates,refCount);
     const bioFlameCount=state.bioFlameCandidates.length
       ? Math.max(120,Math.round(refCount*.075))
       : 0;
@@ -2576,7 +2517,7 @@ function createParticleField(){
 
     const albumRefW=state.albumReference.naturalWidth;
     const albumRefH=state.albumReference.naturalHeight;
-    const albumScale=Math.max(w/Math.max(1,albumRefW),h/Math.max(1,albumRefH))*1.025;
+    const albumScale=Math.max(w/Math.max(1,albumRefW),h/Math.max(1,albumRefH));
     const albumW=albumRefW*albumScale;
     const albumH=albumRefH*albumScale;
     const albumX=(w-albumW)*.5;
@@ -2622,7 +2563,8 @@ function createParticleField(){
         y:albumY+p.v*albumH,
         zone:0,
         glow:p.glow,
-        structure:p.structure,
+        structure:0,
+        radius:p.radius*albumScale,
         r:p.r,g:p.g,b:p.b
       };
     });
@@ -2682,7 +2624,7 @@ function createParticleField(){
 
       albumMetaData[i*4]=ap.glow;
       albumMetaData[i*4+1]=ap.zone;
-      albumMetaData[i*4+2]=pSize;
+      albumMetaData[i*4+2]=ap.radius||0;
       albumMetaData[i*4+3]=ap.structure||0;
 
       bioMetaData[i*4]=bp.glow;
@@ -2921,7 +2863,7 @@ function createParticleField(){
     gl.clearColor(0,0,0,0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+    gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
     setParticleUniforms(now,material,bloom,alpha,state.bloomScale,3);
     gl.drawArrays(gl.POINTS,0,state.count);
 
@@ -3011,12 +2953,12 @@ function createParticleField(){
       introBrandImg.style.opacity=imageReveal.toFixed(3);
 
       gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+      gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
       setParticleUniforms(now,material,bloom,alpha,1,0);
       gl.drawArrays(gl.POINTS,0,state.count);
 
       if(material>.01){
-        gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+        gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
         setParticleUniforms(now,material,bloom,alpha,1,1);
         gl.drawArrays(gl.POINTS,0,state.count);
 
@@ -3024,8 +2966,14 @@ function createParticleField(){
         gl.drawArrays(gl.POINTS,0,state.count);
       }
 
+      if(state.discMorph>.001&&state.bioMorph<.999){
+        gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
+        setParticleUniforms(now,material,bloom,alpha,1,4);
+        gl.drawArrays(gl.POINTS,0,state.count);
+      }
+
       renderBloom(now,material,bloom,alpha);
-      gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+      gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
     }
 
     state.raf=requestAnimationFrame(render);
@@ -3038,7 +2986,7 @@ function createParticleField(){
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.CULL_FACE);
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+    gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
     gl.clearColor(0,0,0,0);
 
     rebuild();
