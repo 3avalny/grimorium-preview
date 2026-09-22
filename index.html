@@ -1077,6 +1077,7 @@ const MOBILE_TITLE_SETTLE_MS=340;
 const MOBILE_PANEL_FINISH_MS=430;
 const MOBILE_CREDITS_FINISH_MS=390;
 let activeAlbumIndex=-1;
+let particleField=null;
 let animToken=0;
 let desktopTitleTimer=0;
 let desktopTitleSeq=0;
@@ -1549,7 +1550,6 @@ const particleGL=particleCanvas?.getContext("webgl",{
   premultipliedAlpha:true,
   preserveDrawingBuffer:false
 });
-let particleField=null;
 
 function particleHash(n){
   let x=(Math.floor(n)>>>0)+0x9e3779b9;
