@@ -260,12 +260,7 @@ nav{display:none!important}
   transform-origin:center;white-space:nowrap;
   font-family:var(--moon-display);font-size:clamp(24px,2.1vw,32px);font-weight:400;
   letter-spacing:.07em;text-transform:uppercase;color:#d3d0c8;
-  text-shadow:
-    0 1px 2px rgba(0,0,0,1),
-    0 4px 8px rgba(0,0,0,.98),
-    0 9px 20px rgba(0,0,0,.92),
-    0 18px 38px rgba(0,0,0,.78);
-  filter:drop-shadow(0 7px 12px rgba(0,0,0,.72));
+  text-shadow:none;filter:none;
   will-change:opacity
 }
 /* TEMP: particle-scene inspection — keep Discography DOM intact, just hide it */
@@ -537,12 +532,7 @@ nav{display:none!important}
   transform-origin:center;white-space:nowrap;
   font-family:var(--moon-display);font-size:clamp(24px,2.1vw,32px);font-weight:400;
   letter-spacing:.07em;text-transform:uppercase;color:#d3d0c8;
-  text-shadow:
-    0 1px 2px rgba(0,0,0,1),
-    0 4px 8px rgba(0,0,0,.98),
-    0 9px 20px rgba(0,0,0,.92),
-    0 18px 38px rgba(0,0,0,.78);
-  filter:drop-shadow(0 7px 12px rgba(0,0,0,.72))
+  text-shadow:none;filter:none
 }
 .bio-figure{display:none!important}
 .bio-figure-left{left:max(-18px,calc((100vw - var(--shell))/2 - 110px))}
@@ -554,6 +544,7 @@ nav{display:none!important}
 }
 .bio-copy{
   position:relative;z-index:4;width:min(760px,56vw);
+  max-width:min(1080px,78vw);
   padding:56px 22px;text-align:center;
   -webkit-user-select:none;user-select:none
 }
@@ -578,7 +569,34 @@ nav{display:none!important}
   letter-spacing:.012em;color:#aaa9a4
 }
 .bio p:last-child{margin-bottom:0}
-.bio-copy,.bio-copy *{-webkit-user-select:none!important;user-select:none!important}
+.bio-word{
+  display:inline-block;
+  opacity:0;
+  filter:blur(11px);
+  transform:translate3d(0,-13px,0);
+  will-change:opacity,filter,transform;
+  transition-property:opacity,filter,transform;
+  transition-duration:.42s,.48s,.48s;
+  transition-timing-function:ease,cubic-bezier(.2,.7,.2,1),cubic-bezier(.2,.78,.2,1);
+  transition-delay:var(--bio-enter-delay,0ms)
+}
+.bio-copy.bio-text-visible .bio-word{
+  opacity:1;
+  filter:blur(0);
+  transform:translate3d(0,0,0)
+}
+.bio-copy.bio-text-exit-up .bio-word{
+  opacity:0;
+  filter:blur(8px);
+  transform:translate3d(0,-10px,0);
+  transition-duration:.13s,.16s,.16s;
+  transition-delay:var(--bio-exit-delay,0ms)
+}
+.bio-copy,.bio-copy *{
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  text-shadow:none!important
+}
 
 .bio-desktop{display:contents}
 .bio-mobile{display:none}
@@ -637,8 +655,7 @@ nav{display:none!important}
   .record-title-slot,
   .track,
   .album-year,
-  .credits-panel,
-  .bio-copy{
+  .credits-panel{
     text-shadow:0 6px 22px rgba(0,0,0,.98),0 2px 7px rgba(0,0,0,.98)
   }
   .cover-wrap,
@@ -1554,8 +1571,163 @@ const siteLight=document.querySelector(".site-light-layer");
 const siteRocks=document.querySelector(".site-rocks-layer");
 const parallaxRecord=document.querySelector(".record");
 const parallaxBio=document.querySelector(".bio");
+const recordSideLabel=parallaxRecord?.querySelector(".record-side-label");
+const bioSideLabel=parallaxBio?.querySelector(".bio-side-label");
 const parallaxLayer=document.querySelector(".site-parallax-bg");
 const reducedMotionQuery=window.matchMedia("(prefers-reduced-motion: reduce)");
+
+/* ---------- BIOGRAPHY TEXT REVEAL ---------- */
+const biographyCopy=document.querySelector(".bio-desktop .bio-copy");
+let biographyWords=[];
+let biographyTextActive=false;
+let biographyLayoutFrame=0;
+
+function wrapBiographyWords(){
+  if(!biographyCopy||biographyCopy.dataset.wordRevealReady==="1")return;
+
+  biographyCopy.querySelectorAll("p").forEach(paragraph=>{
+    const walker=document.createTreeWalker(paragraph,NodeFilter.SHOW_TEXT);
+    const nodes=[];
+    while(walker.nextNode())nodes.push(walker.currentNode);
+
+    nodes.forEach(node=>{
+      if(!node.nodeValue||!node.nodeValue.trim())return;
+      const fragment=document.createDocumentFragment();
+      node.nodeValue.split(/(\s+)/).forEach(part=>{
+        if(!part)return;
+        if(/^\s+$/.test(part)){
+          fragment.appendChild(document.createTextNode(part));
+          return;
+        }
+        const span=document.createElement("span");
+        span.className="bio-word";
+        span.textContent=part;
+        fragment.appendChild(span);
+      });
+      node.replaceWith(fragment);
+    });
+  });
+
+  biographyWords=Array.from(biographyCopy.querySelectorAll(".bio-word"));
+  biographyCopy.dataset.wordRevealReady="1";
+}
+
+function groupBiographyWordsByLine(words){
+  const lines=[];
+  let current=null;
+
+  words.forEach(word=>{
+    const top=word.getBoundingClientRect().top;
+    if(!current||Math.abs(top-current.top)>2){
+      current={top,words:[]};
+      lines.push(current);
+    }
+    current.words.push(word);
+  });
+
+  return lines;
+}
+
+function paragraphHasShortTail(paragraph,minTailWords=7){
+  const words=Array.from(paragraph.querySelectorAll(".bio-word"));
+  if(!words.length)return false;
+  const lines=groupBiographyWordsByLine(words);
+  if(lines.length<2)return false;
+  return lines[lines.length-1].words.length<minTailWords;
+}
+
+function layoutBiographyWords(){
+  if(!biographyCopy||!biographyWords.length||window.innerWidth<=720)return;
+
+  const lines=groupBiographyWordsByLine(biographyWords);
+  let wordIndex=0;
+
+  lines.forEach((line,lineIndex)=>{
+    const exitDelay=(lines.length-1-lineIndex)*36;
+    line.words.forEach(word=>{
+      word.style.setProperty("--bio-enter-delay",`${wordIndex*22}ms`);
+      word.style.setProperty("--bio-exit-delay",`${exitDelay}ms`);
+      word.dataset.bioLine=String(lineIndex);
+      wordIndex+=1;
+    });
+  });
+}
+
+function fitBiographyWidth(){
+  if(!biographyCopy||window.innerWidth<=720)return;
+
+  biographyCopy.style.width="";
+  const paragraphs=Array.from(biographyCopy.querySelectorAll("p"));
+  const startWidth=biographyCopy.getBoundingClientRect().width;
+  const maxWidth=Math.max(
+    startWidth,
+    Math.min(1080,window.innerWidth*.78,window.innerWidth-260)
+  );
+
+  let chosen=Math.round(startWidth);
+  let found=false;
+
+  for(let width=startWidth;width<=maxWidth;width+=14){
+    biographyCopy.style.width=`${Math.round(width)}px`;
+    // Force layout so the next tail test sees the candidate line wrapping.
+    biographyCopy.getBoundingClientRect();
+
+    const hasShortTail=paragraphs.some(p=>paragraphHasShortTail(p,7));
+    if(!hasShortTail){
+      chosen=Math.round(width);
+      found=true;
+      break;
+    }
+  }
+
+  if(!found)chosen=Math.round(maxWidth);
+  biographyCopy.style.width=`${chosen}px`;
+  layoutBiographyWords();
+}
+
+function scheduleBiographyLayout(){
+  if(biographyLayoutFrame)cancelAnimationFrame(biographyLayoutFrame);
+  biographyLayoutFrame=requestAnimationFrame(()=>{
+    biographyLayoutFrame=0;
+    fitBiographyWidth();
+  });
+}
+
+function setBiographyTextActive(active,{immediate=false}={}){
+  if(!biographyCopy||window.innerWidth<=720)return;
+  wrapBiographyWords();
+
+  if(active){
+    fitBiographyWidth();
+    biographyCopy.classList.remove("bio-text-exit-up");
+
+    if(immediate||reducedMotionQuery.matches){
+      biographyCopy.classList.add("bio-text-visible");
+    }else{
+      requestAnimationFrame(()=>{
+        requestAnimationFrame(()=>biographyCopy.classList.add("bio-text-visible"));
+      });
+    }
+  }else{
+    if(!biographyTextActive&&!biographyCopy.classList.contains("bio-text-visible")){
+      biographyCopy.classList.remove("bio-text-exit-up");
+    }else{
+      layoutBiographyWords();
+      biographyCopy.classList.remove("bio-text-visible");
+      biographyCopy.classList.add("bio-text-exit-up");
+    }
+  }
+
+  biographyTextActive=active;
+}
+
+wrapBiographyWords();
+scheduleBiographyLayout();
+if(document.fonts?.ready){
+  document.fonts.ready.then(scheduleBiographyLayout);
+}
+window.addEventListener("resize",scheduleBiographyLayout,{passive:true});
+
 
 /* ---------- WEBGL PARTICLE / BOOK FIELD ---------- */
 const particleCanvas=document.getElementById("particle-field");
@@ -1683,6 +1855,7 @@ function createParticleField(){
     "uniform float u_pass;",
     "uniform float u_renderScale;",
     "uniform vec4 u_topLogoField;",
+    "uniform vec4 u_sideFields[2];",
     "uniform vec4 u_smoke[3];",
     "varying vec3 v_color;",
     "varying float v_alpha;",
@@ -1872,6 +2045,18 @@ function createParticleField(){
     "  float bioBrightnessPhase=smoother((bioBrightnessRaw-.08)/.84);",
     "  float bioBrightnessFloor=mix(.34,.784,a_seed.x);",
     "  float bioBrightness=mix(1.0,mix(bioBrightnessFloor,1.0,bioBrightnessPhase),bioLifeGate);",
+    "",
+    "  // DOM side labels act as soft anti-fields: particles physically move",
+    "  // away from their visible bounds instead of relying on text shadows.",
+    "  for(int sfi=0;sfi<2;sfi++){",
+    "    vec4 sf=u_sideFields[sfi];",
+    "    vec2 sideDelta=pos-sf.xy;",
+    "    vec2 sideLocal=sideDelta/max(sf.zw,vec2(1.0));",
+    "    float sideD=length(sideLocal);",
+    "    float sideForce=1.0-smoother((sideD-.48)/.86);",
+    "    vec2 sideAway=normalize(sideDelta+vec2(.001));",
+    "    pos+=sideAway*sideForce*(7.0+27.0*sideForce);",
+    "  }",
     "",
     "  // Feathered negative-space halo under the persistent GV mark.",
     "  // It changes opacity only; particle geometry stays untouched.",
@@ -2172,6 +2357,7 @@ function createParticleField(){
     pass:gl.getUniformLocation(particleProgram,"u_pass"),
     renderScale:gl.getUniformLocation(particleProgram,"u_renderScale"),
     topLogoField:gl.getUniformLocation(particleProgram,"u_topLogoField"),
+    sideFields:gl.getUniformLocation(particleProgram,"u_sideFields[0]"),
     smoke:gl.getUniformLocation(particleProgram,"u_smoke[0]")
   };
   const blurLoc={
@@ -2293,6 +2479,7 @@ function createParticleField(){
     bloomA:null,
     bloomB:null,
     topLogoHit:null,
+    sideFieldData:new Float32Array(8),
     pointerX:0,
     pointerY:0,
     pointerLastAt:0,
@@ -3466,6 +3653,35 @@ function createParticleField(){
 
   state.setAlbumScene=setAlbumScene;
 
+
+  function updateSideFieldData(){
+    const data=state.sideFieldData;
+    const labels=[recordSideLabel,bioSideLabel];
+
+    for(let i=0;i<labels.length;i++){
+      const el=labels[i];
+      const k=i*4;
+      const rect=el?.getBoundingClientRect();
+      const visible=
+        rect&&rect.width>1&&rect.height>1&&
+        rect.right>-90&&rect.left<state.width+90&&
+        rect.bottom>-90&&rect.top<state.height+90;
+
+      if(!visible){
+        data[k]=-9999;
+        data[k+1]=-9999;
+        data[k+2]=1;
+        data[k+3]=1;
+        continue;
+      }
+
+      data[k]=rect.left+rect.width*.5;
+      data[k+1]=rect.top+rect.height*.5;
+      data[k+2]=rect.width*.72+24;
+      data[k+3]=rect.height*.56+26;
+    }
+  }
+
   function setParticleUniforms(now,material,bloom,alpha,renderScale,pass){
     gl.useProgram(particleProgram);
     bindParticleAttributes();
@@ -3494,6 +3710,7 @@ function createParticleField(){
     }else{
       gl.uniform4f(pLoc.topLogoField,state.width*.5,36,120,42);
     }
+    gl.uniform4fv(pLoc.sideFields,state.sideFieldData);
     gl.uniform4fv(pLoc.smoke,state.smokeUniformData);
   }
 
@@ -3599,6 +3816,7 @@ function createParticleField(){
       }
     }
     adaptPerformance(dt);
+    updateSideFieldData();
 
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);
     gl.viewport(0,0,particleCanvas.width,particleCanvas.height);
@@ -4138,7 +4356,10 @@ function syncDesktopSnapKey(){
   const targets=desktopSnapTargets();
   if(!targets.length)return;
   const nearest=nearestDesktopSnapTarget(targets);
-  if(nearest)desktopSnapKey=nearest.key;
+  if(nearest){
+    desktopSnapKey=nearest.key;
+    setBiographyTextActive(desktopSnapKey==="biography");
+  }
 }
 
 function jumpHomeImmediately(){
@@ -4226,6 +4447,7 @@ function triggerDesktopSnap(direction){
   // Start particle reconstruction immediately with the wheel/trackpad gesture.
   // Do not wait for the viewport to finish snapping into Biography.
   particleField?.setBiographyActive?.(next.key==="biography");
+  setBiographyTextActive(next.key==="biography");
 
   if(leavingLogo){
     // The large-logo screen exists only once per page load.
@@ -4340,11 +4562,19 @@ window.addEventListener("wheel",e=>{
 function resetDesktopIntroSnap(){
   desktopLogoAvailable=true;
   desktopSnapKey="logo";
+  setBiographyTextActive(false);
   desktopWheelLastAt=0;
   desktopWheelGestureLocked=false;
   desktopWheelDirection=0;
   desktopWheelAccumulator=0;
 }
+
+window.addEventListener("load",()=>{
+  window.setTimeout(()=>{
+    syncDesktopSnapKey();
+    setBiographyTextActive(desktopSnapKey==="biography",{immediate:true});
+  },60);
+},{once:true});
 
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{
   const el=document.querySelector(a.getAttribute("href"));
