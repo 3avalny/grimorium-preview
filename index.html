@@ -1857,10 +1857,10 @@ function createParticleField(){
     "    vec2 fieldRadius=max(u_topLogoField.zw,vec2(1.0));",
     "    vec2 fieldLocal=(pos-u_topLogoField.xy)/fieldRadius;",
     "    float fieldD=length(fieldLocal);",
-    "    topLogoField=1.0-smoother((fieldD-.58)/.82);",
+    "    topLogoField=1.0-smoother((fieldD-.52)/.92);",
     "    vec2 fieldDir=normalize(fieldLocal+vec2(.0001));",
     "    vec2 fieldPxDir=normalize(fieldDir*fieldRadius);",
-    "    float fieldPush=topLogoField*mix(4.0,19.0,topLogoField);",
+    "    float fieldPush=topLogoField*mix(9.0,34.0,topLogoField);",
     "    pos+=fieldPxDir*fieldPush;",
     "  }",
     "",
@@ -1954,7 +1954,7 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.055,bioWeb);",
     "  bloomGain*=mix(1.0,.72,bioSpark);",
     "  float passAlpha=u_alpha*bioBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
-    "  passAlpha*=mix(1.0,.68,topLogoField*(1.0-isTop));",
+    "  passAlpha*=mix(1.0,.50,topLogoField*(1.0-isTop));",
     "  float topSourceFade=1.0-smoother(u_morph/.13);",
     "  float topCrystal=smoother((u_morph-.90)/.09);",
     "  float forwardTopAlpha=max(topSourceFade,topCrystal);",
@@ -2016,7 +2016,7 @@ function createParticleField(){
     "    visible=reconstructionWeight*materialKeep;",
     "    passRadius=reconstructionMeta.z*mix(.86,.68,materialDetail);",
     "    color=mix(reconstructionColor,reconstructionColor*1.12,materialDetail);",
-    "    passAlpha=materialToneAlpha*bookSpineTone*mix(1.0,.68,topLogoField);",
+    "    passAlpha=materialToneAlpha*bookSpineTone*mix(1.0,.50,topLogoField);",
     "  }",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
     "  v_color=color;",
@@ -2478,6 +2478,41 @@ function createParticleField(){
           r,g,b
         });
       }
+    }
+
+    if(sceneId==="reall"){
+      // The REALL source already contains a dark rectangular patch behind its
+      // embedded logo. Extend neighbouring top texture into that missing area.
+      const source=list.slice();
+      const healed=[];
+      const leftMin=.270,leftMax=.385;
+      const rightMin=.615,rightMax=.730;
+
+      for(let i=0;i<source.length;i++){
+        const p=source[i];
+        if(p.v>=.165)continue;
+
+        let targetU=null;
+        if(p.u>=leftMin&&p.u<leftMax){
+          targetU=p.u+(leftMax-leftMin);
+        }else if(p.u>rightMin&&p.u<=rightMax){
+          targetU=p.u-(rightMax-rightMin);
+        }
+        if(targetU===null)continue;
+
+        const jitterU=(particleHash(i*17+311)-.5)*.006;
+        const jitterV=(particleHash(i*29+719)-.5)*.004;
+        healed.push({
+          ...p,
+          u:particleClamp(targetU+jitterU),
+          v:particleClamp(p.v+jitterV),
+          glow:p.glow*.92,
+          r:p.r*.92,
+          g:p.g*.92,
+          b:p.b*.92
+        });
+      }
+      list.push(...healed);
     }
 
     return list;
@@ -3435,9 +3470,9 @@ function createParticleField(){
       gl.uniform4f(
         pLoc.topLogoField,
         hit.left+hit.width*.5,
-        hit.top+hit.height*.5,
-        hit.width*.56+24,
-        hit.height*.72+16
+        hit.top+hit.height*.58,
+        hit.width*.66+34,
+        hit.height*1.05+26
       );
     }else{
       gl.uniform4f(pLoc.topLogoField,state.width*.5,36,120,42);
