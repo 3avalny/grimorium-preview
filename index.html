@@ -1975,11 +1975,13 @@ function createParticleField(){
     "    color=mix(initialColor,initialColor*1.12,logoDetail);",
     "    passAlpha=logoToneAlpha;",
     "  }else if(u_pass>4.5){",
-    "    // Final top-logo overlay pass.",
+    "    // Final top-logo overlay pass. Use the sampled GV material so it reads",
+    "    // as the same particle substance rather than a separate flat sticker.",
     "    visible=isTop*u_material;",
-    "    passRadius=max(.34,a_meta.z*.72);",
-    "    color=vec3(.80,.76,.68);",
-    "    passAlpha=u_alpha*.82;",
+    "    float topLogoDetail=smoothstep(.055,.28,a_meta.x);",
+    "    passRadius=max(.30,a_meta.z*.68);",
+    "    color=mix(a_color,a_color*1.06,topLogoDetail);",
+    "    passAlpha=u_alpha*.68;",
     "  }else if(u_pass>3.5){",
     "    // Book, albums and Biography share one reconstruction path.",
     "    float materialKeep=1.0-step(.82,a_seed.x);",
@@ -1993,10 +1995,12 @@ function createParticleField(){
     "    float materialLum=reconstructionMeta.x;",
     "    float materialToneAlpha=mix(.22,.98,smoothstep(.012,.17,materialLum));",
     "    float materialDetail=smoothstep(.055,.28,materialLum);",
+    "    float bookSpine=1.0-smoothstep(.018,.085,abs(bookU-.5));",
+    "    float bookSpineTone=1.0-bookSpine*(1.0-discT)*(1.0-bioT)*.13;",
     "    visible=reconstructionWeight*materialKeep;",
     "    passRadius=reconstructionMeta.z*mix(.86,.68,materialDetail);",
     "    color=mix(reconstructionColor,reconstructionColor*1.12,materialDetail);",
-    "    passAlpha=materialToneAlpha;",
+    "    passAlpha=materialToneAlpha*bookSpineTone;",
     "  }",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
     "  v_color=color;",
@@ -2334,6 +2338,41 @@ function createParticleField(){
         if(excludeSourceLogo){
           const sourceLogoRegion=u>.385&&u<.615&&v<.155;
           if(sourceLogoRegion)continue;
+        }
+
+        if(sceneId==="book"){
+          // Remove only the faint construction circles from the Book reference.
+          // Bright book material is intentionally preserved where it crosses
+          // the same geometry, preventing the black cuts we saw on Revenant.
+          const px=x+.5;
+          const py=y+.5;
+          const dimGuide=lum<.115;
+
+          const centralCx=sampleW*.5;
+          const centralCy=sampleH*.335;
+          const centralR=sampleH*.165;
+          const centralCircle=Math.abs(
+            Math.hypot(px-centralCx,py-centralCy)-centralR
+          )<3.1;
+
+          const sideCy=sampleH*.365;
+          const sideR=sampleH*.205;
+          const leftCircle=Math.abs(
+            Math.hypot(px-sampleW*.075,py-sideCy)-sideR
+          )<3.0;
+          const rightCircle=Math.abs(
+            Math.hypot(px-sampleW*.925,py-sideCy)-sideR
+          )<3.0;
+
+          // A very faint center construction axis is also visible above the
+          // spine; only remove it while it remains genuinely dim.
+          const centerAxis=
+            Math.abs(px-centralCx)<2.2 &&
+            py<sampleH*.49;
+
+          if(dimGuide&&(centralCircle||leftCircle||rightCircle||centerAxis)){
+            continue;
+          }
         }
 
         if(sceneId==="revenant"){
