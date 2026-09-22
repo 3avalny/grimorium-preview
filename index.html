@@ -1601,6 +1601,8 @@ function createParticleField(){
     "  float logoR=max(.38,pSize*.90);",
     "  float webR=max(.20,pSize*(.32+.34*glow));",
     "  float radius=mix(logoR,webR,u_bgStart);",
+    "  float zoneRadius=zone<.5?.55:(zone>1.5?.92:1.0);",
+    "  radius*=mix(1.0,zoneRadius,u_bgStart);",
     "",
     "  vec3 logoColor=vec3(242.0/255.0,242.0/255.0,239.0/255.0);",
     "  vec3 bookColor=vec3(224.0/255.0,215.0/255.0,196.0/255.0);",
@@ -1613,12 +1615,12 @@ function createParticleField(){
     "",
     "  if(u_pass>.5&&u_pass<1.5){",
     "    visible=step(.50,glow)*u_bgStart;",
-    "    passRadius=radius*(1.25+.45*glow);",
+    "    passRadius=radius*(1.25+.45*glow)*(zone<.5?.72:1.0);",
     "    base=midColor;",
     "    passAlpha=u_alpha*visible*(.18+.22*glow);",
     "  }else if(u_pass>1.5){",
     "    visible=step(.78,glow)*u_bgStart;",
-    "    passRadius=radius*(.58+.16*glow);",
+    "    passRadius=radius*(.58+.16*glow)*(zone<.5?.68:1.0);",
     "    base=hotColor;",
     "    passAlpha=u_alpha*visible*(.52+.24*glow);",
     "  }else{",
@@ -1722,14 +1724,14 @@ function createParticleField(){
   function desiredCount(){
     if(state.width<=720)return 820;
     if(state.width<=1100)return 1500;
-    return 70000;
+    return 150000;
   }
 
   function buildLogoPoints(count){
     const logoW=Math.min(state.width*.56,820);
     const aspect=source.naturalWidth/Math.max(1,source.naturalHeight);
     const logoH=logoW/aspect;
-    const sampleW=state.width<=720?320:(state.width<=1100?500:1900);
+    const sampleW=state.width<=720?320:(state.width<=1100?500:2400);
     const sampleH=Math.max(1,Math.round(sampleW/aspect));
     const off=document.createElement("canvas");
     off.width=sampleW;
@@ -1782,26 +1784,26 @@ function createParticleField(){
     ctx.clearRect(0,0,tw,th);
 
     const refAspect=ref.naturalWidth/Math.max(1,ref.naturalHeight);
-    const dw=tw*1.08;
+    const dw=tw*1.188;
     const dh=dw/refAspect;
     const dx=(tw-dw)*.5;
     const dy=(th-dh)*.485-th*.004;
     ctx.drawImage(ref,dx,dy,dw,dh);
 
-    const logoW=Math.min(tw*.195,198);
+    const logoW=Math.min(tw*.205,208);
     const logoH=logoW/(source.naturalWidth/Math.max(1,source.naturalHeight));
     ctx.save();
     ctx.globalAlpha=1;
-    ctx.drawImage(source,tw*.5-logoW*.5,th*.008,logoW,logoH);
+    ctx.drawImage(source,tw*.5-logoW*.5,th*.001,logoW,logoH);
     ctx.restore();
 
     const image=ctx.getImageData(0,0,tw,th);
     const data=image.data;
     const candidates=[];
-    const bookLeft=tw*.17;
-    const bookRight=tw*.83;
-    const bookTop=th*.20;
-    const bookBottom=th*.83;
+    const bookLeft=tw*.11;
+    const bookRight=tw*.89;
+    const bookTop=th*.16;
+    const bookBottom=th*.88;
 
     for(let y=0;y<th;y++){
       for(let x=0;x<tw;x++){
@@ -1812,20 +1814,24 @@ function createParticleField(){
         if(lum<7.5)continue;
 
         const inBook=x>bookLeft&&x<bookRight&&y>bookTop&&y<bookBottom;
-        const topLogo=y<th*.155&&Math.abs(x-tw*.5)<tw*.145;
+        const topLogo=y<th*.145&&Math.abs(x-tw*.5)<tw*.155;
         const glow=particleClamp((lum-6)/205,.06,1);
         const point={
           x:x/tw*w,
           y:y/th*h,
-          motion:topLogo?0:(inBook?.075:1),
+          motion:topLogo?0:(inBook?.035:1),
           zone:topLogo?2:(inBook?1:0),
           glow
         };
 
         candidates.push(point);
         if(topLogo){
-          candidates.push(point,point,point,point,point);
-          if(lum>72)candidates.push(point,point,point);
+          candidates.push(
+            point,point,point,point,point,
+            point,point,point,point,point
+          );
+          if(lum>52)candidates.push(point,point,point,point,point,point);
+          if(lum>100)candidates.push(point,point,point,point);
         }
         if(lum>26)candidates.push(point);
         if(lum>58)candidates.push(point);
