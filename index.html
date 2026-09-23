@@ -1413,7 +1413,17 @@ function ensureSpotifyLoaded(panel){
   iframe.dataset.loaded="1";
 }
 
+const spotifySafariPreloadDisabled=
+  navigator.vendor==="Apple Computer, Inc." &&
+  /Safari/i.test(navigator.userAgent) &&
+  !/(CriOS|FxiOS|EdgiOS|OPiOS)/i.test(navigator.userAgent);
+
 function preloadSpotifyNeighbor(index){
+  // Safari can become unstable when more than one Spotify encrypted-media
+  // embed is initialized at once. Keep only the selected album loaded there;
+  // all existing gesture/scroll isolation stays unchanged.
+  if(spotifySafariPreloadDisabled)return;
+
   const nextIndex=Math.min(ALBUMS.length-1,index+1);
   if(nextIndex===index)return;
   const load=()=>ensureSpotifyLoaded(discPanelFor(ALBUMS[nextIndex].id));
