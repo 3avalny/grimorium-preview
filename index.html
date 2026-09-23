@@ -2313,7 +2313,7 @@ function createParticleField(){
   const sideMaskShaderLines=supportsSideGlyphMask
     ?[
       "  // Pixel-accurate Moonscythe glyph anti-field for the vertical labels.",
-      "  // Particles clear the actual letter strokes and a tight ~10px neighbourhood.",
+      "  // Particles clear the actual letter strokes and a tight ~6px neighbourhood.",
       "  float sideLabelClear=0.0;",
       "  for(int sfi=0;sfi<2;sfi++){",
       "    vec4 sf=u_sideFields[sfi];",
@@ -4048,8 +4048,10 @@ function createParticleField(){
     }
 
     const t=particleClamp((now-state.discMorphStartedAt)/Math.max(1,state.discMorphDuration));
-    const eased=particleSmoother(t);
-    state.discMorph=particleMix(state.discMorphFrom,state.discMorphTo,eased);
+    // Drive Book <-> Discography linearly here. Each particle already applies
+    // its own delayed smootherstep in the vertex shader; easing this global
+    // driver as well double-eased the final approach and looked like a hold.
+    state.discMorph=particleMix(state.discMorphFrom,state.discMorphTo,t);
   }
 
   function updateBioMorph(now,shouldShowBio){
@@ -4374,7 +4376,7 @@ function createParticleField(){
   }
 
   function renderSideLabelLocalMask(d,dilate){
-    const pad=12;
+    const pad=8;
     const w=Math.max(1,Math.ceil(d.rect.width)+pad*2);
     const h=Math.max(1,Math.ceil(d.rect.height)+pad*2);
     const canvas=document.createElement("canvas");
@@ -4388,9 +4390,9 @@ function createParticleField(){
 
     const font=`${d.fontWeight} ${d.fontSize}px ${d.fontFamily}`;
     if(dilate){
-      for(let dy=-10;dy<=10;dy+=2){
-        for(let dx=-10;dx<=10;dx+=2){
-          if(dx*dx+dy*dy>100)continue;
+      for(let dy=-6;dy<=6;dy+=2){
+        for(let dx=-6;dx<=6;dx+=2){
+          if(dx*dx+dy*dy>36)continue;
           drawSpacedMaskText(ctx,d.text,0,0,font,d.letterSpacing,dx,dy);
         }
       }
@@ -4486,9 +4488,9 @@ function createParticleField(){
 
       data[k]=rect.left+rect.width*.5;
       data[k+1]=rect.top+rect.height*.5;
-      // The atlas itself is screen-oriented and carries its own 12px padding.
-      data[k+2]=Math.max(1,rect.width+24);
-      data[k+3]=Math.max(1,rect.height+24);
+      // The atlas itself is screen-oriented and carries its own 8px padding.
+      data[k+2]=Math.max(1,rect.width+16);
+      data[k+3]=Math.max(1,rect.height+16);
     }
 
     if(state.sideMaskLayoutDirty){
