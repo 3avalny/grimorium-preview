@@ -1915,12 +1915,14 @@ function createBootParticleLoader(){
   if(document.readyState==="complete")mark("dom");
   else window.addEventListener("load",()=>mark("dom"),{once:true});
 
-  // Safety: a failed optional stage must never strand the visitor forever.
+  // Safety: a failed resource or WebGL init must never strand the visitor
+  // forever. Normal loads finish long before this path is reached.
   window.setTimeout(()=>{
     for(const [key,stage] of stages){
-      if(key!=="particleEngine"&&!stage.done)mark(key);
+      if(!stage.done)mark(key);
     }
-  },12000);
+    if(introBrandImg)introBrandImg.style.opacity="1";
+  },15000);
 
   raf=requestAnimationFrame(draw);
 
