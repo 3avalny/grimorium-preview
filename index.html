@@ -2612,10 +2612,25 @@ function createParticleField(){
   };
 
   function desiredCount(){
+    const w=state.width;
     let base;
-    if(state.width<=720)base=1800;
-    else if(state.width<=1100)base=18000;
-    else base=240000;
+
+    // Continuous quality ramp: no 13x geometry cliff between 1100 and 1101px.
+    // High-resolution desktops still reach the original 240k ceiling.
+    if(w<=720){
+      base=1800;
+    }else if(w<=900){
+      base=particleMix(1800,18000,particleClamp((w-720)/180));
+    }else if(w<=1100){
+      base=particleMix(18000,40000,particleClamp((w-900)/200));
+    }else if(w<=1440){
+      base=particleMix(40000,160000,particleClamp((w-1100)/340));
+    }else if(w<=1920){
+      base=particleMix(160000,240000,particleClamp((w-1440)/480));
+    }else{
+      base=240000;
+    }
+
     return Math.max(600,Math.round(base*state.qualityScale));
   }
 
@@ -3740,7 +3755,9 @@ function createParticleField(){
   }
 
   function applyBiographyMappingForCurrentAlbum(){
-    const id=state.albumSceneCurrentId;
+    const id=state.albumSceneTransitioning
+      ?state.albumSceneTargetId
+      :state.albumSceneCurrentId;
     const mapped=state.bioMappedByAlbum[id];
     if(!mapped)return false;
     if(state.bioSceneMapped===mapped)return true;
@@ -3756,19 +3773,34 @@ function createParticleField(){
       return;
     }
     if(!state.albumSceneTransitioning&&id===state.albumSceneCurrentId)return;
-    if(state.albumSceneTransitioning){
-      if(id!==state.albumSceneTargetId)state.pendingAlbumSceneId=id;
-      return;
-    }
+    if(state.albumSceneTransitioning&&id===state.albumSceneTargetId)return;
 
     state.pendingAlbumSceneId=null;
     state.bioMapVersion++;
 
     const now=performance.now();
-    const from=state.albumFromData||state.albumScenes[state.albumSceneCurrentId]||state.albumScenes.reall;
+    let from;
+
+    if(state.albumSceneTransitioning&&state.albumFromData&&state.albumToData){
+      // Retarget from the geometry that is actually on screen right now.
+      // A fast second/third album click no longer waits for the old 1.95s morph.
+      const liveRaw=particleClamp(
+        (now-state.albumSceneMorphStartedAt)/Math.max(1,state.albumSceneMorphDuration)
+      );
+      const liveMorph=particleSmoother(liveRaw);
+      state.albumSceneMorph=liveMorph;
+      from=blendAlbumScenes(state.albumFromData,state.albumToData,liveMorph);
+    }else{
+      from=state.albumFromData||
+        state.albumScenes[state.albumSceneCurrentId]||
+        state.albumScenes.reall;
+    }
+
     const rawTo=state.albumScenes[id];
     const to=matchParticleSceneNearest(from,rawTo,++state.albumMatchSalt);
 
+    // Reset the GPU endpoints to current-visible -> newly requested target.
+    uploadAlbumScene(buffers.albumTarget,buffers.albumMeta,buffers.albumColor,from);
     uploadAlbumScene(buffers.revenantTarget,buffers.revenantMeta,buffers.revenantColor,to);
 
     state.albumFromData=from;
@@ -3802,13 +3834,7 @@ function createParticleField(){
       state.albumSceneMorphTo=0;
       state.albumSceneTransitioning=false;
 
-      const settledId=state.albumSceneCurrentId;
-
-      const queuedId=state.pendingAlbumSceneId;
       state.pendingAlbumSceneId=null;
-      if(queuedId&&queuedId!==settledId){
-        setAlbumScene(queuedId);
-      }
     }
   }
 
@@ -4585,6 +4611,7 @@ renderScenes();
 
 let desktopSnapAnimating=false;
 let desktopSnapKey="logo";
+let desktopSceneStateKey=null;
 let desktopSnapFrame=0;
 let desktopLogoAvailable=true;
 
@@ -4629,15 +4656,26 @@ function nearestDesktopSnapTarget(targets){
   return best;
 }
 
-function syncDesktopSnapKey(){
+function applyDesktopSceneState(key,{force=false,biographyImmediate=false}={}){
+  desktopSnapKey=key;
+  if(!force&&desktopSceneStateKey===key)return false;
+
+  desktopSceneStateKey=key;
+  const biographyActive=key==="biography";
+
+  // One authoritative place owns scene-entry UI side effects. Scroll syncing can
+  // run many times without restarting Biography timers or particle transitions.
+  particleField?.setBiographyActive?.(biographyActive);
+  setBiographyTextActive(biographyActive,{immediate:biographyImmediate});
+  return true;
+}
+
+function syncDesktopSnapKey(options={}){
   if(window.innerWidth<=720||desktopSnapAnimating)return;
   const targets=desktopSnapTargets();
   if(!targets.length)return;
   const nearest=nearestDesktopSnapTarget(targets);
-  if(nearest){
-    desktopSnapKey=nearest.key;
-    setBiographyTextActive(desktopSnapKey==="biography");
-  }
+  if(nearest)applyDesktopSceneState(nearest.key,options);
 }
 
 function jumpHomeImmediately(){
@@ -4718,14 +4756,12 @@ function triggerDesktopSnap(direction){
   if(nextIndex===currentIndex)return;
 
   const next=targets[nextIndex];
-  const leavingLogo=desktopSnapKey==="logo" && direction>0;
+  const previousKey=desktopSnapKey;
+  const leavingLogo=previousKey==="logo" && direction>0;
 
-  desktopSnapKey=next.key;
-
-  // Start particle reconstruction immediately with the wheel/trackpad gesture.
-  // Do not wait for the viewport to finish snapping into Biography.
-  particleField?.setBiographyActive?.(next.key==="biography");
-  setBiographyTextActive(next.key==="biography");
+  // Start all scene-entry effects exactly once, at gesture time, rather than
+  // waiting for the physical viewport snap to finish.
+  applyDesktopSceneState(next.key);
 
   if(leavingLogo){
     // The large-logo screen exists only once per page load.
@@ -4840,6 +4876,7 @@ window.addEventListener("wheel",e=>{
 function resetDesktopIntroSnap(){
   desktopLogoAvailable=true;
   desktopSnapKey="logo";
+  desktopSceneStateKey="logo";
   setBiographyTextActive(false);
   desktopWheelLastAt=0;
   desktopWheelGestureLocked=false;
@@ -4849,8 +4886,7 @@ function resetDesktopIntroSnap(){
 
 window.addEventListener("load",()=>{
   window.setTimeout(()=>{
-    syncDesktopSnapKey();
-    setBiographyTextActive(desktopSnapKey==="biography",{immediate:true});
+    syncDesktopSnapKey({force:true,biographyImmediate:true});
   },60);
 },{once:true});
 
