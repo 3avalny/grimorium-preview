@@ -1769,7 +1769,7 @@ function setBiographyTextActive(active,{immediate=false}={}){
     if(immediate||reducedMotionQuery.matches){
       biographyCopy.classList.add("bio-text-visible");
     }else{
-      biographyEnterTimer=window.setTimeout(reveal,2000);
+      biographyEnterTimer=window.setTimeout(reveal,200);
     }
   }else{
     if(!biographyCopy.classList.contains("bio-text-visible")){
