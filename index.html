@@ -1686,19 +1686,16 @@ function createBootParticleLoader(){
   }
 
   const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Only first-screen dependencies are allowed to hold the visitor here.
+  // Album maps, Biography, covers, Spotify and decorative imagery load normally
+  // underneath and never participate in boot completion.
   const stages=new Map();
   const addStage=(key,weight)=>stages.set(key,{weight,done:false});
-
-  addStage("logo",.07);
-  addStage("font",.05);
-  addStage("book",.10);
-  ["reall","revenant","relict","reborn","retaliation"].forEach(id=>addStage("map:"+id,.05));
-  addStage("map:bio",.06);
-  addStage("hero:light",.035);
-  addStage("hero:rocks",.035);
-  ALBUMS.forEach(a=>addStage("cover:"+a.id,.02));
-  addStage("dom",.05);
-  addStage("particleEngine",.25);
+  addStage("logo",.22);
+  addStage("book",.18);
+  addStage("dom",.10);
+  addStage("particleEngine",.50);
 
   let targetProgress=0;
   let displayProgress=0;
@@ -1709,7 +1706,7 @@ function createBootParticleLoader(){
   let settledCanvas=null;
   let settledCtx=null;
   let settledPixels=null;
-  let settledDirty=false;
+  let logoRasterCanvas=null;
   let logoX=0;
   let logoY=0;
   let logoW=0;
@@ -1719,11 +1716,14 @@ function createBootParticleLoader(){
   let rasterH=1;
   let raf=0;
   let lastAt=0;
-  let lastRevealAt=0;
   let finished=false;
+  let finishing=false;
+  let finishStartedAt=0;
   let targetsReady=false;
   let loaderStartedAt=performance.now();
   let logoImage=null;
+  let lastLayoutW=0;
+  let lastLayoutH=0;
 
   const hash=n=>{
     let x=(Math.floor(n)>>>0)+0x9e3779b9;
@@ -1756,19 +1756,6 @@ function createBootParticleLoader(){
     targetProgress=progressFromStages();
   };
 
-  const resize=()=>{
-    const dpr=Math.min(window.devicePixelRatio||1,1.6);
-    const w=Math.max(1,window.innerWidth);
-    const h=Math.max(1,window.innerHeight);
-    bootLoaderCanvas.width=Math.round(w*dpr);
-    bootLoaderCanvas.height=Math.round(h*dpr);
-    bootLoaderCanvas.style.width=w+"px";
-    bootLoaderCanvas.style.height=h+"px";
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-
-    if(targetsReady&&logoImage)buildTargets(logoImage);
-  };
-
   const buildTargets=image=>{
     const w=Math.max(1,window.innerWidth);
     const h=Math.max(1,window.innerHeight);
@@ -1778,10 +1765,10 @@ function createBootParticleLoader(){
     logoX=w*.5-logoW*.5;
     logoY=h*.5-logoH*.5;
 
-    // Rasterize the REAL transparent PNG at its actual on-screen size. There is
-    // no brightness lottery, no semantic approximation and no 5k point cap.
-    // Every visible output pixel becomes one honest target particle.
-    rasterScale=Math.min(window.devicePixelRatio||1,1.30);
+    // The moving cloud is sampled, not one JS object per source pixel.
+    // The exact raster is cross-faded underneath near the end, so the final GV
+    // remains pixel-faithful while boot work stays bounded on Retina displays.
+    rasterScale=Math.min(window.devicePixelRatio||1,1.0);
     rasterW=Math.max(1,Math.round(logoW*rasterScale));
     rasterH=Math.max(1,Math.round(logoH*rasterScale));
 
@@ -1793,45 +1780,61 @@ function createBootParticleLoader(){
     rctx.imageSmoothingEnabled=true;
     rctx.imageSmoothingQuality="high";
     rctx.drawImage(image,0,0,rasterW,rasterH);
+    logoRasterCanvas=raster;
 
     const sourcePixels=rctx.getImageData(0,0,rasterW,rasterH).data;
-    const exact=[];
+    let visibleCount=0;
+    for(let k=3;k<sourcePixels.length;k+=4){
+      if(sourcePixels[k]>8)visibleCount++;
+    }
 
-    for(let y=0;y<rasterH;y++){
-      for(let x=0;x<rasterW;x++){
+    const maxParticles=reducedMotion
+      ?1800
+      :(w<=720?6500:(w<=1200?9500:15000));
+    const sampleCount=Math.max(1,Math.min(visibleCount,maxParticles));
+    const stride=Math.max(1,visibleCount/sampleCount);
+    let nextPick=hash(0x4f2a1)*stride;
+    let visibleIndex=0;
+    const sampled=[];
+
+    for(let y=0;y<rasterH&&sampled.length<sampleCount;y++){
+      for(let x=0;x<rasterW&&sampled.length<sampleCount;x++){
         const k=(y*rasterW+x)*4;
         const a=sourcePixels[k+3];
-        if(a===0)continue;
+        if(a<=8)continue;
 
-        const seedIndex=x+y*rasterW;
-        const angle=hash(seedIndex*3253+91)*Math.PI*2;
-        const travelRadius=
-          28+
-          hash(seedIndex*5741+211)*
-          Math.min(190,Math.max(70,logoW*.24));
-        const tangent=(hash(seedIndex*1187+337)-.5)*26;
-        const tx=logoX+(x+.5)/rasterScale;
-        const ty=logoY+(y+.5)/rasterScale;
+        if(visibleIndex>=nextPick){
+          const seedIndex=x+y*rasterW;
+          const angle=hash(seedIndex*3253+91)*Math.PI*2;
+          const travelRadius=
+            24+
+            hash(seedIndex*5741+211)*
+            Math.min(170,Math.max(64,logoW*.22));
+          const tangent=(hash(seedIndex*1187+337)-.5)*22;
+          const tx=logoX+(x+.5)/rasterScale;
+          const ty=logoY+(y+.5)/rasterScale;
 
-        exact.push({
-          px:x,
-          py:y,
-          tx,
-          ty,
-          sx:tx+Math.cos(angle)*travelRadius+Math.sin(angle)*tangent,
-          sy:ty+Math.sin(angle)*travelRadius-Math.cos(angle)*tangent,
-          r:sourcePixels[k],
-          g:sourcePixels[k+1],
-          b:sourcePixels[k+2],
-          a,
-          phase:hash(seedIndex*9901+11)*Math.PI*2,
-          birth:0,
-          duration:260+hash(seedIndex*6421+27)*260
-        });
+          sampled.push({
+            px:x,
+            py:y,
+            tx,
+            ty,
+            sx:tx+Math.cos(angle)*travelRadius+Math.sin(angle)*tangent,
+            sy:ty+Math.sin(angle)*travelRadius-Math.cos(angle)*tangent,
+            r:sourcePixels[k],
+            g:sourcePixels[k+1],
+            b:sourcePixels[k+2],
+            a,
+            birth:0,
+            duration:180+hash(seedIndex*6421+27)*220
+          });
+          nextPick+=stride;
+        }
+        visibleIndex++;
       }
     }
 
-    particles=shuffled(exact);
+    particles=shuffled(sampled);
     activeFlights=[];
     revealedCount=0;
     settledCount=0;
@@ -1841,23 +1844,65 @@ function createBootParticleLoader(){
     settledCanvas.height=rasterH;
     settledCtx=settledCanvas.getContext("2d",{alpha:true});
     settledPixels=settledCtx.createImageData(rasterW,rasterH);
-    settledDirty=true;
 
     targetsReady=true;
   };
 
+  const resize=()=>{
+    const dpr=Math.min(window.devicePixelRatio||1,1.5);
+    const w=Math.max(1,window.innerWidth);
+    const h=Math.max(1,window.innerHeight);
+    const meaningfulLayoutChange=
+      !lastLayoutW||
+      Math.abs(w-lastLayoutW)>48||
+      Math.abs(h-lastLayoutH)>140;
+
+    bootLoaderCanvas.width=Math.round(w*dpr);
+    bootLoaderCanvas.height=Math.round(h*dpr);
+    bootLoaderCanvas.style.width=w+"px";
+    bootLoaderCanvas.style.height=h+"px";
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    lastLayoutW=w;
+    lastLayoutH=h;
+
+    // Do not restart the whole assembly for tiny mobile browser-bar resizes.
+    if(targetsReady&&logoImage&&meaningfulLayoutChange)buildTargets(logoImage);
+  };
+
+  const beginFinish=now=>{
+    if(finishing||finished)return;
+    finishing=true;
+    finishStartedAt=now;
+    bootLoaderCanvas.classList.add("is-complete");
+    document.body.classList.remove("boot-loading");
+  };
+
+  const completeFinish=()=>{
+    if(finished)return;
+    finished=true;
+    if(raf)cancelAnimationFrame(raf);
+    bootLoaderCanvas.remove();
+  };
+
   const draw=now=>{
     if(finished)return;
+
     const w=Math.max(1,window.innerWidth);
     const h=Math.max(1,window.innerHeight);
     const dt=lastAt?Math.min(50,now-lastAt):16;
     lastAt=now;
 
-    // Stage progress is real; only its visual presentation is eased so network
-    // bursts do not make half a logo pop into existence in a single frame.
-    const response=1-Math.exp(-dt/300);
-    displayProgress+=(targetProgress-displayProgress)*response;
-    if(targetProgress>=1&&1-displayProgress<.0015)displayProgress=1;
+    // Keep the assembly moving while a critical dependency is still resolving.
+    // It may visually progress to 88%, but only real readiness unlocks the end.
+    const elapsed=Math.max(0,now-loaderStartedAt);
+    const timeAssist=Math.min(.88,(1-Math.exp(-elapsed/650))*.94);
+    const visualTarget=targetProgress>=.999
+      ?1
+      :Math.max(targetProgress,timeAssist);
+    const response=1-Math.exp(-dt/160);
+    displayProgress+=(visualTarget-displayProgress)*response;
+    if(targetProgress>=.999&&1-displayProgress<.002)displayProgress=1;
 
     ctx.fillStyle="#050607";
     ctx.fillRect(0,0,w,h);
@@ -1868,21 +1913,30 @@ function createBootParticleLoader(){
         Math.floor(displayProgress*particles.length)
       );
 
-      // Reveal true source pixels in shuffled order. New pixels physically fly
-      // in; once they land they are committed to an exact raster of the PNG.
       const spawnBudget=reducedMotion
-        ? requestedCount-revealedCount
-        : Math.min(requestedCount-revealedCount,520);
+        ?requestedCount-revealedCount
+        :Math.min(requestedCount-revealedCount,w<=720?700:1100);
 
       for(let n=0;n<spawnBudget;n++){
         const p=particles[revealedCount++];
-        p.birth=now+(reducedMotion?0:hash(revealedCount*8123+101)*55);
+        p.birth=now+(reducedMotion?0:hash(revealedCount*8123+101)*32);
         activeFlights.push(p);
-        lastRevealAt=Math.max(lastRevealAt,p.birth);
       }
 
       if(settledCanvas){
         ctx.drawImage(settledCanvas,logoX,logoY,logoW,logoH);
+      }
+
+      // Resolve to the exact source logo before the loader disappears. The
+      // cross-fade starts late enough that the particle assembly still reads.
+      if(logoRasterCanvas){
+        const exactAlpha=Math.max(0,Math.min(1,(displayProgress-.72)/.22));
+        if(exactAlpha>0){
+          ctx.save();
+          ctx.globalAlpha=exactAlpha;
+          ctx.drawImage(logoRasterCanvas,logoX,logoY,logoW,logoH);
+          ctx.restore();
+        }
       }
 
       if(activeFlights.length){
@@ -1903,7 +1957,7 @@ function createBootParticleLoader(){
             settledPixels.data[k+1]=p.g;
             settledPixels.data[k+2]=p.b;
             settledPixels.data[k+3]=p.a;
-            settledCount+=1;
+            settledCount++;
             committedThisFrame=true;
             continue;
           }
@@ -1915,13 +1969,13 @@ function createBootParticleLoader(){
           const len=Math.max(1,Math.hypot(dx,dy));
           const nx=-dy/len;
           const ny=dx/len;
-          const bend=(hash((p.px+p.py*rasterW)*4999+7)-.5)*18*arc;
+          const bend=(hash((p.px+p.py*rasterW)*4999+7)-.5)*15*arc;
           const x=p.sx+dx*t+nx*bend;
           const y=p.sy+dy*t+ny*bend;
-          const alpha=(p.a/255)*Math.min(1,raw*3.2);
-          const particleSize=Math.max(.72,1/rasterScale)*(.86+.24*(1-t));
+          const alpha=(p.a/255)*Math.min(1,raw*3.4);
+          const particleSize=Math.max(.9,1/rasterScale)*(1.08+.28*(1-t));
 
-          ctx.fillStyle=`rgba(${p.r},${p.g},${p.b},${alpha})`;
+          ctx.fillStyle="rgba("+p.r+","+p.g+","+p.b+","+alpha+")";
           ctx.beginPath();
           ctx.arc(x,y,particleSize,0,Math.PI*2);
           ctx.fill();
@@ -1933,39 +1987,34 @@ function createBootParticleLoader(){
 
         if(committedThisFrame){
           settledCtx.putImageData(settledPixels,0,0);
-          settledDirty=false;
         }
-      }
-
-      if(
-        targetProgress>=1&&
-        displayProgress>=1&&
-        revealedCount===particles.length&&
-        settledCount===particles.length&&
-        activeFlights.length===0&&
-        now-Math.max(loaderStartedAt,lastRevealAt)>320
-      ){
-        finish();
-        return;
       }
     }
 
+    const criticalReady=targetProgress>=.999;
+    const enoughAssembly=
+      !targetsReady||
+      !particles.length||
+      revealedCount>=Math.floor(particles.length*.90);
+
+    // Unlock while the last ~10% of particles are still flying. The canvas
+    // continues animating through its CSS fade, so there is no end-of-loader hold.
+    if(
+      !finishing&&
+      criticalReady&&
+      displayProgress>=.93&&
+      enoughAssembly&&
+      elapsed>=520
+    ){
+      beginFinish(now);
+    }
+
+    if(finishing&&now-finishStartedAt>=620){
+      completeFinish();
+      return;
+    }
+
     raf=requestAnimationFrame(draw);
-  };
-
-  const finish=()=>{
-    if(finished)return;
-    finished=true;
-    if(raf)cancelAnimationFrame(raf);
-
-    // The loader has now assembled every visible pixel of the real GV PNG.
-    // Main WebGL is already alive underneath, so the overlay can hand off cleanly.
-    bootLoaderCanvas.classList.add("is-complete");
-    document.body.classList.remove("boot-loading");
-
-    window.setTimeout(()=>{
-      bootLoaderCanvas.remove();
-    },650);
   };
 
   const preloadImageStage=(key,url,{logo=false}={})=>{
@@ -1977,7 +2026,7 @@ function createBootParticleLoader(){
         ?img.decode().catch(()=>{})
         :Promise.resolve();
       decoded.finally(()=>{
-        if(logo){
+        if(logo&&img.naturalWidth){
           logoImage=img;
           buildTargets(img);
         }
@@ -1995,37 +2044,24 @@ function createBootParticleLoader(){
 
   const logoUrl=introBrandImg.currentSrc||introBrandImg.src;
   preloadImageStage("logo",logoUrl,{logo:true});
+  preloadImageStage("book","assets/book.webp?v="+SITE_ASSET_VERSION);
 
-  if(document.fonts?.load){
-    document.fonts.load('32px "Moonscythe"').then(()=>mark("font")).catch(()=>mark("font"));
+  // DOM parsing is enough. Waiting for window.load used to hold the overlay
+  // behind every cover, remote icon and iframe on the page.
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",()=>mark("dom"),{once:true});
   }else{
-    mark("font");
+    mark("dom");
   }
 
-  const versioned=name=>`assets/${name}?v=${SITE_ASSET_VERSION}`;
-  preloadImageStage("book",versioned("book.webp"));
-  preloadImageStage("map:reall",versioned("gates.webp"));
-  preloadImageStage("map:revenant",versioned("wings.webp"));
-  preloadImageStage("map:relict",versioned("skull.webp"));
-  preloadImageStage("map:reborn",versioned("trees.webp"));
-  preloadImageStage("map:retaliation",versioned("first.webp"));
-  preloadImageStage("map:bio",versioned("biography_candles.webp"));
-  preloadImageStage("hero:light","assets/light.webp?v=0680db37");
-  preloadImageStage("hero:rocks","assets/rocks.webp?v=8f46a97b");
-
-  ALBUMS.forEach(a=>preloadImageStage("cover:"+a.id,a.cover));
-
-  if(document.readyState==="complete")mark("dom");
-  else window.addEventListener("load",()=>mark("dom"),{once:true});
-
-  // Safety: a failed resource or WebGL init must never strand the visitor
-  // forever. Normal loads finish long before this path is reached.
+  // Last-resort escape hatch. Optional resources are deliberately absent from
+  // the stage map, so this only covers a truly failed critical dependency.
   window.setTimeout(()=>{
     for(const [key,stage] of stages){
       if(!stage.done)mark(key);
     }
     if(introBrandImg)introBrandImg.style.opacity="1";
-  },15000);
+  },8000);
 
   raf=requestAnimationFrame(draw);
 
