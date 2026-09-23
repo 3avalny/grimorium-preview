@@ -1704,8 +1704,8 @@ function createBootParticleLoader(){
   let settledCount=0;
   let settledCanvas=null;
   let settledCtx=null;
-  let settledPixels=null;
-  let settledDirty=false;
+  let revealPosition=0;
+  let revealVelocity=0;
   let logoX=0;
   let logoY=0;
   let logoW=0;
@@ -1838,6 +1838,7 @@ function createBootParticleLoader(){
           // remains after landing. That keeps the final mark particulate instead
           // of rebuilding a continuous bitmap.
           settleKeep:hash(seedIndex*6151+389)<.57,
+          settleSize:.50+hash(seedIndex*4721+73)*.28,
           phase:hash(seedIndex*9901+11)*Math.PI*2,
           birth:0,
           duration:260+hash(seedIndex*6421+27)*260
@@ -1849,13 +1850,14 @@ function createBootParticleLoader(){
     activeFlights=[];
     revealedCount=0;
     settledCount=0;
+    revealPosition=0;
+    revealVelocity=0;
 
     settledCanvas=document.createElement("canvas");
     settledCanvas.width=rasterW;
     settledCanvas.height=rasterH;
     settledCtx=settledCanvas.getContext("2d",{alpha:true});
-    settledPixels=settledCtx.createImageData(rasterW,rasterH);
-    settledDirty=true;
+    settledCtx.clearRect(0,0,rasterW,rasterH);
 
     targetsReady=true;
   };
@@ -1882,23 +1884,39 @@ function createBootParticleLoader(){
     ctx.fillRect(0,0,w,h);
 
     if(targetsReady&&particles.length){
-      const requestedCount=Math.min(
+      const desiredReveal=Math.min(
         particles.length,
-        Math.floor(displayProgress*particles.length)
+        displayProgress*particles.length
       );
 
-      // Reveal true source pixels in shuffled order. New pixels physically fly
-      // in; once they land they are committed to an exact raster of the PNG.
-      const spawnBudget=reducedMotion
-        ? requestedCount-revealedCount
-        : Math.min(
-            requestedCount-revealedCount,
-            window.innerWidth<=720?760:1180
-          );
+      // Meter launches with a damped velocity instead of frame-sized batches.
+      // This removes the Safari "pulse / pause / pulse" rhythm while still
+      // allowing the stream to accelerate when the engine becomes ready.
+      if(reducedMotion){
+        revealPosition=desiredReveal;
+      }else{
+        const backlog=Math.max(0,desiredReveal-revealPosition);
+        const minVelocity=particles.length/14000;
+        const maxVelocity=particles.length/850;
+        const desiredVelocity=backlog>0
+          ?Math.min(maxVelocity,Math.max(minVelocity,backlog/320))
+          :0;
+        const velocityResponse=1-Math.exp(-dt/120);
+        revealVelocity+=(desiredVelocity-revealVelocity)*velocityResponse;
+        revealPosition=Math.min(
+          desiredReveal,
+          revealPosition+revealVelocity*dt
+        );
+      }
 
-      for(let n=0;n<spawnBudget;n++){
+      const emitTo=Math.floor(revealPosition);
+      const spawnCount=Math.max(0,emitTo-revealedCount);
+      const birthWindow=reducedMotion?0:Math.min(14,dt*.9);
+
+      for(let n=0;n<spawnCount;n++){
         const p=particles[revealedCount++];
-        p.birth=now+(reducedMotion?0:hash(revealedCount*8123+101)*55);
+        const slot=spawnCount>1?n/(spawnCount-1):0;
+        p.birth=now+birthWindow*slot+hash(revealedCount*8123+101)*1.5;
         activeFlights.push(p);
         lastRevealAt=Math.max(lastRevealAt,p.birth);
       }
@@ -1909,7 +1927,6 @@ function createBootParticleLoader(){
 
       if(activeFlights.length){
         const nextFlights=[];
-        let committedThisFrame=false;
 
         for(let i=0;i<activeFlights.length;i++){
           const p=activeFlights[i];
@@ -1921,12 +1938,15 @@ function createBootParticleLoader(){
           const raw=Math.min(1,(now-p.birth)/p.duration);
           if(raw>=1||reducedMotion){
             if(p.settleKeep){
-              const k=(p.py*rasterW+p.px)*4;
-              settledPixels.data[k]=p.r;
-              settledPixels.data[k+1]=p.g;
-              settledPixels.data[k+2]=p.b;
-              settledPixels.data[k+3]=Math.round(p.a*p.opacity);
-              committedThisFrame=true;
+              const settleAlpha=(p.a/255)*p.opacity;
+              const size=p.settleSize;
+              settledCtx.fillStyle=`rgba(${p.r},${p.g},${p.b},${settleAlpha})`;
+              settledCtx.fillRect(
+                p.px+.5-size*.5,
+                p.py+.5-size*.5,
+                size,
+                size
+              );
             }
             settledCount+=1;
             continue;
@@ -1954,11 +1974,6 @@ function createBootParticleLoader(){
         }
 
         activeFlights=nextFlights;
-
-        if(committedThisFrame){
-          settledCtx.putImageData(settledPixels,0,0);
-          settledDirty=false;
-        }
       }
 
       if(
