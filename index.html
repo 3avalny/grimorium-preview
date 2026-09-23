@@ -4885,6 +4885,16 @@ function createParticleField(){
       const heroRange=Math.max(1,(introHero?.offsetHeight||state.height)-state.height);
       const heroRaw=particleClamp(scrollY/heroRange);
       updateMorph(now,heroRaw);
+
+      if(
+        deferredReferencesDirty&&
+        !fullQualityRestored&&
+        canRunDeferredRebuild()
+      ){
+        fullQualityRestored=true;
+        runPostBootFullRebuild();
+      }
+
       updateAlbumSceneMorph(now);
 
       const recordTop=parallaxRecord?.offsetTop??(heroRange+state.height*1.4);
@@ -5064,6 +5074,13 @@ function createParticleField(){
   let deferredReferenceTimer=0;
   let deferredReferencesDirty=false;
   let postBootFullRebuildScheduled=false;
+  let fullQualityRestored=false;
+
+  const canRunDeferredRebuild=()=>(
+    !document.body.classList.contains("boot-loading")&&
+    state.morph>.94&&
+    !state.homeSceneActive
+  );
 
   function runPostBootFullRebuild(){
     if(postBootFullRebuildScheduled||state.destroyed)return;
@@ -5073,6 +5090,7 @@ function createParticleField(){
       postBootFullRebuildScheduled=false;
       if(state.destroyed)return;
       deferredReferencesDirty=false;
+      fullQualityRestored=true;
       state.candidatesReady=false;
       state.bioMappedByAlbum={};
       state.bioSceneMapped=null;
@@ -5092,10 +5110,12 @@ function createParticleField(){
       return;
     }
 
-    if(document.body.classList.contains("boot-loading")){
-      deferredReferencesDirty=true;
-      return;
-    }
+    deferredReferencesDirty=true;
+
+    // Never replace the visible home-logo geometry with a denser set.
+    // Late scene assets are collected silently and rebuilt only after the
+    // large GV has almost completely morphed away.
+    if(!canRunDeferredRebuild())return;
 
     window.clearTimeout(deferredReferenceTimer);
     deferredReferenceTimer=window.setTimeout(runPostBootFullRebuild,90);
@@ -5131,10 +5151,10 @@ function createParticleField(){
   }
 
   grimoriumBootLoader?.onComplete?.(()=>{
-    // Restore native-resolution candidates and the normal particle count only
-    // after the boot animation is gone, coalescing every optional scene arrival.
+    // Do not change geometry while the finished boot logo is still the scene.
+    // Just remember that a native/full rebuild is owed; render() will release
+    // it only after the large GV has visually left the home state.
     deferredReferencesDirty=true;
-    runPostBootFullRebuild();
   });
 
   window.addEventListener("resize",()=>{
