@@ -1758,8 +1758,10 @@ function createBootParticleLoader(){
   let finishing=false;
   let finishStartedAt=0;
   let targetsReady=false;
+  let targetBuildToken=0;
   let loaderStartedAt=performance.now();
   let logoImage=null;
+  const completeListeners=new Set();
 
   const hash=n=>{
     let x=(Math.floor(n)>>>0)+0x9e3779b9;
@@ -1836,101 +1838,120 @@ function createBootParticleLoader(){
     else buildBootstrapParticles();
   };
 
-  const buildTargets=image=>{
+  const buildTargets=(image,onReady=null)=>{
+    const token=++targetBuildToken;
     const w=Math.max(1,window.innerWidth);
     const h=Math.max(1,window.innerHeight);
 
-    logoW=Math.min(w*.56,820);
-    logoH=logoW*(image.naturalHeight/Math.max(1,image.naturalWidth));
-    logoX=w*.5-logoW*.5;
-    logoY=h*.5-logoH*.5;
+    const nextLogoW=Math.min(w*.56,820);
+    const nextLogoH=nextLogoW*(image.naturalHeight/Math.max(1,image.naturalWidth));
+    const nextLogoX=w*.5-nextLogoW*.5;
+    const nextLogoY=h*.5-nextLogoH*.5;
 
-    // Rasterize the REAL transparent PNG at its actual on-screen size. There is
-    // no brightness lottery, no semantic approximation and no 5k point cap.
-    // Every visible output pixel becomes one honest target particle.
-    rasterScale=Math.min(window.devicePixelRatio||1,1.30);
-    rasterW=Math.max(1,Math.round(logoW*rasterScale));
-    rasterH=Math.max(1,Math.round(logoH*rasterScale));
+    // Keep the exact same full-pixel target set and particle styling as before,
+    // but scan the source in short slices so requestAnimationFrame keeps breathing.
+    const nextRasterScale=Math.min(window.devicePixelRatio||1,1.30);
+    const nextRasterW=Math.max(1,Math.round(nextLogoW*nextRasterScale));
+    const nextRasterH=Math.max(1,Math.round(nextLogoH*nextRasterScale));
 
     const raster=document.createElement("canvas");
-    raster.width=rasterW;
-    raster.height=rasterH;
+    raster.width=nextRasterW;
+    raster.height=nextRasterH;
     const rctx=raster.getContext("2d",{willReadFrequently:true});
-    rctx.clearRect(0,0,rasterW,rasterH);
+    rctx.clearRect(0,0,nextRasterW,nextRasterH);
     rctx.imageSmoothingEnabled=true;
     rctx.imageSmoothingQuality="high";
-    rctx.drawImage(image,0,0,rasterW,rasterH);
+    rctx.drawImage(image,0,0,nextRasterW,nextRasterH);
 
-    const sourcePixels=rctx.getImageData(0,0,rasterW,rasterH).data;
+    const sourcePixels=rctx.getImageData(0,0,nextRasterW,nextRasterH).data;
     const exact=[];
+    let y=0;
 
-    for(let y=0;y<rasterH;y++){
-      for(let x=0;x<rasterW;x++){
-        const k=(y*rasterW+x)*4;
-        const a=sourcePixels[k+3];
-        if(a===0)continue;
+    const processSlice=()=>{
+      if(token!==targetBuildToken)return;
 
-        const seedIndex=x+y*rasterW;
-        const angle=hash(seedIndex*3253+91)*Math.PI*2;
-        const travelRadius=
-          28+
-          hash(seedIndex*5741+211)*
-          Math.min(190,Math.max(70,logoW*.24));
-        const tangent=(hash(seedIndex*1187+337)-.5)*26;
-        const tx=logoX+(x+.5)/rasterScale;
-        const ty=logoY+(y+.5)/rasterScale;
+      const sliceStarted=performance.now();
+      while(y<nextRasterH){
+        for(let x=0;x<nextRasterW;x++){
+          const k=(y*nextRasterW+x)*4;
+          const a=sourcePixels[k+3];
+          if(a===0)continue;
 
-        // Match the main WebGL logo palette instead of copying the white PNG.
-        // Base tone mirrors vec3(.80,.76,.68); a few points receive the same
-        // restrained warm highlight used by the main particle field.
-        const toneSeed=hash(seedIndex*7919+53);
-        const sparkleSeed=hash(seedIndex*1741+191);
-        const hotMix=Math.max(0,(sparkleSeed-.78)/.22)*.18;
-        const brightness=.48+toneSeed*.46+(sparkleSeed>.965?.10:0);
-        const baseR=204,baseG=194,baseB=173;
-        const hotR=255,hotG=246,hotB=230;
-        const tone=(base,hot)=>Math.max(0,Math.min(255,Math.round(
-          (base+(hot-base)*hotMix)*brightness
-        )));
+          const seedIndex=x+y*nextRasterW;
+          const angle=hash(seedIndex*3253+91)*Math.PI*2;
+          const travelRadius=
+            28+
+            hash(seedIndex*5741+211)*
+            Math.min(190,Math.max(70,nextLogoW*.24));
+          const tangent=(hash(seedIndex*1187+337)-.5)*26;
+          const tx=nextLogoX+(x+.5)/nextRasterScale;
+          const ty=nextLogoY+(y+.5)/nextRasterScale;
 
-        exact.push({
-          px:x,
-          py:y,
-          tx,
-          ty,
-          sx:tx+Math.cos(angle)*travelRadius+Math.sin(angle)*tangent,
-          sy:ty+Math.sin(angle)*travelRadius-Math.cos(angle)*tangent,
-          r:tone(baseR,hotR),
-          g:tone(baseG,hotG),
-          b:tone(baseB,hotB),
-          a,
-          opacity:.44+hash(seedIndex*3571+127)*.48,
-          // Every source point still flies, but only a deterministic portion
-          // remains after landing. That keeps the final mark particulate instead
-          // of rebuilding a continuous bitmap.
-          settleKeep:hash(seedIndex*6151+389)<.57,
-          settleSize:.50+hash(seedIndex*4721+73)*.28,
-          phase:hash(seedIndex*9901+11)*Math.PI*2,
-          birth:0,
-          duration:260+hash(seedIndex*6421+27)*260
-        });
+          const toneSeed=hash(seedIndex*7919+53);
+          const sparkleSeed=hash(seedIndex*1741+191);
+          const hotMix=Math.max(0,(sparkleSeed-.78)/.22)*.18;
+          const brightness=.48+toneSeed*.46+(sparkleSeed>.965?.10:0);
+          const baseR=204,baseG=194,baseB=173;
+          const hotR=255,hotG=246,hotB=230;
+          const tone=(base,hot)=>Math.max(0,Math.min(255,Math.round(
+            (base+(hot-base)*hotMix)*brightness
+          )));
+
+          exact.push({
+            px:x,
+            py:y,
+            tx,
+            ty,
+            sx:tx+Math.cos(angle)*travelRadius+Math.sin(angle)*tangent,
+            sy:ty+Math.sin(angle)*travelRadius-Math.cos(angle)*tangent,
+            r:tone(baseR,hotR),
+            g:tone(baseG,hotG),
+            b:tone(baseB,hotB),
+            a,
+            opacity:.44+hash(seedIndex*3571+127)*.48,
+            settleKeep:hash(seedIndex*6151+389)<.57,
+            settleSize:.50+hash(seedIndex*4721+73)*.28,
+            phase:hash(seedIndex*9901+11)*Math.PI*2,
+            birth:0,
+            duration:260+hash(seedIndex*6421+27)*260
+          });
+        }
+
+        y++;
+        if(performance.now()-sliceStarted>=3.5){
+          requestAnimationFrame(processSlice);
+          return;
+        }
       }
-    }
 
-    particles=shuffled(exact);
-    activeFlights=[];
-    revealedCount=0;
-    settledCount=0;
-    revealPosition=0;
-    revealVelocity=0;
+      if(token!==targetBuildToken)return;
 
-    settledCanvas=document.createElement("canvas");
-    settledCanvas.width=rasterW;
-    settledCanvas.height=rasterH;
-    settledCtx=settledCanvas.getContext("2d",{alpha:true});
-    settledCtx.clearRect(0,0,rasterW,rasterH);
+      logoW=nextLogoW;
+      logoH=nextLogoH;
+      logoX=nextLogoX;
+      logoY=nextLogoY;
+      rasterScale=nextRasterScale;
+      rasterW=nextRasterW;
+      rasterH=nextRasterH;
 
-    targetsReady=true;
+      particles=shuffled(exact);
+      activeFlights=[];
+      revealedCount=0;
+      settledCount=0;
+      revealPosition=0;
+      revealVelocity=0;
+
+      settledCanvas=document.createElement("canvas");
+      settledCanvas.width=rasterW;
+      settledCanvas.height=rasterH;
+      settledCtx=settledCanvas.getContext("2d",{alpha:true});
+      settledCtx.clearRect(0,0,rasterW,rasterH);
+
+      targetsReady=true;
+      if(onReady)onReady();
+    };
+
+    requestAnimationFrame(processSlice);
   };
 
   const draw=now=>{
@@ -2101,6 +2122,10 @@ function createBootParticleLoader(){
       finished=true;
       if(raf)cancelAnimationFrame(raf);
       bootLoaderCanvas.remove();
+      completeListeners.forEach(listener=>{
+        try{listener()}catch(error){console.error(error)}
+      });
+      completeListeners.clear();
       return;
     }
 
@@ -2118,7 +2143,8 @@ function createBootParticleLoader(){
       decoded.finally(()=>{
         if(logo){
           logoImage=img;
-          buildTargets(img);
+          buildTargets(img,()=>mark(key));
+          return;
         }
         mark(key);
       });
@@ -2158,6 +2184,14 @@ function createBootParticleLoader(){
 
   return {
     mark,
+    onComplete(listener){
+      if(typeof listener!=="function")return;
+      if(finished){
+        window.setTimeout(listener,0);
+        return;
+      }
+      completeListeners.add(listener);
+    },
     get progress(){return targetProgress},
     get complete(){return finished}
   };
@@ -3241,7 +3275,13 @@ function createParticleField(){
       base=240000;
     }
 
-    return Math.max(600,Math.round(base*state.qualityScale));
+    const requested=Math.max(600,Math.round(base*state.qualityScale));
+    // During boot, this field only exists to make the handoff ready underneath.
+    // Full site density is restored once the loader has disappeared.
+    if(document.body.classList.contains("boot-loading")){
+      return Math.min(requested,w<=720?5000:28000);
+    }
+    return requested;
   }
 
   function pointInBookShape(u,v){
@@ -3288,13 +3328,19 @@ function createParticleField(){
   function prepareDiscSceneCandidates(ref,excludeSourceLogo=false,sceneId=""){
     // Album and Biography scenes use exactly the same native-resolution source
     // reconstruction. No thumbnail stage and no composite source.
-    const sampleW=ref.naturalWidth;
-    const sampleH=ref.naturalHeight;
+    const nativeW=ref.naturalWidth;
+    const nativeH=ref.naturalHeight;
+    const bootLight=document.body.classList.contains("boot-loading");
+    const bootScale=bootLight
+      ?Math.min(1,900/Math.max(1,nativeW,nativeH))
+      :1;
+    const sampleW=Math.max(1,Math.round(nativeW*bootScale));
+    const sampleH=Math.max(1,Math.round(nativeH*bootScale));
     const off=document.createElement("canvas");
     off.width=sampleW;
     off.height=sampleH;
     const ctx=off.getContext("2d",{willReadFrequently:true});
-    ctx.drawImage(ref,0,0);
+    ctx.drawImage(ref,0,0,sampleW,sampleH);
     const data=ctx.getImageData(0,0,sampleW,sampleH).data;
     const list=[];
 
@@ -3485,12 +3531,15 @@ function createParticleField(){
 
   function prepareAlbumCandidates(){
     const next={};
+    const bootLight=document.body.classList.contains("boot-loading");
     for(const [id,ref] of Object.entries(state.albumReferences)){
-      // Core boot only waits for logo + book. Until a deferred reference arrives,
-      // use the book candidate field as a harmless placeholder for that scene.
-      next[id]=ref.naturalWidth
-        ?prepareDiscSceneCandidates(ref,false,id)
-        :state.referenceCandidates;
+      // During boot, never parse optional album maps on the main thread.
+      // The book placeholder is enough for the hidden handoff field.
+      next[id]=bootLight
+        ?state.referenceCandidates
+        :(ref.naturalWidth
+          ?prepareDiscSceneCandidates(ref,false,id)
+          :state.referenceCandidates);
     }
     state.albumCandidatesById=next;
   }
@@ -3545,9 +3594,9 @@ function createParticleField(){
   }
 
   function prepareBioCandidates(){
-    // Biography may arrive after the core particle field has already started.
-    // Until then the book field is used as a stable placeholder.
-    state.bioCandidates=state.bioReference.naturalWidth
+    // Biography is optional during boot. Parse it only after the loader leaves.
+    const bootLight=document.body.classList.contains("boot-loading");
+    state.bioCandidates=!bootLight&&state.bioReference.naturalWidth
       ?prepareDiscSceneCandidates(state.bioReference,false,"bio")
       :state.referenceCandidates;
   }
@@ -5013,20 +5062,43 @@ function createParticleField(){
   }
 
   let deferredReferenceTimer=0;
+  let deferredReferencesDirty=false;
+  let postBootFullRebuildScheduled=false;
+
+  function runPostBootFullRebuild(){
+    if(postBootFullRebuildScheduled||state.destroyed)return;
+    postBootFullRebuildScheduled=true;
+
+    const run=()=>{
+      postBootFullRebuildScheduled=false;
+      if(state.destroyed)return;
+      deferredReferencesDirty=false;
+      state.candidatesReady=false;
+      state.bioMappedByAlbum={};
+      state.bioSceneMapped=null;
+      rebuild();
+    };
+
+    if("requestIdleCallback" in window){
+      requestIdleCallback(run,{timeout:1800});
+    }else{
+      window.setTimeout(run,180);
+    }
+  }
+
   function refreshDeferredReferences(){
     if(!started){
       boot();
       return;
     }
 
+    if(document.body.classList.contains("boot-loading")){
+      deferredReferencesDirty=true;
+      return;
+    }
+
     window.clearTimeout(deferredReferenceTimer);
-    deferredReferenceTimer=window.setTimeout(()=>{
-      if(state.destroyed)return;
-      state.candidatesReady=false;
-      state.bioMappedByAlbum={};
-      state.bioSceneMapped=null;
-      rebuild();
-    },90);
+    deferredReferenceTimer=window.setTimeout(runPostBootFullRebuild,90);
   }
 
   source.addEventListener("load",boot,{once:true});
@@ -5057,6 +5129,13 @@ function createParticleField(){
   ){
     boot();
   }
+
+  grimoriumBootLoader?.onComplete?.(()=>{
+    // Restore native-resolution candidates and the normal particle count only
+    // after the boot animation is gone, coalescing every optional scene arrival.
+    deferredReferencesDirty=true;
+    runPostBootFullRebuild();
+  });
 
   window.addEventListener("resize",()=>{
     state.markSideFieldDirty(true);
