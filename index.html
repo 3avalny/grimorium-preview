@@ -958,7 +958,7 @@ body.boot-loading{overflow:hidden}
   background:#050607;
   opacity:1;
   pointer-events:auto;
-  transition:opacity .58s cubic-bezier(.22,.7,.2,1);
+  transition:opacity .72s cubic-bezier(.22,.7,.2,1);
   transform:translateZ(0);
 }
 .boot-particle-loader.is-complete{
@@ -1413,6 +1413,16 @@ function ensureSpotifyLoaded(panel){
   iframe.dataset.loaded="1";
 }
 
+function stopSpotifyPanel(panel){
+  const iframe=panel?.querySelector(".player iframe");
+  if(!iframe || iframe.dataset.loaded!=="1")return;
+
+  // Navigating the retired embed stops playback reliably without needing
+  // account authorization. Returning to the album recreates it from data-src.
+  iframe.src="about:blank";
+  iframe.dataset.loaded="0";
+}
+
 function preloadSpotifyNeighbor(index){
   const nextIndex=Math.min(ALBUMS.length-1,index+1);
   if(nextIndex===index)return;
@@ -1452,6 +1462,11 @@ function animateDiscWindow(newPanel,oldPanel,direction,token){
 
   const finishDelay=mobile?MOBILE_PANEL_FINISH_MS:(SWAP_MS+CASCADE_MAX_MS+40);
   window.setTimeout(()=>{
+    const activeId=ALBUMS[activeAlbumIndex]?.id;
+    if(oldPanel?.dataset.albumId&&oldPanel.dataset.albumId!==activeId){
+      stopSpotifyPanel(oldPanel);
+    }
+
     if(token!==animToken)return;
     resetDiscPanelState(oldPanel);
     resetDiscPanelState(newPanel);
@@ -1718,6 +1733,8 @@ function createBootParticleLoader(){
   let lastAt=0;
   let lastRevealAt=0;
   let finished=false;
+  let finishing=false;
+  let finishStartedAt=0;
   let targetsReady=false;
   let loaderStartedAt=performance.now();
   let logoImage=null;
@@ -1876,6 +1893,8 @@ function createBootParticleLoader(){
     const driveResponse=1-Math.exp(-dt/720);
     loadDrive+=(targetProgress-loadDrive)*driveResponse;
     loadDrive=Math.max(0,Math.min(1,loadDrive));
+    const easedDrive=loadDrive*loadDrive*(3-2*loadDrive);
+    const flightSpeed=1+easedDrive*1.65;
 
     ctx.fillStyle="#050607";
     ctx.fillRect(0,0,w,h);
@@ -1887,7 +1906,6 @@ function createBootParticleLoader(){
       if(reducedMotion){
         revealPosition=particles.length;
       }else{
-        const easedDrive=loadDrive*loadDrive*(3-2*loadDrive);
         const slowDuration=12000;
         const fastDuration=1150;
         const effectiveDuration=
@@ -1934,7 +1952,7 @@ function createBootParticleLoader(){
             continue;
           }
 
-          const raw=Math.min(1,(now-p.birth)/p.duration);
+          const raw=Math.min(1,((now-p.birth)*flightSpeed)/p.duration);
           if(raw>=1||reducedMotion){
             if(p.settleKeep){
               const settleAlpha=(p.a/255)*p.opacity;
@@ -1976,31 +1994,29 @@ function createBootParticleLoader(){
       }
 
       if(
+        !finishing&&
         targetProgress>=1&&
-        displayProgress>=.985&&
-        revealedCount===particles.length
+        revealedCount===particles.length&&
+        settledCount>=particles.length*.985&&
+        activeFlights.length<=Math.max(12,particles.length*.015)
       ){
-        finish();
-        return;
+        finishing=true;
+        finishStartedAt=now;
+        // Start the cross-fade, but KEEP rendering the boot particles through it.
+        // This avoids a frozen final frame revealing a more-complete WebGL frame.
+        bootLoaderCanvas.classList.add("is-complete");
+        document.body.classList.remove("boot-loading");
       }
     }
 
-    raf=requestAnimationFrame(draw);
-  };
-
-  const finish=()=>{
-    if(finished)return;
-    finished=true;
-    if(raf)cancelAnimationFrame(raf);
-
-    // The loader resolves as a dense particle structure, never as a bitmap.
-    // Main WebGL is already alive underneath, so the overlay can hand off cleanly.
-    bootLoaderCanvas.classList.add("is-complete");
-    document.body.classList.remove("boot-loading");
-
-    window.setTimeout(()=>{
+    if(finishing&&now-finishStartedAt>=760){
+      finished=true;
+      if(raf)cancelAnimationFrame(raf);
       bootLoaderCanvas.remove();
-    },650);
+      return;
+    }
+
+    raf=requestAnimationFrame(draw);
   };
 
   const preloadImageStage=(key,url,{logo=false}={})=>{
