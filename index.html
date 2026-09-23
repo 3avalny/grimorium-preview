@@ -975,6 +975,12 @@ nav{display:none!important}
 }
 @media(prefers-reduced-motion:reduce){
   .particle-field{display:none!important}
+  .record>.shell{
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:auto!important
+  }
+  .particle-album-debug{display:none!important}
 }
 
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
@@ -1019,8 +1025,8 @@ nav{display:none!important}
   </div>
 </section>
 
-<section class="record" id="music">
-  <div class="record-side-label">Discography</div>
+<section class="record" id="music" aria-labelledby="discographyLabel">
+  <div class="record-side-label" id="discographyLabel" role="heading" aria-level="2">Discography</div>
   <div class="shell">
     <div class="record-head">
       <h2 class="record-title-slot" id="recordTitle" aria-label="REALL" aria-live="polite" aria-atomic="true" data-mobile-title="REALL">
@@ -1044,8 +1050,8 @@ nav{display:none!important}
 </section>
 
 
-<section class="bio" id="biography">
-  <div class="bio-side-label">Biography</div>
+<section class="bio" id="biography" aria-labelledby="biographyLabel">
+  <div class="bio-side-label" id="biographyLabel" role="heading" aria-level="2">Biography</div>
 
   <div class="bio-desktop">
     <div class="bio-copy">
@@ -1844,37 +1850,42 @@ function particleSmoother(v){
 }
 function particleMix(a,b,t){return a+(b-a)*t}
 
+const PARTICLE_ASSET_VERSION="20260923-stable1";
+function particleAssetUrl(name){
+  return `assets/${name}?v=${PARTICLE_ASSET_VERSION}`;
+}
+
 const particleAlbumReference=new Image();
 particleAlbumReference.decoding="async";
-particleAlbumReference.src="assets/gates.webp";
+particleAlbumReference.src=particleAssetUrl("gates.webp");
 
 const particleRevenantReference=new Image();
 particleRevenantReference.decoding="async";
-particleRevenantReference.src="assets/wings.webp";
+particleRevenantReference.src=particleAssetUrl("wings.webp");
 
 const particleRelictReference=new Image();
 particleRelictReference.decoding="async";
-particleRelictReference.src="assets/skull.webp";
+particleRelictReference.src=particleAssetUrl("skull.webp");
 
 const particleRebornReference=new Image();
 particleRebornReference.decoding="async";
-particleRebornReference.src="assets/trees.webp";
+particleRebornReference.src=particleAssetUrl("trees.webp");
 
 const particleRetaliationReference=new Image();
 particleRetaliationReference.decoding="async";
-particleRetaliationReference.src="assets/first.webp";
+particleRetaliationReference.src=particleAssetUrl("first.webp");
 
 const particleBioReference=new Image();
 particleBioReference.decoding="async";
-particleBioReference.src="assets/biography_candles.webp";
+particleBioReference.src=particleAssetUrl("biography_candles.webp");
 
 const particleBioFlameReference=new Image();
 particleBioFlameReference.decoding="async";
-particleBioFlameReference.src="assets/biography_flames.webp";
+particleBioFlameReference.src=particleAssetUrl("biography_flames.webp");
 
 const particleBookReference=new Image();
 particleBookReference.decoding="async";
-particleBookReference.src="assets/book.webp";
+particleBookReference.src=particleAssetUrl("book.webp");
 
 function createParticleField(){
   if(!particleCanvas||!particleGL||!introBrandImg||reducedMotionQuery.matches)return;
@@ -2915,13 +2926,15 @@ function createParticleField(){
   }
 
   function prepareAlbumCandidates(){
-    state.albumCandidatesById={
-      reall:prepareDiscSceneCandidates(state.albumReferences.reall,false,"reall"),
-      revenant:prepareDiscSceneCandidates(state.albumReferences.revenant,false,"revenant"),
-      relict:prepareDiscSceneCandidates(state.albumReferences.relict,false,"relict"),
-      reborn:prepareDiscSceneCandidates(state.albumReferences.reborn,false,"reborn"),
-      retaliation:prepareDiscSceneCandidates(state.albumReferences.retaliation,false,"retaliation")
-    };
+    const next={};
+    for(const [id,ref] of Object.entries(state.albumReferences)){
+      // Core boot only waits for logo + book. Until a deferred reference arrives,
+      // use the book candidate field as a harmless placeholder for that scene.
+      next[id]=ref.naturalWidth
+        ?prepareDiscSceneCandidates(ref,false,id)
+        :state.referenceCandidates;
+    }
+    state.albumCandidatesById=next;
   }
 
   function sampleAlbumPoints(list,count,ref){
@@ -2974,27 +2987,29 @@ function createParticleField(){
   }
 
   function prepareBioCandidates(){
-    // Biography is no longer a special semantic particle system. Treat the
-    // candles exactly like an album artwork: native-resolution pixels, the
-    // same brightness sampling and the same downstream nearest-point matching.
-    state.bioCandidates=prepareDiscSceneCandidates(
-      state.bioReference,
-      false,
-      "bio"
-    );
+    // Biography may arrive after the core particle field has already started.
+    // Until then the book field is used as a stable placeholder.
+    state.bioCandidates=state.bioReference.naturalWidth
+      ?prepareDiscSceneCandidates(state.bioReference,false,"bio")
+      :state.referenceCandidates;
     state.bioFlameCandidates=[];
   }
 
   function prepareCandidates(){
     if(state.candidatesReady)return true;
-    const albumRefsReady=Object.values(state.albumReferences).every(ref=>ref.naturalWidth);
-    if(!source.naturalWidth||!state.bookReference.naturalWidth||!albumRefsReady||!state.bioReference.naturalWidth)return false;
+    if(!source.naturalWidth||!state.bookReference.naturalWidth)return false;
+
     prepareLogoCandidates();
     prepareReferenceCandidates();
     prepareAlbumCandidates();
     prepareBioCandidates();
+
     const albumCandidatesReady=Object.values(state.albumCandidatesById).every(list=>list&&list.length);
-    state.candidatesReady=!!state.logoCandidates.length&&!!state.referenceCandidates.length&&albumCandidatesReady&&!!state.bioCandidates.length;
+    state.candidatesReady=
+      !!state.logoCandidates.length&&
+      !!state.referenceCandidates.length&&
+      albumCandidatesReady&&
+      !!state.bioCandidates.length;
     return state.candidatesReady;
   }
 
@@ -3025,10 +3040,14 @@ function createParticleField(){
     const sourcePoints=sampleAlbumPoints(state.logoCandidates,count,source);
     const refPoints=sampleAlbumPoints(state.referenceCandidates,refCount,state.bookReference);
     const albumPointsById={};
+    const effectiveAlbumRefs={};
     for(const [id,ref] of Object.entries(state.albumReferences)){
-      albumPointsById[id]=sampleAlbumPoints(state.albumCandidatesById[id],refCount,ref);
+      const effectiveRef=ref.naturalWidth?ref:state.bookReference;
+      effectiveAlbumRefs[id]=effectiveRef;
+      albumPointsById[id]=sampleAlbumPoints(state.albumCandidatesById[id],refCount,effectiveRef);
     }
-    const bioPoints=sampleAlbumPoints(state.bioCandidates,refCount,state.bioReference);
+    const effectiveBioRef=state.bioReference.naturalWidth?state.bioReference:state.bookReference;
+    const bioPoints=sampleAlbumPoints(state.bioCandidates,refCount,effectiveBioRef);
     const topPoints=sampleAlbumPoints(state.logoCandidates,topLogoCount,source);
 
     const topLogoW=Math.min(w*.215,360);
@@ -3068,12 +3087,12 @@ function createParticleField(){
       y:(h-bookPlacementBase.height*1.10)*.5
     };
     const albumPlacements={};
-    for(const [id,ref] of Object.entries(state.albumReferences)){
+    for(const [id,ref] of Object.entries(effectiveAlbumRefs)){
       albumPlacements[id]=scenePlacement(ref);
     }
 
-    const bioRefW=state.bioReference.naturalWidth;
-    const bioRefH=state.bioReference.naturalHeight;
+    const bioRefW=effectiveBioRef.naturalWidth;
+    const bioRefH=effectiveBioRef.naturalHeight;
     const bioScale=Math.max(w/Math.max(1,bioRefW),h/Math.max(1,bioRefH));
     const bioW=bioRefW*bioScale;
     const bioH=bioRefH*bioScale;
@@ -4356,19 +4375,10 @@ function createParticleField(){
   }
 
   function boot(){
-    const albumRefsReady=[
-      particleAlbumReference,
-      particleRevenantReference,
-      particleRelictReference,
-      particleRebornReference,
-      particleRetaliationReference
-    ].every(ref=>ref.naturalWidth);
     if(
       started||
       !source.naturalWidth||
-      !particleBookReference.naturalWidth||
-      !albumRefsReady||
-      !particleBioReference.naturalWidth
+      !particleBookReference.naturalWidth
     )return;
     started=true;
 
@@ -4439,23 +4449,48 @@ function createParticleField(){
     state.setAlbumScene(ALBUMS[activeAlbumIndex]?.id||"reall");
   }
 
+  let deferredReferenceTimer=0;
+  function refreshDeferredReferences(){
+    if(!started){
+      boot();
+      return;
+    }
+
+    window.clearTimeout(deferredReferenceTimer);
+    deferredReferenceTimer=window.setTimeout(()=>{
+      if(state.destroyed)return;
+      state.candidatesReady=false;
+      state.bioMappedByAlbum={};
+      state.bioSceneMapped=null;
+      rebuild();
+    },90);
+  }
+
   source.addEventListener("load",boot,{once:true});
   particleBookReference.addEventListener("load",boot,{once:true});
-  particleAlbumReference.addEventListener("load",boot,{once:true});
-  particleRevenantReference.addEventListener("load",boot,{once:true});
-  particleRelictReference.addEventListener("load",boot,{once:true});
-  particleRebornReference.addEventListener("load",boot,{once:true});
-  particleRetaliationReference.addEventListener("load",boot,{once:true});
-  particleBioReference.addEventListener("load",boot,{once:true});
+
+  const deferredReferences=[
+    particleAlbumReference,
+    particleRevenantReference,
+    particleRelictReference,
+    particleRebornReference,
+    particleRetaliationReference,
+    particleBioReference
+  ];
+
+  deferredReferences.forEach(ref=>{
+    ref.addEventListener("load",refreshDeferredReferences,{once:true});
+    ref.addEventListener("error",()=>{
+      // Keep the stable book placeholder for a missing optional scene instead
+      // of preventing the entire particle field from starting.
+      console.warn("Deferred particle reference failed to load",ref.src);
+      refreshDeferredReferences();
+    },{once:true});
+  });
+
   if(
     source.complete&&source.naturalWidth&&
-    particleBookReference.complete&&particleBookReference.naturalWidth&&
-    particleAlbumReference.complete&&particleAlbumReference.naturalWidth&&
-    particleRevenantReference.complete&&particleRevenantReference.naturalWidth&&
-    particleRelictReference.complete&&particleRelictReference.naturalWidth&&
-    particleRebornReference.complete&&particleRebornReference.naturalWidth&&
-    particleRetaliationReference.complete&&particleRetaliationReference.naturalWidth&&
-    particleBioReference.complete&&particleBioReference.naturalWidth
+    particleBookReference.complete&&particleBookReference.naturalWidth
   ){
     boot();
   }
@@ -4579,15 +4614,8 @@ if(typeof reducedMotionQuery.addEventListener==="function"){
 
 
 
-["gesturestart","gesturechange","gestureend"].forEach(type=>{
-  document.addEventListener(type,e=>e.preventDefault(),{passive:false});
-});
-document.addEventListener("touchmove",e=>{
-  if(e.touches && e.touches.length>1)e.preventDefault();
-},{passive:false});
-window.addEventListener("wheel",e=>{
-  if(e.ctrlKey)e.preventDefault();
-},{passive:false,capture:true});
+// Keep native pinch/Ctrl-wheel zoom available. The custom snap handler below
+// simply ignores zoom gestures instead of cancelling the browser behaviour.
 
 let sceneFrame=0;
 let introRange=1;
@@ -4927,10 +4955,7 @@ window.addEventListener("resize",()=>setSpotifyScrollLock(false),{passive:true})
 
 window.addEventListener("wheel",e=>{
   if(window.innerWidth<=720)return;
-  if(e.ctrlKey){
-    e.preventDefault();
-    return;
-  }
+  if(e.ctrlKey)return;
 
   if(wheelIsOverSpotifyPlayer(e)){
     e.preventDefault();
