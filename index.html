@@ -4381,6 +4381,163 @@ function createParticleField(){
     state.bioMorph=particleMix(state.bioMorphFrom,state.bioMorphTo,eased);
   }
 
+  function matchSceneInWorker(fromScene,toScene,salt,callback){
+    if(typeof Worker==="undefined"){
+      callback(matchParticleSceneNearest(fromScene,toScene,salt));
+      return;
+    }
+
+    const workerSource=`
+      const hash=n=>{
+        const x=Math.sin(n*12.9898+78.233)*43758.5453123;
+        return x-Math.floor(x);
+      };
+
+      self.onmessage=e=>{
+        const {width,height,salt,fromTarget,fromMeta,toTarget,toMeta,toColor}=e.data;
+        const count=fromTarget.length>>1;
+        const cellSize=34;
+        const cols=Math.max(1,Math.ceil(width/cellSize));
+        const rows=Math.max(1,Math.ceil(height/cellSize));
+        const buckets=new Array(cols*rows);
+        const clampCell=(v,max)=>Math.max(0,Math.min(max-1,v));
+        const cellIndex=(x,y)=>{
+          const cx=clampCell(Math.floor(x/cellSize),cols);
+          const cy=clampCell(Math.floor(y/cellSize),rows);
+          return cy*cols+cx;
+        };
+
+        for(let i=0;i<count;i++){
+          if(toMeta[i*4+1]>1.5)continue;
+          const key=cellIndex(toTarget[i*2],toTarget[i*2+1]);
+          (buckets[key]||(buckets[key]=[])).push(i);
+        }
+
+        for(let key=0;key<buckets.length;key++){
+          const bucket=buckets[key];
+          if(!bucket||bucket.length<2)continue;
+          for(let n=bucket.length-1;n>0;n--){
+            const j=Math.floor(hash((salt+1)*104729+key*8191+n*131)*(n+1));
+            const tmp=bucket[n];bucket[n]=bucket[j];bucket[j]=tmp;
+          }
+        }
+
+        const outTarget=new Float32Array(toTarget.length);
+        const outMeta=new Float32Array(toMeta.length);
+        const outColor=new Float32Array(toColor.length);
+
+        const copyTarget=(sourceIndex,targetIndex)=>{
+          outTarget[sourceIndex*2]=toTarget[targetIndex*2];
+          outTarget[sourceIndex*2+1]=toTarget[targetIndex*2+1];
+          outMeta[sourceIndex*4]=toMeta[targetIndex*4];
+          outMeta[sourceIndex*4+1]=toMeta[targetIndex*4+1];
+          outMeta[sourceIndex*4+2]=toMeta[targetIndex*4+2];
+          outMeta[sourceIndex*4+3]=toMeta[targetIndex*4+3];
+          outColor[sourceIndex*3]=toColor[targetIndex*3];
+          outColor[sourceIndex*3+1]=toColor[targetIndex*3+1];
+          outColor[sourceIndex*3+2]=toColor[targetIndex*3+2];
+        };
+
+        const takeNearest=(bucket,sx,sy)=>{
+          const inspect=Math.min(10,bucket.length);
+          let bestPos=bucket.length-1;
+          let bestD=Infinity;
+          for(let k=0;k<inspect;k++){
+            const pos=bucket.length-1-k;
+            const ti=bucket[pos];
+            const dx=toTarget[ti*2]-sx;
+            const dy=toTarget[ti*2+1]-sy;
+            const d=dx*dx+dy*dy;
+            if(d<bestD){bestD=d;bestPos=pos}
+          }
+          const ti=bucket[bestPos];
+          bucket[bestPos]=bucket[bucket.length-1];
+          bucket.pop();
+          return ti;
+        };
+
+        let matchSalt=salt>>>0;
+        for(let i=0;i<count;i++){
+          if(fromMeta[i*4+1]>1.5){
+            copyTarget(i,i);
+            continue;
+          }
+
+          const sx=fromTarget[i*2];
+          const sy=fromTarget[i*2+1];
+          const cx=clampCell(Math.floor(sx/cellSize),cols);
+          const cy=clampCell(Math.floor(sy/cellSize),rows);
+          let chosen=null;
+          let chosenD=Infinity;
+          const maxRing=Math.max(cols,rows);
+
+          for(let ring=0;ring<=maxRing&&!chosen;ring++){
+            const minX=Math.max(0,cx-ring),maxX=Math.min(cols-1,cx+ring);
+            const minY=Math.max(0,cy-ring),maxY=Math.min(rows-1,cy+ring);
+
+            const consider=(bx,by)=>{
+              const bucket=buckets[by*cols+bx];
+              if(!bucket||!bucket.length)return;
+              const dx=(bx+.5)*cellSize-sx;
+              const dy=(by+.5)*cellSize-sy;
+              const d=dx*dx+dy*dy;
+              if(d<chosenD){chosenD=d;chosen=bucket}
+            };
+
+            for(let bx=minX;bx<=maxX;bx++){
+              consider(bx,minY);
+              if(maxY!==minY)consider(bx,maxY);
+            }
+            for(let by=minY+1;by<maxY;by++){
+              consider(minX,by);
+              if(maxX!==minX)consider(maxX,by);
+            }
+          }
+
+          if(chosen&&chosen.length){
+            copyTarget(i,takeNearest(chosen,sx,sy));
+          }else{
+            matchSalt=(matchSalt+2654435761)>>>0;
+            copyTarget(i,Math.floor(hash(matchSalt)*count)%count);
+          }
+        }
+
+        self.postMessage(
+          {targetData:outTarget,metaData:outMeta,colorData:outColor},
+          [outTarget.buffer,outMeta.buffer,outColor.buffer]
+        );
+      };
+    `;
+
+    const url=URL.createObjectURL(new Blob([workerSource],{type:"application/javascript"}));
+    const worker=new Worker(url);
+    const cleanup=()=>{
+      worker.terminate();
+      URL.revokeObjectURL(url);
+    };
+
+    worker.onmessage=e=>{
+      const {targetData,metaData,colorData}=e.data||{};
+      cleanup();
+      callback({targetData,metaData,colorData});
+    };
+    worker.onerror=()=>{
+      cleanup();
+      callback(matchParticleSceneNearest(fromScene,toScene,salt));
+    };
+
+    worker.postMessage({
+      width:state.width,
+      height:state.height,
+      salt,
+      fromTarget:fromScene.targetData,
+      fromMeta:fromScene.metaData,
+      toTarget:toScene.targetData,
+      toMeta:toScene.metaData,
+      toColor:toScene.colorData
+    });
+  }
+
   function ensureBiographyWorker(){
     if(state.bioWorker)return state.bioWorker;
     if(typeof Worker==="undefined")return null;
@@ -5143,6 +5300,258 @@ function createParticleField(){
     state.setAlbumScene(ALBUMS[activeAlbumIndex]?.id||"reall");
   }
 
+  function buildDeferredAlbumScene(id,ref,candidates,done){
+    const count=state.count;
+    const book=state.bookScene;
+    if(!count||!book){done(null);return}
+
+    const nonTopCount=Math.max(
+      1,
+      count-Math.max(
+        1,
+        Math.round(count*(state.width>1100?.085:(state.width>720?.13:.12)))
+      )
+    );
+    const points=sampleAlbumPoints(candidates,nonTopCount,ref);
+    const scale=Math.max(
+      state.width/Math.max(1,ref.naturalWidth),
+      state.height/Math.max(1,ref.naturalHeight)
+    );
+    const width=ref.naturalWidth*scale;
+    const height=ref.naturalHeight*scale;
+    const ox=(state.width-width)*.5;
+    const oy=(state.height-height)*.5;
+
+    const scene={
+      targetData:new Float32Array(count*2),
+      metaData:new Float32Array(count*4),
+      colorData:new Float32Array(count*3)
+    };
+
+    let i=0;
+    let cursor=0;
+    const step=()=>{
+      const end=Math.min(count,i+7000);
+      for(;i<end;i++){
+        const mk=i*4;
+        const tk=i*2;
+        const ck=i*3;
+        const top=book.metaData[mk+1]>1.5;
+
+        if(top){
+          scene.targetData[tk]=book.targetData[tk];
+          scene.targetData[tk+1]=book.targetData[tk+1];
+          scene.metaData[mk]=book.metaData[mk];
+          scene.metaData[mk+1]=book.metaData[mk+1];
+          scene.metaData[mk+2]=book.metaData[mk+2];
+          scene.metaData[mk+3]=book.metaData[mk+3];
+          scene.colorData[ck]=book.colorData[ck];
+          scene.colorData[ck+1]=book.colorData[ck+1];
+          scene.colorData[ck+2]=book.colorData[ck+2];
+          continue;
+        }
+
+        const p=points[cursor++%points.length];
+        scene.targetData[tk]=ox+p.u*width;
+        scene.targetData[tk+1]=oy+p.v*height;
+        scene.metaData[mk]=p.glow;
+        scene.metaData[mk+1]=0;
+        scene.metaData[mk+2]=p.radius*scale;
+        scene.metaData[mk+3]=0;
+        scene.colorData[ck]=p.r;
+        scene.colorData[ck+1]=p.g;
+        scene.colorData[ck+2]=p.b;
+      }
+
+      if(i<count){
+        requestAnimationFrame(step);
+      }else{
+        done(scene);
+      }
+    };
+
+    requestAnimationFrame(step);
+  }
+
+  function buildDeferredBioScene(ref,candidates,done){
+    const count=state.count;
+    const book=state.bookScene;
+    if(!count||!book){done(null);return}
+
+    const nonTopCount=Math.max(
+      1,
+      count-Math.max(
+        1,
+        Math.round(count*(state.width>1100?.085:(state.width>720?.13:.12)))
+      )
+    );
+    const points=sampleAlbumPoints(candidates,nonTopCount,ref);
+    const scale=Math.max(
+      state.width/Math.max(1,ref.naturalWidth),
+      state.height/Math.max(1,ref.naturalHeight)
+    );
+    const width=ref.naturalWidth*scale;
+    const height=ref.naturalHeight*scale;
+    const ox=(state.width-width)*.5;
+    const oy=(state.height-height)*.5;
+
+    const scene={
+      targetData:new Float32Array(count*2),
+      metaData:new Float32Array(count*4),
+      colorData:new Float32Array(count*3)
+    };
+
+    let i=0;
+    let cursor=0;
+    const step=()=>{
+      const end=Math.min(count,i+6500);
+      for(;i<end;i++){
+        const mk=i*4;
+        const tk=i*2;
+        const ck=i*3;
+        const top=book.metaData[mk+1]>1.5;
+
+        if(top){
+          scene.targetData[tk]=book.targetData[tk];
+          scene.targetData[tk+1]=book.targetData[tk+1];
+          scene.metaData[mk]=book.metaData[mk];
+          scene.metaData[mk+1]=book.metaData[mk+1];
+          scene.metaData[mk+2]=book.metaData[mk+2];
+          scene.metaData[mk+3]=book.metaData[mk+3];
+          scene.colorData[ck]=book.colorData[ck];
+          scene.colorData[ck+1]=book.colorData[ck+1];
+          scene.colorData[ck+2]=book.colorData[ck+2];
+          continue;
+        }
+
+        const p=points[cursor++%points.length];
+        let u=p.u;
+        if(p.u>.635&&p.u<.775&&p.v>.22&&p.v<.80)u+=.065;
+        const tall=
+          p.u>.655&&p.u<.715&&
+          p.v>.285&&p.v<.705;
+        const boost=tall?1.18:1;
+
+        scene.targetData[tk]=ox+u*width;
+        scene.targetData[tk+1]=oy+p.v*height;
+        scene.metaData[mk]=particleClamp(p.glow*boost);
+        scene.metaData[mk+1]=0;
+        scene.metaData[mk+2]=p.radius*scale*(tall?1.035:1);
+        scene.metaData[mk+3]=p.structure||0;
+        scene.colorData[ck]=particleClamp(p.r*boost);
+        scene.colorData[ck+1]=particleClamp(p.g*boost);
+        scene.colorData[ck+2]=particleClamp(p.b*boost);
+      }
+
+      if(i<count){
+        requestAnimationFrame(step);
+      }else{
+        done(scene);
+      }
+    };
+
+    requestAnimationFrame(step);
+  }
+
+  let deferredScenePreparationStarted=false;
+  function prepareDeferredScenesAfterBoot(){
+    if(deferredScenePreparationStarted||state.destroyed)return;
+    deferredScenePreparationStarted=true;
+
+    const activeId=ALBUMS[activeAlbumIndex]?.id||"reall";
+    const albumIds=[
+      activeId,
+      ...Object.keys(state.albumReferences).filter(id=>id!==activeId)
+    ];
+    const queue=[
+      ...albumIds.map(id=>({type:"album",id})),
+      {type:"bio",id:"bio"}
+    ];
+
+    const next=()=>{
+      if(state.destroyed||!queue.length)return;
+      const item=queue.shift();
+
+      const run=()=>{
+        if(state.destroyed)return;
+
+        if(item.type==="album"){
+          const ref=state.albumReferences[item.id];
+          if(!ref?.naturalWidth){next();return}
+          const candidates=prepareDiscSceneCandidates(ref,false,item.id);
+          state.albumCandidatesById[item.id]=candidates;
+
+          buildDeferredAlbumScene(item.id,ref,candidates,scene=>{
+            if(!scene){next();return}
+            state.albumScenes[item.id]=scene;
+
+            if(item.id===activeId){
+              matchSceneInWorker(
+                state.bookScene,
+                scene,
+                ++state.albumMatchSalt,
+                matched=>{
+                  if(state.destroyed)return;
+                  state.albumScenes[item.id]=matched;
+                  state.albumFromData=matched;
+                  state.albumToData=matched;
+                  state.albumSceneCurrentId=item.id;
+                  state.albumSceneTargetId=item.id;
+                  uploadAlbumScene(
+                    buffers.albumTarget,
+                    buffers.albumMeta,
+                    buffers.albumColor,
+                    matched
+                  );
+                  uploadAlbumScene(
+                    buffers.revenantTarget,
+                    buffers.revenantMeta,
+                    buffers.revenantColor,
+                    matched
+                  );
+
+                  if(state.bioSceneRaw&&state.bioSceneRaw!==state.bookScene){
+                    scheduleBiographyMapping(matched,item.id);
+                  }
+                }
+              );
+            }
+
+            window.setTimeout(next,40);
+          });
+          return;
+        }
+
+        const ref=state.bioReference;
+        if(!ref?.naturalWidth)return;
+        const candidates=prepareDiscSceneCandidates(ref,false,"bio");
+        state.bioCandidates=candidates;
+
+        buildDeferredBioScene(ref,candidates,scene=>{
+          if(!scene)return;
+          state.bioSceneRaw=scene;
+          state.bioMappedByAlbum={};
+          state.bioSceneMapped=null;
+
+          const current=
+            state.albumScenes[state.albumSceneCurrentId]||
+            state.albumScenes[activeId];
+          if(current&&current!==state.bookScene){
+            scheduleBiographyMapping(current,state.albumSceneCurrentId||activeId);
+          }
+        });
+      };
+
+      if("requestIdleCallback" in window){
+        requestIdleCallback(run,{timeout:1200});
+      }else{
+        window.setTimeout(run,120);
+      }
+    };
+
+    next();
+  }
+
   let deferredReferenceTimer=0;
   let deferredReferencesDirty=false;
   let fullHandoffRequested=false;
@@ -5229,6 +5638,10 @@ function createParticleField(){
   grimoriumBootLoader?.onHandoffReady?.(()=>{
     fullHandoffRequested=true;
     maybeStartFullHandoff();
+  });
+
+  grimoriumBootLoader?.onComplete?.(()=>{
+    prepareDeferredScenesAfterBoot();
   });
 
   window.addEventListener("resize",()=>{
