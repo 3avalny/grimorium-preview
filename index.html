@@ -958,7 +958,7 @@ body.boot-loading{overflow:hidden}
   background:#050607;
   opacity:1;
   pointer-events:auto;
-  transition:opacity .72s cubic-bezier(.22,.7,.2,1);
+  transition:opacity 1.02s cubic-bezier(.22,.72,.18,1);
   transform:translateZ(0);
 }
 .boot-particle-loader.is-complete{
@@ -1757,10 +1757,13 @@ function createBootParticleLoader(){
   let finished=false;
   let finishing=false;
   let finishStartedAt=0;
+  let handoffArmed=false;
+  let fullFieldReady=false;
   let targetsReady=false;
   let targetBuildToken=0;
   let loaderStartedAt=performance.now();
   let logoImage=null;
+  const handoffListeners=new Set();
   const completeListeners=new Set();
 
   const hash=n=>{
@@ -2103,22 +2106,34 @@ function createBootParticleLoader(){
       }
 
       if(
-        !finishing&&
+        !handoffArmed&&
         targetProgress>=1&&
-        revealedCount===particles.length&&
-        settledCount>=particles.length*.985&&
-        activeFlights.length<=Math.max(12,particles.length*.015)
+        revealedCount>=particles.length*.80
+      ){
+        handoffArmed=true;
+        handoffListeners.forEach(listener=>{
+          try{listener()}catch(error){console.error(error)}
+        });
+        handoffListeners.clear();
+      }
+
+      if(
+        !finishing&&
+        handoffArmed&&
+        fullFieldReady&&
+        revealedCount>=particles.length*.94&&
+        settledCount>=particles.length*.84
       ){
         finishing=true;
         finishStartedAt=now;
-        // Start the cross-fade, but KEEP rendering the boot particles through it.
-        // This avoids a frozen final frame revealing a more-complete WebGL frame.
+        // The FINAL WebGL field is already complete underneath. Keep rendering
+        // this exact boot animation while its opaque canvas cross-fades away.
         bootLoaderCanvas.classList.add("is-complete");
         document.body.classList.remove("boot-loading");
       }
     }
 
-    if(finishing&&now-finishStartedAt>=760){
+    if(finishing&&now-finishStartedAt>=1080){
       finished=true;
       if(raf)cancelAnimationFrame(raf);
       bootLoaderCanvas.remove();
@@ -2184,6 +2199,17 @@ function createBootParticleLoader(){
 
   return {
     mark,
+    onHandoffReady(listener){
+      if(typeof listener!=="function")return;
+      if(handoffArmed){
+        window.setTimeout(listener,0);
+        return;
+      }
+      handoffListeners.add(listener);
+    },
+    markFullFieldReady(){
+      fullFieldReady=true;
+    },
     onComplete(listener){
       if(typeof listener!=="function")return;
       if(finished){
@@ -2492,6 +2518,7 @@ function createParticleField(){
 
   let started=false;
   let resizeTimer=0;
+  let fullQualityBuildRequested=false;
 
   const hardwareCores=Math.max(1,Number(navigator.hardwareConcurrency)||8);
   const hardwareMemory=Math.max(1,Number(navigator.deviceMemory)||16);
@@ -3276,9 +3303,12 @@ function createParticleField(){
     }
 
     const requested=Math.max(600,Math.round(base*state.qualityScale));
-    // During boot, this field only exists to make the handoff ready underneath.
-    // Full site density is restored once the loader has disappeared.
-    if(document.body.classList.contains("boot-loading")){
+    // Keep the hidden handoff field light until an explicit full-quality build
+    // is requested underneath the still-opaque boot canvas.
+    if(
+      document.body.classList.contains("boot-loading")&&
+      !fullQualityBuildRequested
+    ){
       return Math.min(requested,w<=720?5000:28000);
     }
     return requested;
@@ -3330,7 +3360,9 @@ function createParticleField(){
     // reconstruction. No thumbnail stage and no composite source.
     const nativeW=ref.naturalWidth;
     const nativeH=ref.naturalHeight;
-    const bootLight=document.body.classList.contains("boot-loading");
+    const bootLight=
+      document.body.classList.contains("boot-loading")&&
+      !fullQualityBuildRequested;
     const bootScale=bootLight
       ?Math.min(1,900/Math.max(1,nativeW,nativeH))
       :1;
@@ -3531,7 +3563,9 @@ function createParticleField(){
 
   function prepareAlbumCandidates(){
     const next={};
-    const bootLight=document.body.classList.contains("boot-loading");
+    const bootLight=
+      document.body.classList.contains("boot-loading")&&
+      !fullQualityBuildRequested;
     for(const [id,ref] of Object.entries(state.albumReferences)){
       // During boot, never parse optional album maps on the main thread.
       // The book placeholder is enough for the hidden handoff field.
@@ -3595,7 +3629,9 @@ function createParticleField(){
 
   function prepareBioCandidates(){
     // Biography is optional during boot. Parse it only after the loader leaves.
-    const bootLight=document.body.classList.contains("boot-loading");
+    const bootLight=
+      document.body.classList.contains("boot-loading")&&
+      !fullQualityBuildRequested;
     state.bioCandidates=!bootLight&&state.bioReference.naturalWidth
       ?prepareDiscSceneCandidates(state.bioReference,false,"bio")
       :state.referenceCandidates;
@@ -4886,15 +4922,6 @@ function createParticleField(){
       const heroRaw=particleClamp(scrollY/heroRange);
       updateMorph(now,heroRaw);
 
-      if(
-        deferredReferencesDirty&&
-        !fullQualityRestored&&
-        canRunDeferredRebuild()
-      ){
-        fullQualityRestored=true;
-        runPostBootFullRebuild();
-      }
-
       updateAlbumSceneMorph(now);
 
       const recordTop=parallaxRecord?.offsetTop??(heroRange+state.height*1.4);
@@ -5073,52 +5100,51 @@ function createParticleField(){
 
   let deferredReferenceTimer=0;
   let deferredReferencesDirty=false;
-  let postBootFullRebuildScheduled=false;
-  let fullQualityRestored=false;
+  let fullHandoffRequested=false;
+  let fullHandoffStarted=false;
+  let deferredSettledCount=0;
+  const deferredSettled=new WeakSet();
 
-  const canRunDeferredRebuild=()=>(
-    !document.body.classList.contains("boot-loading")&&
-    state.morph>.94&&
-    !state.homeSceneActive
-  );
+  const noteDeferredSettled=ref=>{
+    if(deferredSettled.has(ref))return;
+    deferredSettled.add(ref);
+    deferredSettledCount+=1;
+    deferredReferencesDirty=true;
+    maybeStartFullHandoff();
+  };
 
-  function runPostBootFullRebuild(){
-    if(postBootFullRebuildScheduled||state.destroyed)return;
-    postBootFullRebuildScheduled=true;
+  function runHiddenFullRebuild(){
+    if(fullHandoffStarted||state.destroyed)return;
+    fullHandoffStarted=true;
+    fullQualityBuildRequested=true;
+    deferredReferencesDirty=false;
+    state.candidatesReady=false;
+    state.bioMappedByAlbum={};
+    state.bioSceneMapped=null;
 
-    const run=()=>{
-      postBootFullRebuildScheduled=false;
-      if(state.destroyed)return;
-      deferredReferencesDirty=false;
-      fullQualityRestored=true;
-      state.candidatesReady=false;
-      state.bioMappedByAlbum={};
-      state.bioSceneMapped=null;
-      rebuild();
-    };
+    // This synchronous work is intentionally hidden behind the still-opaque
+    // boot canvas. Once it completes, the final field is ready for cross-fade.
+    rebuild();
+    fullQualityBuildRequested=false;
+    grimoriumBootLoader?.markFullFieldReady?.();
+  }
+
+  function maybeStartFullHandoff(){
+    if(!started||!fullHandoffRequested||fullHandoffStarted)return;
+    if(deferredSettledCount<deferredReferences.length)return;
 
     if("requestIdleCallback" in window){
-      requestIdleCallback(run,{timeout:1800});
+      requestIdleCallback(runHiddenFullRebuild,{timeout:420});
     }else{
-      window.setTimeout(run,180);
+      window.setTimeout(runHiddenFullRebuild,32);
     }
   }
 
-  function refreshDeferredReferences(){
+  function refreshDeferredReferences(ref){
     if(!started){
       boot();
-      return;
     }
-
-    deferredReferencesDirty=true;
-
-    // Never replace the visible home-logo geometry with a denser set.
-    // Late scene assets are collected silently and rebuilt only after the
-    // large GV has almost completely morphed away.
-    if(!canRunDeferredRebuild())return;
-
-    window.clearTimeout(deferredReferenceTimer);
-    deferredReferenceTimer=window.setTimeout(runPostBootFullRebuild,90);
+    noteDeferredSettled(ref);
   }
 
   source.addEventListener("load",boot,{once:true});
@@ -5134,13 +5160,16 @@ function createParticleField(){
   ];
 
   deferredReferences.forEach(ref=>{
-    ref.addEventListener("load",refreshDeferredReferences,{once:true});
+    ref.addEventListener("load",()=>refreshDeferredReferences(ref),{once:true});
     ref.addEventListener("error",()=>{
-      // Keep the stable book placeholder for a missing optional scene instead
-      // of preventing the entire particle field from starting.
+      // A failed optional scene still counts as settled for the handoff.
       console.warn("Deferred particle reference failed to load",ref.src);
-      refreshDeferredReferences();
+      refreshDeferredReferences(ref);
     },{once:true});
+
+    if(ref.complete){
+      noteDeferredSettled(ref);
+    }
   });
 
   if(
@@ -5150,17 +5179,20 @@ function createParticleField(){
     boot();
   }
 
-  grimoriumBootLoader?.onComplete?.(()=>{
-    // Do not change geometry while the finished boot logo is still the scene.
-    // Just remember that a native/full rebuild is owed; render() will release
-    // it only after the large GV has visually left the home state.
-    deferredReferencesDirty=true;
+  grimoriumBootLoader?.onHandoffReady?.(()=>{
+    fullHandoffRequested=true;
+    maybeStartFullHandoff();
   });
 
   window.addEventListener("resize",()=>{
     state.markSideFieldDirty(true);
     window.clearTimeout(resizeTimer);
-    resizeTimer=window.setTimeout(rebuild,120);
+    resizeTimer=window.setTimeout(()=>{
+      if(document.body.classList.contains("boot-loading")&&!fullQualityBuildRequested){
+        state.candidatesReady=false;
+      }
+      rebuild();
+    },120);
   },{passive:true});
 
   function spawnSmokeNode(x,y,vx,vy,strength){
