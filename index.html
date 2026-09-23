@@ -1887,6 +1887,72 @@ function createParticleField(){
   let started=false;
   let resizeTimer=0;
 
+  const hardwareCores=Math.max(1,Number(navigator.hardwareConcurrency)||8);
+  const hardwareMemory=Math.max(1,Number(navigator.deviceMemory)||16);
+  const initialGeometryQuality=(()=>{
+    // Geometry quality is chosen once per page load and never reduced at runtime.
+    // Weak hardware gets a smaller deterministic sample immediately, so there is
+    // no later "blink" caused by changing the particle set after it has settled.
+    if(window.innerWidth<=1100)return 1;
+    if(hardwareCores<=4||hardwareMemory<=4)return .68;
+    if(hardwareCores<=6||hardwareMemory<=8)return .84;
+    return 1;
+  })();
+
+  const vertexTextureUnits=gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS)||0;
+  const supportsSideGlyphMask=vertexTextureUnits>0;
+
+  const sideMaskUniformLines=supportsSideGlyphMask
+    ?[
+      "uniform sampler2D u_sideMask;",
+      "uniform vec2 u_sideMaskTexel;"
+    ]
+    :[];
+
+  const sideMaskShaderLines=supportsSideGlyphMask
+    ?[
+      "  // Pixel-accurate Moonscythe glyph anti-field for the vertical labels.",
+      "  // Particles clear the actual letter strokes and a tight ~10px neighbourhood.",
+      "  float sideLabelClear=0.0;",
+      "  for(int sfi=0;sfi<2;sfi++){",
+      "    vec4 sf=u_sideFields[sfi];",
+      "    if(sf.z>2.0&&sf.w>2.0){",
+      "      vec2 screenDelta=pos-sf.xy;",
+      "      vec2 luv=screenDelta/sf.zw+.5;",
+      "      float inside=step(0.0,luv.x)*step(luv.x,1.0)*step(0.0,luv.y)*step(luv.y,1.0);",
+      "      if(inside>.5){",
+      "        float bandBase=float(sfi)*.5;",
+      "        vec2 atlasUV=vec2(luv.x,bandBase+luv.y*.5);",
+      "        vec4 glyphMask=texture2D(u_sideMask,atlasUV);",
+      "        float coreInk=glyphMask.r;",
+      "        float haloInk=glyphMask.g;",
+      "        sideLabelClear=max(sideLabelClear,smoothstep(.025,.18,haloInk));",
+      "",
+      "        float gradX=2.0/max(1.0,sf.z);",
+      "        float gradY=2.0/max(1.0,sf.w)*.5;",
+      "        float ml=texture2D(u_sideMask,atlasUV+vec2(-gradX,0.0)).g;",
+      "        float mr=texture2D(u_sideMask,atlasUV+vec2( gradX,0.0)).g;",
+      "        float mu=texture2D(u_sideMask,atlasUV+vec2(0.0,-gradY)).g;",
+      "        float md=texture2D(u_sideMask,atlasUV+vec2(0.0, gradY)).g;",
+      "        vec2 awayScreen=vec2(ml-mr,mu-md);",
+      "        float awayLen=length(awayScreen);",
+      "        if(awayLen>.001){",
+      "          float repel=smoother(haloInk)*(1.0-smoothstep(.05,.40,coreInk))*5.0;",
+      "          pos+=awayScreen/awayLen*repel;",
+      "        }",
+      "      }",
+      "    }",
+      "  }",
+      ""
+    ]
+    :[
+      // Old WebGL1 implementations may expose zero vertex texture units.
+      // In that case we simply skip this decorative anti-field instead of
+      // failing the entire particle shader.
+      "  float sideLabelClear=0.0;",
+      ""
+    ];
+
   const particleVS=[
     "attribute vec4 a_logo;",
     "attribute vec2 a_target;",
@@ -1917,8 +1983,7 @@ function createParticleField(){
     "uniform float u_renderScale;",
     "uniform vec4 u_topLogoField;",
     "uniform vec4 u_sideFields[2];",
-    "uniform sampler2D u_sideMask;",
-    "uniform vec2 u_sideMaskTexel;",
+    ...sideMaskUniformLines,
     "uniform vec4 u_smoke[3];",
     "varying vec3 v_color;",
     "varying float v_alpha;",
@@ -2116,6 +2181,11 @@ function createParticleField(){
     "  float bioBrightFire=smoother((bioEnergy-.40)/.34)*smoother((a_bioMeta.x-.42)/.34);",
     "  float bioBrightFireBoost=mix(1.0,8.0,bioBrightFire);",
     "  bioDrift*=vec2(bioAmpX,bioAmpY)*3.60*bioAmpBreath*bioMotionEnergy*bioBrightFireBoost;",
+    "  float bioDriftLength=length(bioDrift);",
+    "  float bioMaxDistance=mix(10.0,38.0,bioBrightFire);",
+    "  if(bioDriftLength>bioMaxDistance){",
+    "    bioDrift*=bioMaxDistance/max(.001,bioDriftLength);",
+    "  }",
     "  pos+=bioDrift*bioLifeGate;",
     "",
     "  float bioBrightnessRaw=.5+.5*sin(",
@@ -2125,39 +2195,7 @@ function createParticleField(){
     "  float bioBrightnessFloor=mix(.34,.784,a_seed.x);",
     "  float bioBrightness=mix(1.0,mix(bioBrightnessFloor,1.0,bioBrightnessPhase),bioLifeGate);",
     "",
-    "  // Pixel-accurate Moonscythe glyph anti-field for the vertical labels.",
-    "  // Particles clear the actual letter strokes and a tight ~10px neighbourhood.",
-    "  float sideLabelClear=0.0;",
-    "  for(int sfi=0;sfi<2;sfi++){",
-    "    vec4 sf=u_sideFields[sfi];",
-    "    if(sf.z>2.0&&sf.w>2.0){",
-    "      vec2 screenDelta=pos-sf.xy;",
-    "      vec2 luv=screenDelta/sf.zw+.5;",
-    "      float inside=step(0.0,luv.x)*step(luv.x,1.0)*step(0.0,luv.y)*step(luv.y,1.0);",
-    "      if(inside>.5){",
-    "        float bandBase=float(sfi)*.5;",
-    "        vec2 atlasUV=vec2(luv.x,bandBase+luv.y*.5);",
-    "        vec4 glyphMask=texture2D(u_sideMask,atlasUV);",
-    "        float coreInk=glyphMask.r;",
-    "        float haloInk=glyphMask.g;",
-    "        sideLabelClear=max(sideLabelClear,smoothstep(.025,.18,haloInk));",
-    "",
-    "        float gradX=2.0/max(1.0,sf.z);",
-    "        float gradY=2.0/max(1.0,sf.w)*.5;",
-    "        float ml=texture2D(u_sideMask,atlasUV+vec2(-gradX,0.0)).g;",
-    "        float mr=texture2D(u_sideMask,atlasUV+vec2( gradX,0.0)).g;",
-    "        float mu=texture2D(u_sideMask,atlasUV+vec2(0.0,-gradY)).g;",
-    "        float md=texture2D(u_sideMask,atlasUV+vec2(0.0, gradY)).g;",
-    "        vec2 awayScreen=vec2(ml-mr,mu-md);",
-    "        float awayLen=length(awayScreen);",
-    "        if(awayLen>.001){",
-    "          float repel=smoother(haloInk)*(1.0-smoothstep(.05,.40,coreInk))*5.0;",
-    "          pos+=awayScreen/awayLen*repel;",
-    "        }",
-    "      }",
-    "    }",
-    "  }",
-    "",
+    ...sideMaskShaderLines,
     "  // Feathered negative-space halo under the persistent GV mark.",
     "  // It changes opacity only; particle geometry stays untouched.",
     "  float topLogoField=0.0;",
@@ -2527,7 +2565,7 @@ function createParticleField(){
     height:1,
     dpr:1,
     count:0,
-    qualityScale:1,
+    qualityScale:initialGeometryQuality,
     effectQualityScale:1,
     raf:0,
     active:true,
@@ -2597,6 +2635,8 @@ function createParticleField(){
     topLogoHit:null,
     sideFieldData:new Float32Array(8),
     sideMaskSignature:"",
+    sideFieldDirty:true,
+    sideMaskLayoutDirty:true,
     seedData:null,
     pointerX:0,
     pointerY:0,
@@ -3901,13 +3941,15 @@ function createParticleField(){
   sideMaskCanvas.width=SIDE_MASK_W;
   sideMaskCanvas.height=SIDE_MASK_H;
   const sideMaskCtx=sideMaskCanvas.getContext("2d");
-  const sideMaskTexture=gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D,sideMaskTexture);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,SIDE_MASK_W,SIDE_MASK_H,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  const sideMaskTexture=supportsSideGlyphMask?gl.createTexture():null;
+  if(sideMaskTexture){
+    gl.bindTexture(gl.TEXTURE_2D,sideMaskTexture);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,SIDE_MASK_W,SIDE_MASK_H,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  }
 
   function drawSpacedMaskText(ctx,text,cx,cy,font,letterSpacing,dx=0,dy=0){
     ctx.font=font;
@@ -3953,6 +3995,7 @@ function createParticleField(){
   }
 
   function rebuildSideMaskTexture(labels){
+    if(!supportsSideGlyphMask||!sideMaskTexture)return;
     const descriptors=labels.map(el=>{
       if(!el)return null;
       const rect=el.getBoundingClientRect();
@@ -4011,6 +4054,8 @@ function createParticleField(){
   }
 
   function updateSideFieldData(){
+    if(!state.sideFieldDirty&&!state.sideMaskLayoutDirty)return;
+
     const data=state.sideFieldData;
     const labels=[recordSideLabel,bioSideLabel];
 
@@ -4038,11 +4083,23 @@ function createParticleField(){
       data[k+3]=Math.max(1,rect.height+24);
     }
 
-    rebuildSideMaskTexture(labels);
+    if(state.sideMaskLayoutDirty){
+      rebuildSideMaskTexture(labels);
+      state.sideMaskLayoutDirty=false;
+    }
+    state.sideFieldDirty=false;
   }
 
+  state.markSideFieldDirty=(layout=false)=>{
+    state.sideFieldDirty=true;
+    if(layout)state.sideMaskLayoutDirty=true;
+  };
+
   if(document.fonts?.ready){
-    document.fonts.ready.then(()=>{state.sideMaskSignature="";});
+    document.fonts.ready.then(()=>{
+      state.sideMaskSignature="";
+      state.markSideFieldDirty(true);
+    });
   }
 
   function setParticleUniforms(now,material,bloom,alpha,renderScale,pass){
@@ -4074,10 +4131,12 @@ function createParticleField(){
       gl.uniform4f(pLoc.topLogoField,state.width*.5,36,120,42);
     }
     gl.uniform4fv(pLoc.sideFields,state.sideFieldData);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D,sideMaskTexture);
-    gl.uniform1i(pLoc.sideMask,0);
-    gl.uniform2f(pLoc.sideMaskTexel,1/SIDE_MASK_W,1/SIDE_MASK_H);
+    if(supportsSideGlyphMask&&sideMaskTexture&&pLoc.sideMask){
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D,sideMaskTexture);
+      gl.uniform1i(pLoc.sideMask,0);
+      if(pLoc.sideMaskTexel)gl.uniform2f(pLoc.sideMaskTexel,1/SIDE_MASK_W,1/SIDE_MASK_H);
+    }
     gl.uniform4fv(pLoc.smoke,state.smokeUniformData);
   }
 
@@ -4402,6 +4461,7 @@ function createParticleField(){
   }
 
   window.addEventListener("resize",()=>{
+    state.markSideFieldDirty(true);
     window.clearTimeout(resizeTimer);
     resizeTimer=window.setTimeout(rebuild,120);
   },{passive:true});
@@ -4639,6 +4699,7 @@ function refreshScenes(){
 }
 
 window.addEventListener("scroll",()=>{
+  particleField?.markSideFieldDirty?.();
   requestScenes();
   if(!desktopSnapAnimating)syncDesktopSnapKey();
 },{passive:true});
