@@ -1879,10 +1879,6 @@ const particleBioReference=new Image();
 particleBioReference.decoding="async";
 particleBioReference.src=particleAssetUrl("biography_candles.webp");
 
-const particleBioFlameReference=new Image();
-particleBioFlameReference.decoding="async";
-particleBioFlameReference.src=particleAssetUrl("biography_flames.webp");
-
 const particleBookReference=new Image();
 particleBookReference.decoding="async";
 particleBookReference.src=particleAssetUrl("book.webp");
@@ -2571,7 +2567,6 @@ function createParticleField(){
       retaliation:particleRetaliationReference
     },
     bioReference:particleBioReference,
-    bioFlameReference:particleBioFlameReference,
     width:1,
     height:1,
     dpr:1,
@@ -2603,7 +2598,6 @@ function createParticleField(){
     bioSceneRaw:null,
     bioSceneMapped:null,
     bioCandidates:[],
-    bioFlameCandidates:[],
     discMorph:0,
     discMorphFrom:0,
     discMorphTo:0,
@@ -2992,7 +2986,6 @@ function createParticleField(){
     state.bioCandidates=state.bioReference.naturalWidth
       ?prepareDiscSceneCandidates(state.bioReference,false,"bio")
       :state.referenceCandidates;
-    state.bioFlameCandidates=[];
   }
 
   function prepareCandidates(){
