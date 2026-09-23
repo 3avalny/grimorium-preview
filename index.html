@@ -1867,12 +1867,14 @@ function createBootParticleLoader(){
     const dt=lastAt?Math.min(50,now-lastAt):16;
     lastAt=now;
 
-    // Real readiness still controls completion, but the assembly itself never
-    // freezes while WebGL finishes underneath.
+    // Loading stages no longer drive the visible assembly at all. While the
+    // critical engine is still preparing, particles follow one continuous
+    // asymptotic curve: fast at first, progressively slower near completion,
+    // but never parked on a stage boundary.
     const elapsed=Math.max(0,now-loaderStartedAt);
-    const visualAssist=Math.min(.86,(1-Math.exp(-elapsed/720))*.92);
-    const visualTarget=targetProgress>=1?1:Math.max(targetProgress,visualAssist);
-    const response=1-Math.exp(-dt/220);
+    const waitingTarget=.978*(1-Math.exp(-elapsed/1550));
+    const visualTarget=targetProgress>=1?1:waitingTarget;
+    const response=1-Math.exp(-dt/(targetProgress>=1?180:260));
     displayProgress+=(visualTarget-displayProgress)*response;
     if(targetProgress>=1&&1-displayProgress<.0015)displayProgress=1;
 
