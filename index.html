@@ -2597,6 +2597,7 @@ function createParticleField(){
     topLogoHit:null,
     sideFieldData:new Float32Array(8),
     sideMaskSignature:"",
+    seedData:null,
     pointerX:0,
     pointerY:0,
     pointerLastAt:0,
@@ -3203,16 +3204,68 @@ function createParticleField(){
     uploadBuffer(colorBuffer,scene.colorData);
   }
 
-  function blendAlbumScenes(a,b,t){
+  function snapshotAlbumSceneAtMorph(a,b,morph){
     if(!a||!b)return a||b;
+    const seeds=state.seedData;
+    if(!seeds)return a;
+
+    const count=a.targetData.length>>1;
     const out={
       targetData:new Float32Array(a.targetData.length),
       metaData:new Float32Array(a.metaData.length),
       colorData:new Float32Array(a.colorData.length)
     };
-    for(let i=0;i<out.targetData.length;i++)out.targetData[i]=particleMix(a.targetData[i],b.targetData[i],t);
-    for(let i=0;i<out.metaData.length;i++)out.metaData[i]=particleMix(a.metaData[i],b.metaData[i],t);
-    for(let i=0;i<out.colorData.length;i++)out.colorData[i]=particleMix(a.colorData[i],b.colorData[i],t);
+    const PI=Math.PI;
+
+    for(let i=0;i<count;i++){
+      const sk=i*4;
+      const sx=seeds[sk];
+      const sy=seeds[sk+1];
+      const sz=seeds[sk+2];
+      const sw=seeds[sk+3];
+
+      // Mirror the vertex shader's exact album timing and flight arc so a
+      // mid-flight retarget begins from the pixels currently visible on screen.
+      const delay=sx*.44;
+      const raw=particleClamp((morph-delay)/Math.max(.001,1-delay));
+      const localT=Math.pow(particleSmoother(raw),particleMix(.68,1.42,sz));
+
+      const tk=i*2;
+      const ax=a.targetData[tk];
+      const ay=a.targetData[tk+1];
+      const bx=b.targetData[tk];
+      const by=b.targetData[tk+1];
+      const dx=bx-ax;
+      const dy=by-ay;
+      const travel=Math.max(1,Math.hypot(dx,dy));
+      const dirX=dx/travel;
+      const dirY=dy/travel;
+      const move=Math.sin(PI*localT);
+      const arc=Math.min(22,2+travel*.032)*(.24+sy*.76);
+      const arcSign=sw>=.5?1:-1;
+      const along=move*Math.sin(localT*PI*2+sy*PI*2)*(1+sx*4);
+
+      out.targetData[tk]=
+        particleMix(ax,bx,localT)+
+        (-dirY)*move*arc*arcSign+
+        dirX*along;
+      out.targetData[tk+1]=
+        particleMix(ay,by,localT)+
+        dirX*move*arc*arcSign+
+        dirY*along;
+
+      const mk=i*4;
+      out.metaData[mk]=particleMix(a.metaData[mk],b.metaData[mk],localT);
+      out.metaData[mk+1]=particleMix(a.metaData[mk+1],b.metaData[mk+1],localT);
+      out.metaData[mk+2]=particleMix(a.metaData[mk+2],b.metaData[mk+2],localT);
+      out.metaData[mk+3]=particleMix(a.metaData[mk+3],b.metaData[mk+3],localT);
+
+      const ck=i*3;
+      out.colorData[ck]=particleMix(a.colorData[ck],b.colorData[ck],localT);
+      out.colorData[ck+1]=particleMix(a.colorData[ck+1],b.colorData[ck+1],localT);
+      out.colorData[ck+2]=particleMix(a.colorData[ck+2],b.colorData[ck+2],localT);
+    }
+
     return out;
   }
 
@@ -3416,6 +3469,7 @@ function createParticleField(){
 
     const count=desiredCount();
     const data=buildParticleData(count);
+    state.seedData=data.seedData;
 
     uploadBuffer(buffers.logo,data.logoData);
     uploadBuffer(buffers.target,data.targetData);
@@ -3789,7 +3843,7 @@ function createParticleField(){
       );
       const liveMorph=particleSmoother(liveRaw);
       state.albumSceneMorph=liveMorph;
-      from=blendAlbumScenes(state.albumFromData,state.albumToData,liveMorph);
+      from=snapshotAlbumSceneAtMorph(state.albumFromData,state.albumToData,liveMorph);
     }else{
       from=state.albumFromData||
         state.albumScenes[state.albumSceneCurrentId]||
