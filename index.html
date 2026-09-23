@@ -2519,6 +2519,7 @@ function createParticleField(){
   let started=false;
   let resizeTimer=0;
   let fullQualityBuildRequested=false;
+  let handoffCoreOnly=false;
 
   const hardwareCores=Math.max(1,Number(navigator.hardwareConcurrency)||8);
   const hardwareMemory=Math.max(1,Number(navigator.deviceMemory)||16);
@@ -3564,8 +3565,11 @@ function createParticleField(){
   function prepareAlbumCandidates(){
     const next={};
     const bootLight=
-      document.body.classList.contains("boot-loading")&&
-      !fullQualityBuildRequested;
+      handoffCoreOnly||
+      (
+        document.body.classList.contains("boot-loading")&&
+        !fullQualityBuildRequested
+      );
     for(const [id,ref] of Object.entries(state.albumReferences)){
       // During boot, never parse optional album maps on the main thread.
       // The book placeholder is enough for the hidden handoff field.
@@ -3630,8 +3634,11 @@ function createParticleField(){
   function prepareBioCandidates(){
     // Biography is optional during boot. Parse it only after the loader leaves.
     const bootLight=
-      document.body.classList.contains("boot-loading")&&
-      !fullQualityBuildRequested;
+      handoffCoreOnly||
+      (
+        document.body.classList.contains("boot-loading")&&
+        !fullQualityBuildRequested
+      );
     state.bioCandidates=!bootLight&&state.bioReference.naturalWidth
       ?prepareDiscSceneCandidates(state.bioReference,false,"bio")
       :state.referenceCandidates;
@@ -3669,6 +3676,7 @@ function createParticleField(){
 
 
   function buildParticleData(count){
+    const coreOnly=handoffCoreOnly;
     const w=state.width,h=state.height;
     const logoAspect=source.naturalWidth/Math.max(1,source.naturalHeight);
     const sourceLogoW=Math.min(w*.56,820);
@@ -3683,13 +3691,25 @@ function createParticleField(){
     const refPoints=sampleAlbumPoints(state.referenceCandidates,refCount,state.bookReference);
     const albumPointsById={};
     const effectiveAlbumRefs={};
-    for(const [id,ref] of Object.entries(state.albumReferences)){
-      const effectiveRef=ref.naturalWidth?ref:state.bookReference;
-      effectiveAlbumRefs[id]=effectiveRef;
-      albumPointsById[id]=sampleAlbumPoints(state.albumCandidatesById[id],refCount,effectiveRef);
+
+    if(!coreOnly){
+      for(const [id,ref] of Object.entries(state.albumReferences)){
+        const effectiveRef=ref.naturalWidth?ref:state.bookReference;
+        effectiveAlbumRefs[id]=effectiveRef;
+        albumPointsById[id]=sampleAlbumPoints(
+          state.albumCandidatesById[id],
+          refCount,
+          effectiveRef
+        );
+      }
     }
-    const effectiveBioRef=state.bioReference.naturalWidth?state.bioReference:state.bookReference;
-    const bioPoints=sampleAlbumPoints(state.bioCandidates,refCount,effectiveBioRef);
+
+    const effectiveBioRef=!coreOnly&&state.bioReference.naturalWidth
+      ?state.bioReference
+      :state.bookReference;
+    const bioPoints=coreOnly
+      ?null
+      :sampleAlbumPoints(state.bioCandidates,refCount,effectiveBioRef);
     const topPoints=sampleAlbumPoints(state.logoCandidates,topLogoCount,source);
 
     const topLogoW=Math.min(w*.215,360);
@@ -3720,6 +3740,7 @@ function createParticleField(){
         y:(h-height)*.5
       };
     };
+
     const bookPlacementBase=scenePlacement(state.bookReference);
     const bookPlacement={
       scale:bookPlacementBase.scale*1.10,
@@ -3728,9 +3749,12 @@ function createParticleField(){
       x:(w-bookPlacementBase.width*1.10)*.5,
       y:(h-bookPlacementBase.height*1.10)*.5
     };
+
     const albumPlacements={};
-    for(const [id,ref] of Object.entries(effectiveAlbumRefs)){
-      albumPlacements[id]=scenePlacement(ref);
+    if(!coreOnly){
+      for(const [id,ref] of Object.entries(effectiveAlbumRefs)){
+        albumPlacements[id]=scenePlacement(ref);
+      }
     }
 
     const bioRefW=effectiveBioRef.naturalWidth;
@@ -3767,63 +3791,60 @@ function createParticleField(){
     particleShuffle(targets,0x4cf5ad43);
 
     const albumScenes={};
-    for(const id of Object.keys(state.albumReferences)){
-      const points=albumPointsById[id];
-      const placement=albumPlacements[id];
-      const sceneTargetData=new Float32Array(count*2);
-      const sceneMetaData=new Float32Array(count*4);
-      const sceneColorData=new Float32Array(count*3);
-      let cursor=0;
+    if(!coreOnly){
+      for(const id of Object.keys(state.albumReferences)){
+        const points=albumPointsById[id];
+        const placement=albumPlacements[id];
+        const sceneTargetData=new Float32Array(count*2);
+        const sceneMetaData=new Float32Array(count*4);
+        const sceneColorData=new Float32Array(count*3);
+        let cursor=0;
 
-      for(let i=0;i<count;i++){
-        const tp=targets[i];
-        let x=tp.x,y=tp.y,zone=tp.zone,glow=tp.glow,structure=tp.structure||0;
-        let radius=0,r=tp.r,g=tp.g,b=tp.b;
+        for(let i=0;i<count;i++){
+          const tp=targets[i];
+          let x=tp.x,y=tp.y,zone=tp.zone,glow=tp.glow,structure=tp.structure||0;
+          let radius=0,r=tp.r,g=tp.g,b=tp.b;
 
-        if(tp.zone<=1.5){
-          const p=points[cursor++%points.length];
-          x=placement.x+p.u*placement.width;
-          y=placement.y+p.v*placement.height;
-          zone=0;
-          glow=p.glow;
-          structure=0;
-          radius=p.radius*placement.scale;
-          r=p.r;g=p.g;b=p.b;
+          if(tp.zone<=1.5){
+            const p=points[cursor++%points.length];
+            x=placement.x+p.u*placement.width;
+            y=placement.y+p.v*placement.height;
+            zone=0;
+            glow=p.glow;
+            structure=0;
+            radius=p.radius*placement.scale;
+            r=p.r;g=p.g;b=p.b;
+          }
+
+          sceneTargetData[i*2]=x;
+          sceneTargetData[i*2+1]=y;
+          sceneMetaData[i*4]=glow;
+          sceneMetaData[i*4+1]=zone;
+          sceneMetaData[i*4+2]=radius;
+          sceneMetaData[i*4+3]=structure;
+          sceneColorData[i*3]=r;
+          sceneColorData[i*3+1]=g;
+          sceneColorData[i*3+2]=b;
         }
 
-        sceneTargetData[i*2]=x;
-        sceneTargetData[i*2+1]=y;
-        sceneMetaData[i*4]=glow;
-        sceneMetaData[i*4+1]=zone;
-        sceneMetaData[i*4+2]=radius;
-        sceneMetaData[i*4+3]=structure;
-        sceneColorData[i*3]=r;
-        sceneColorData[i*3+1]=g;
-        sceneColorData[i*3+2]=b;
+        albumScenes[id]={
+          targetData:sceneTargetData,
+          metaData:sceneMetaData,
+          colorData:sceneColorData
+        };
       }
-
-      albumScenes[id]={
-        targetData:sceneTargetData,
-        metaData:sceneMetaData,
-        colorData:sceneColorData
-      };
     }
 
     let bioCursor=0;
-    const bioTargets=targets.map(tp=>{
+    const bioTargets=coreOnly?null:targets.map(tp=>{
       if(tp.zone>1.5)return {...tp};
       const p=bioPoints[bioCursor++%bioPoints.length];
 
-      // Shift only the two inner-right Biography candles (rear tall candle +
-      // shorter front candle) so their spacing mirrors the inner-left pair.
-      // Keep the far-right foreground candle and the rest of the artwork fixed.
       let bioU=p.u;
       if(p.u>.635&&p.u<.775&&p.v>.22&&p.v<.80){
         bioU+=.065;
       }
 
-      // Give only the taller rear-right candle a little more presence.
-      // The narrower x-range avoids brightening the shorter candle in front.
       const tallRightCandle=
         p.u>.655&&p.u<.715&&
         p.v>.285&&p.v<.705;
@@ -3854,7 +3875,7 @@ function createParticleField(){
     for(let i=0;i<count;i++){
       const lp=sourcePoints[i];
       const tp=targets[i];
-      const bp=bioTargets[i];
+      const bp=coreOnly?tp:bioTargets[i];
 
       logoData[i*4]=w*.5+(lp.u-.5)*sourceLogoW;
       logoData[i*4+1]=h*.5+(lp.v-.5)*sourceLogoH;
@@ -3890,7 +3911,27 @@ function createParticleField(){
       bioColorData[i*3+2]=bp.b;
     }
 
-    return {logoData,targetData,bioTargetData,seedData,metaData,bioMetaData,colorData,bioColorData,albumScenes};
+    if(coreOnly){
+      for(const id of Object.keys(state.albumReferences)){
+        albumScenes[id]={
+          targetData,
+          metaData,
+          colorData
+        };
+      }
+    }
+
+    return {
+      logoData,
+      targetData,
+      bioTargetData,
+      seedData,
+      metaData,
+      bioMetaData,
+      colorData,
+      bioColorData,
+      albumScenes
+    };
   }
 
   function uploadBuffer(buffer,data){
@@ -4192,16 +4233,20 @@ function createParticleField(){
     state.albumScenes=data.albumScenes;
     const requestedId=ALBUMS[activeAlbumIndex]?.id||state.pendingAlbumSceneId||"reall";
     const initialId=state.albumScenes[requestedId]?requestedId:"reall";
-    const initialScene=matchParticleSceneNearest(
-      state.bookScene,
-      state.albumScenes[initialId],
-      ++state.albumMatchSalt
-    );
-    const initialBio=matchParticleSceneNearest(
-      initialScene,
-      state.bioSceneRaw,
-      ++state.albumMatchSalt
-    );
+    const initialScene=handoffCoreOnly
+      ?state.bookScene
+      :matchParticleSceneNearest(
+        state.bookScene,
+        state.albumScenes[initialId],
+        ++state.albumMatchSalt
+      );
+    const initialBio=handoffCoreOnly
+      ?state.bookScene
+      :matchParticleSceneNearest(
+        initialScene,
+        state.bioSceneRaw,
+        ++state.albumMatchSalt
+      );
 
     uploadAlbumScene(buffers.albumTarget,buffers.albumMeta,buffers.albumColor,initialScene);
     uploadAlbumScene(buffers.revenantTarget,buffers.revenantMeta,buffers.revenantColor,initialScene);
@@ -5117,14 +5162,16 @@ function createParticleField(){
     if(fullHandoffStarted||state.destroyed)return;
     fullHandoffStarted=true;
     fullQualityBuildRequested=true;
+    handoffCoreOnly=true;
     deferredReferencesDirty=false;
-    state.candidatesReady=false;
     state.bioMappedByAlbum={};
     state.bioSceneMapped=null;
 
-    // This synchronous work is intentionally hidden behind the still-opaque
-    // boot canvas. Once it completes, the final field is ready for cross-fade.
+    // Only GV + Book are rebuilt at full density for the handoff. Reuse the
+    // already-prepared candidate maps and skip all album/Bio geometry + matching.
     rebuild();
+
+    handoffCoreOnly=false;
     fullQualityBuildRequested=false;
     grimoriumBootLoader?.markFullFieldReady?.();
   }
