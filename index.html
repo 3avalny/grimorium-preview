@@ -1406,9 +1406,21 @@ function discPanelFor(id){
   return discContentWindow.querySelector(`.disc-content-panel[data-album-id="${id}"]`);
 }
 
+const spotifyBackgroundReloadTimers=new WeakMap();
+
 function ensureSpotifyLoaded(panel){
   const iframe=panel?.querySelector(".player iframe");
-  if(!iframe || iframe.dataset.loaded==="1")return;
+  if(!iframe)return;
+
+  const pending=spotifyBackgroundReloadTimers.get(panel);
+  if(pending){
+    window.clearTimeout(pending);
+    spotifyBackgroundReloadTimers.delete(panel);
+  }
+
+  if(iframe.dataset.loaded==="1")return;
+  // Programmatic preloads must actually fetch even while their panel is hidden.
+  iframe.loading="eager";
   iframe.src=iframe.dataset.src;
   iframe.dataset.loaded="1";
 }
@@ -1417,10 +1429,19 @@ function stopSpotifyPanel(panel){
   const iframe=panel?.querySelector(".player iframe");
   if(!iframe || iframe.dataset.loaded!=="1")return;
 
-  // Navigating the retired embed stops playback reliably without needing
-  // account authorization. Returning to the album recreates it from data-src.
+  const pending=spotifyBackgroundReloadTimers.get(panel);
+  if(pending)window.clearTimeout(pending);
+
+  // Blank navigation stops audio immediately. Then the same embed is rebuilt
+  // off-screen in a fresh paused state, so returning to this album is instant.
   iframe.src="about:blank";
   iframe.dataset.loaded="0";
+
+  const timer=window.setTimeout(()=>{
+    spotifyBackgroundReloadTimers.delete(panel);
+    ensureSpotifyLoaded(panel);
+  },320);
+  spotifyBackgroundReloadTimers.set(panel,timer);
 }
 
 function preloadSpotifyNeighbor(index){
@@ -1715,6 +1736,7 @@ function createBootParticleLoader(){
   let displayProgress=0;
   let loadDrive=0;
   let particles=[];
+  let bootstrapParticles=[];
   let activeFlights=[];
   let revealedCount=0;
   let settledCount=0;
@@ -1745,6 +1767,36 @@ function createBootParticleLoader(){
     x=Math.imul(x^(x>>>15),0x735a2d97);
     x=x^(x>>>15);
     return (x>>>0)/4294967296;
+  };
+
+  const buildBootstrapParticles=()=>{
+    const w=Math.max(1,window.innerWidth);
+    const h=Math.max(1,window.innerHeight);
+    const count=w<=720?520:960;
+    const spreadX=Math.min(w*.34,560);
+    const spreadY=Math.min(h*.25,300);
+    const travel=Math.min(Math.max(w,h)*.44,520);
+
+    bootstrapParticles=Array.from({length:count},(_,i)=>{
+      const a=hash(i*92821+17)*Math.PI*2;
+      const radius=travel*(.55+hash(i*31337+29)*.72);
+      const tx=w*.5+(hash(i*6151+43)-.5)*spreadX;
+      const ty=h*.5+(hash(i*7411+71)-.5)*spreadY;
+      const brightness=.48+hash(i*3571+101)*.42;
+      return {
+        sx:w*.5+Math.cos(a)*radius,
+        sy:h*.5+Math.sin(a)*radius,
+        tx,ty,
+        bend:(hash(i*4721+113)-.5)*58,
+        phase:hash(i*9901+149)*Math.PI*2,
+        speed:.70+hash(i*1741+191)*.75,
+        size:.42+hash(i*2689+211)*.48,
+        r:Math.round(204*brightness),
+        g:Math.round(194*brightness),
+        b:Math.round(173*brightness),
+        alpha:.22+hash(i*7919+227)*.46
+      };
+    });
   };
 
   const shuffled=array=>{
@@ -1781,6 +1833,7 @@ function createBootParticleLoader(){
     ctx.setTransform(dpr,0,0,dpr,0,0);
 
     if(targetsReady&&logoImage)buildTargets(logoImage);
+    else buildBootstrapParticles();
   };
 
   const buildTargets=image=>{
@@ -1898,6 +1951,41 @@ function createBootParticleLoader(){
 
     ctx.fillStyle="#050607";
     ctx.fillRect(0,0,w,h);
+
+    // Immediate first-frame motion. This cloud is generated synchronously, so a
+    // cold PNG decode can never leave the visitor staring at an empty black screen.
+    if(bootstrapParticles.length){
+      const realAssemblyFraction=targetsReady&&particles.length
+        ?Math.min(1,revealedCount/Math.max(1,particles.length*.055))
+        :0;
+      const bootstrapAlpha=1-realAssemblyFraction;
+
+      if(bootstrapAlpha>.001){
+        const bootstrapTime=Math.max(0,now-loaderStartedAt);
+        for(let i=0;i<bootstrapParticles.length;i++){
+          const p=bootstrapParticles[i];
+          const approach=1-Math.exp(
+            -bootstrapTime/(2200/p.speed)
+          );
+          const arc=Math.sin(Math.PI*Math.min(.999,approach));
+          const dx=p.tx-p.sx;
+          const dy=p.ty-p.sy;
+          const len=Math.max(1,Math.hypot(dx,dy));
+          const nx=-dy/len;
+          const ny=dx/len;
+          const drift=Math.sin(
+            bootstrapTime*.0011*p.speed+p.phase
+          )*3.2*(1-approach*.72);
+          const x=p.sx+dx*approach+nx*(p.bend*arc+drift);
+          const y=p.sy+dy*approach+ny*(p.bend*arc+drift);
+
+          ctx.fillStyle=`rgba(${p.r},${p.g},${p.b},${p.alpha*bootstrapAlpha})`;
+          ctx.beginPath();
+          ctx.arc(x,y,p.size,0,Math.PI*2);
+          ctx.fill();
+        }
+      }
+    }
 
     if(targetsReady&&particles.length){
       // No temporary reveal target exists anymore. The stream always advances.
