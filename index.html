@@ -1643,20 +1643,34 @@ function createBootParticleLoader(){
   const stages=new Map();
   const addStage=(key,weight)=>stages.set(key,{weight,done:false});
 
-  addStage("logo",.08);
-  addStage("font",.06);
+  addStage("logo",.07);
+  addStage("font",.05);
   addStage("book",.10);
-  ["reall","revenant","relict","reborn","retaliation"].forEach(id=>addStage("map:"+id,.045));
-  addStage("map:bio",.055);
-  addStage("hero:light",.04);
-  addStage("hero:rocks",.04);
-  ALBUMS.forEach(a=>addStage("cover:"+a.id,.024));
+  ["reall","revenant","relict","reborn","retaliation"].forEach(id=>addStage("map:"+id,.05));
+  addStage("map:bio",.06);
+  addStage("hero:light",.035);
+  addStage("hero:rocks",.035);
+  ALBUMS.forEach(a=>addStage("cover:"+a.id,.02));
   addStage("dom",.05);
   addStage("particleEngine",.25);
 
   let targetProgress=0;
   let displayProgress=0;
   let particles=[];
+  let activeFlights=[];
+  let revealedCount=0;
+  let settledCount=0;
+  let settledCanvas=null;
+  let settledCtx=null;
+  let settledPixels=null;
+  let settledDirty=false;
+  let logoX=0;
+  let logoY=0;
+  let logoW=0;
+  let logoH=0;
+  let rasterScale=1;
+  let rasterW=1;
+  let rasterH=1;
   let raf=0;
   let lastAt=0;
   let lastRevealAt=0;
@@ -1712,73 +1726,77 @@ function createBootParticleLoader(){
   const buildTargets=image=>{
     const w=Math.max(1,window.innerWidth);
     const h=Math.max(1,window.innerHeight);
-    const logoW=Math.min(w*.56,820);
-    const logoH=logoW*(image.naturalHeight/Math.max(1,image.naturalWidth));
-    const logoX=w*.5-logoW*.5;
-    const logoY=h*.5-logoH*.5;
 
-    const sampleW=Math.min(900,image.naturalWidth);
-    const sampleH=Math.max(1,Math.round(sampleW*image.naturalHeight/image.naturalWidth));
-    const sample=document.createElement("canvas");
-    sample.width=sampleW;
-    sample.height=sampleH;
-    const sctx=sample.getContext("2d",{willReadFrequently:true});
-    sctx.clearRect(0,0,sampleW,sampleH);
-    sctx.drawImage(image,0,0,sampleW,sampleH);
-    const data=sctx.getImageData(0,0,sampleW,sampleH).data;
-    const candidates=[];
+    logoW=Math.min(w*.56,820);
+    logoH=logoW*(image.naturalHeight/Math.max(1,image.naturalWidth));
+    logoX=w*.5-logoW*.5;
+    logoY=h*.5-logoH*.5;
 
-    for(let y=0;y<sampleH;y++){
-      for(let x=0;x<sampleW;x++){
-        const k=(y*sampleW+x)*4;
-        const a=data[k+3]/255;
-        if(a<.08)continue;
-        const r=data[k]/255;
-        const g=data[k+1]/255;
-        const b=data[k+2]/255;
-        const lum=(r*.2126+g*.7152+b*.0722)*a;
-        if(lum<.035)continue;
+    // Rasterize the REAL transparent PNG at its actual on-screen size. There is
+    // no brightness lottery, no semantic approximation and no 5k point cap.
+    // Every visible output pixel becomes one honest target particle.
+    rasterScale=Math.min(window.devicePixelRatio||1,1.30);
+    rasterW=Math.max(1,Math.round(logoW*rasterScale));
+    rasterH=Math.max(1,Math.round(logoH*rasterScale));
 
-        // Keep dim details but favour brighter source pixels.
-        const keep=.20+.80*Math.pow(lum,.55);
-        if(hash(x+y*sampleW+0x51a7)>keep)continue;
+    const raster=document.createElement("canvas");
+    raster.width=rasterW;
+    raster.height=rasterH;
+    const rctx=raster.getContext("2d",{willReadFrequently:true});
+    rctx.clearRect(0,0,rasterW,rasterH);
+    rctx.imageSmoothingEnabled=true;
+    rctx.imageSmoothingQuality="high";
+    rctx.drawImage(image,0,0,rasterW,rasterH);
 
-        candidates.push({
-          u:(x+.5)/sampleW,
-          v:(y+.5)/sampleH,
-          lum
+    const sourcePixels=rctx.getImageData(0,0,rasterW,rasterH).data;
+    const exact=[];
+
+    for(let y=0;y<rasterH;y++){
+      for(let x=0;x<rasterW;x++){
+        const k=(y*rasterW+x)*4;
+        const a=sourcePixels[k+3];
+        if(a===0)continue;
+
+        const seedIndex=x+y*rasterW;
+        const angle=hash(seedIndex*3253+91)*Math.PI*2;
+        const travelRadius=
+          28+
+          hash(seedIndex*5741+211)*
+          Math.min(190,Math.max(70,logoW*.24));
+        const tangent=(hash(seedIndex*1187+337)-.5)*26;
+        const tx=logoX+(x+.5)/rasterScale;
+        const ty=logoY+(y+.5)/rasterScale;
+
+        exact.push({
+          px:x,
+          py:y,
+          tx,
+          ty,
+          sx:tx+Math.cos(angle)*travelRadius+Math.sin(angle)*tangent,
+          sy:ty+Math.sin(angle)*travelRadius-Math.cos(angle)*tangent,
+          r:sourcePixels[k],
+          g:sourcePixels[k+1],
+          b:sourcePixels[k+2],
+          a,
+          phase:hash(seedIndex*9901+11)*Math.PI*2,
+          birth:0,
+          duration:260+hash(seedIndex*6421+27)*260
         });
       }
     }
 
-    shuffled(candidates);
-    const desired=w<=720?2200:(w<=1100?3400:5200);
-    const count=Math.min(desired,candidates.length);
-    const step=candidates.length/Math.max(1,count);
-    const next=[];
+    particles=shuffled(exact);
+    activeFlights=[];
+    revealedCount=0;
+    settledCount=0;
 
-    for(let i=0;i<count;i++){
-      const c=candidates[Math.min(candidates.length-1,Math.floor(i*step))];
-      const seed=hash(i*7919+17);
-      const angle=hash(i*3253+91)*Math.PI*2;
-      const radius=(34+hash(i*5741+211)*Math.min(210,Math.max(82,logoW*.28)));
-      const tangent=(hash(i*1187+337)-.5)*32;
+    settledCanvas=document.createElement("canvas");
+    settledCanvas.width=rasterW;
+    settledCanvas.height=rasterH;
+    settledCtx=settledCanvas.getContext("2d",{alpha:true});
+    settledPixels=settledCtx.createImageData(rasterW,rasterH);
+    settledDirty=true;
 
-      next.push({
-        tx:logoX+c.u*logoW,
-        ty:logoY+c.v*logoH,
-        sx:logoX+c.u*logoW+Math.cos(angle)*radius+Math.sin(angle)*tangent,
-        sy:logoY+c.v*logoH+Math.sin(angle)*radius-Math.cos(angle)*tangent,
-        lum:c.lum,
-        radius:.42+hash(i*4567+73)*.80,
-        phase:hash(i*9901+11)*Math.PI*2,
-        drift:.08+hash(i*2281+401)*.48,
-        birth:0,
-        duration:430+hash(i*6421+27)*520
-      });
-    }
-
-    particles=shuffled(next);
     targetsReady=true;
   };
 
@@ -1789,58 +1807,97 @@ function createBootParticleLoader(){
     const dt=lastAt?Math.min(50,now-lastAt):16;
     lastAt=now;
 
-    // Smooth stage jumps into continuous visible assembly.
-    const response=1-Math.exp(-dt/360);
+    // Stage progress is real; only its visual presentation is eased so network
+    // bursts do not make half a logo pop into existence in a single frame.
+    const response=1-Math.exp(-dt/300);
     displayProgress+=(targetProgress-displayProgress)*response;
-    if(targetProgress>=1&&1-displayProgress<.002)displayProgress=1;
+    if(targetProgress>=1&&1-displayProgress<.0015)displayProgress=1;
 
     ctx.fillStyle="#050607";
     ctx.fillRect(0,0,w,h);
 
     if(targetsReady&&particles.length){
-      const visibleCount=Math.min(
+      const requestedCount=Math.min(
         particles.length,
         Math.floor(displayProgress*particles.length)
       );
 
-      for(let i=0;i<visibleCount;i++){
-        const p=particles[i];
-        if(!p.birth){
-          p.birth=now+hash(i*8123+101)*95;
-          lastRevealAt=Math.max(lastRevealAt,p.birth);
+      // Reveal true source pixels in shuffled order. New pixels physically fly
+      // in; once they land they are committed to an exact raster of the PNG.
+      const spawnBudget=reducedMotion
+        ? requestedCount-revealedCount
+        : Math.min(requestedCount-revealedCount,520);
+
+      for(let n=0;n<spawnBudget;n++){
+        const p=particles[revealedCount++];
+        p.birth=now+(reducedMotion?0:hash(revealedCount*8123+101)*55);
+        activeFlights.push(p);
+        lastRevealAt=Math.max(lastRevealAt,p.birth);
+      }
+
+      if(settledCanvas){
+        ctx.drawImage(settledCanvas,logoX,logoY,logoW,logoH);
+      }
+
+      if(activeFlights.length){
+        const nextFlights=[];
+        let committedThisFrame=false;
+
+        for(let i=0;i<activeFlights.length;i++){
+          const p=activeFlights[i];
+          if(now<p.birth){
+            nextFlights.push(p);
+            continue;
+          }
+
+          const raw=Math.min(1,(now-p.birth)/p.duration);
+          if(raw>=1||reducedMotion){
+            const k=(p.py*rasterW+p.px)*4;
+            settledPixels.data[k]=p.r;
+            settledPixels.data[k+1]=p.g;
+            settledPixels.data[k+2]=p.b;
+            settledPixels.data[k+3]=p.a;
+            settledCount+=1;
+            committedThisFrame=true;
+            continue;
+          }
+
+          const t=raw*raw*(3-2*raw);
+          const arc=Math.sin(Math.PI*t);
+          const dx=p.tx-p.sx;
+          const dy=p.ty-p.sy;
+          const len=Math.max(1,Math.hypot(dx,dy));
+          const nx=-dy/len;
+          const ny=dx/len;
+          const bend=(hash((p.px+p.py*rasterW)*4999+7)-.5)*18*arc;
+          const x=p.sx+dx*t+nx*bend;
+          const y=p.sy+dy*t+ny*bend;
+          const alpha=(p.a/255)*Math.min(1,raw*3.2);
+          const particleSize=Math.max(.72,1/rasterScale)*(.86+.24*(1-t));
+
+          ctx.fillStyle=`rgba(${p.r},${p.g},${p.b},${alpha})`;
+          ctx.beginPath();
+          ctx.arc(x,y,particleSize,0,Math.PI*2);
+          ctx.fill();
+
+          nextFlights.push(p);
         }
 
-        if(now<p.birth)continue;
-        const raw=Math.min(1,(now-p.birth)/p.duration);
-        const t=reducedMotion?1:raw*raw*(3-2*raw);
-        const settle=Math.sin(Math.PI*t);
-        const bend=(hash(i*4999+7)-.5)*24*settle;
-        const dx=p.tx-p.sx;
-        const dy=p.ty-p.sy;
-        const len=Math.max(1,Math.hypot(dx,dy));
-        const nx=-dy/len;
-        const ny=dx/len;
-        const idle=raw>=1
-          ?Math.sin(now*.00055+ p.phase)*p.drift
-          :0;
+        activeFlights=nextFlights;
 
-        const x=p.sx+dx*t+nx*bend+Math.cos(p.phase)*idle;
-        const y=p.sy+dy*t+ny*bend+Math.sin(p.phase)*idle;
-        const sparkle=.72+.28*(.5+.5*Math.sin(now*.0011*(.7+hash(i+301)) + p.phase));
-        const alpha=Math.min(1,raw*2.4)*(.34+.66*Math.pow(p.lum,.58))*sparkle;
-        const warm=218+Math.round(p.lum*28);
-
-        ctx.beginPath();
-        ctx.arc(x,y,p.radius*(.86+.20*sparkle),0,Math.PI*2);
-        ctx.fillStyle=`rgba(${warm},${Math.max(190,warm-10)},${Math.max(170,warm-26)},${alpha})`;
-        ctx.fill();
+        if(committedThisFrame){
+          settledCtx.putImageData(settledPixels,0,0);
+          settledDirty=false;
+        }
       }
 
       if(
         targetProgress>=1&&
         displayProgress>=1&&
-        visibleCount===particles.length&&
-        now-Math.max(loaderStartedAt,lastRevealAt)>850
+        revealedCount===particles.length&&
+        settledCount===particles.length&&
+        activeFlights.length===0&&
+        now-Math.max(loaderStartedAt,lastRevealAt)>320
       ){
         finish();
         return;
@@ -1855,8 +1912,8 @@ function createBootParticleLoader(){
     finished=true;
     if(raf)cancelAnimationFrame(raf);
 
-    // The main WebGL field is already rendered underneath with the same large
-    // logo placement, so this is a visual handoff rather than a scene switch.
+    // The loader has now assembled every visible pixel of the real GV PNG.
+    // Main WebGL is already alive underneath, so the overlay can hand off cleanly.
     bootLoaderCanvas.classList.add("is-complete");
     document.body.classList.remove("boot-loading");
 
