@@ -1634,29 +1634,37 @@ prepareSideLabelLetters(bioSideLabel);
 
 const sideLabelRepelTimers=new WeakMap();
 
+function clearSideLabelRepelTimers(label){
+  const timers=sideLabelRepelTimers.get(label)||[];
+  timers.forEach(timer=>window.clearTimeout(timer));
+  sideLabelRepelTimers.delete(label);
+}
+
 function setSideLabelActive(label,active){
   if(!label)return;
-  const previousTimer=sideLabelRepelTimers.get(label);
-  if(previousTimer){
-    window.clearTimeout(previousTimer);
-    sideLabelRepelTimers.delete(label);
-  }
+  clearSideLabelRepelTimers(label);
 
   label.classList.toggle("side-label-visible",active);
   label.classList.remove("side-label-repelling");
-  particleField?.markSideFieldDirty?.();
+  label.dataset.repelChars="0";
+  particleField?.markSideFieldDirty?.(true);
 
   if(!active)return;
 
-  // Letters start after 1s. Turn the particle field on at the same moment,
-  // never before the typography itself becomes visible.
-  const timer=window.setTimeout(()=>{
-    sideLabelRepelTimers.delete(label);
-    if(!label.classList.contains("side-label-visible"))return;
-    label.classList.add("side-label-repelling");
-    particleField?.markSideFieldDirty?.();
-  },1000);
-  sideLabelRepelTimers.set(label,timer);
+  const letters=label.querySelectorAll(".side-label-letter");
+  const timers=[];
+
+  letters.forEach((letter,index)=>{
+    timers.push(window.setTimeout(()=>{
+      if(!label.classList.contains("side-label-visible"))return;
+      label.dataset.repelChars=String(index+1);
+      if(index===0)label.classList.add("side-label-repelling");
+      // Rebuild the mask with exactly the letters that have begun appearing.
+      particleField?.markSideFieldDirty?.(true);
+    },1000+index*65));
+  });
+
+  sideLabelRepelTimers.set(label,timers);
 }
 
 function setSideLabelScene(key){
@@ -4395,7 +4403,7 @@ function createParticleField(){
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,SIDE_MASK_W,SIDE_MASK_H,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
   }
 
-  function drawSpacedMaskText(ctx,text,cx,cy,font,letterSpacing,dx=0,dy=0){
+  function drawSpacedMaskText(ctx,text,cx,cy,font,letterSpacing,dx=0,dy=0,visibleChars=Infinity){
     ctx.font=font;
     ctx.textBaseline="middle";
     ctx.fillStyle="#fff";
@@ -4404,7 +4412,7 @@ function createParticleField(){
     const total=widths.reduce((sum,w)=>sum+w,0)+Math.max(0,widths.length-1)*letterSpacing;
     let x=cx-total*.5;
     chars.forEach((ch,i)=>{
-      ctx.fillText(ch,x+dx,cy+dy);
+      if(i<visibleChars)ctx.fillText(ch,x+dx,cy+dy);
       x+=widths[i]+letterSpacing;
     });
   }
@@ -4427,11 +4435,11 @@ function createParticleField(){
       for(let dy=-6;dy<=6;dy+=2){
         for(let dx=-6;dx<=6;dx+=2){
           if(dx*dx+dy*dy>36)continue;
-          drawSpacedMaskText(ctx,d.text,0,0,font,d.letterSpacing,dx,dy);
+          drawSpacedMaskText(ctx,d.text,0,0,font,d.letterSpacing,dx,dy,d.visibleChars);
         }
       }
     }else{
-      drawSpacedMaskText(ctx,d.text,0,0,font,d.letterSpacing);
+      drawSpacedMaskText(ctx,d.text,0,0,font,d.letterSpacing,0,0,d.visibleChars);
     }
 
     ctx.restore();
@@ -4444,10 +4452,12 @@ function createParticleField(){
       if(!el)return null;
       const rect=el.getBoundingClientRect();
       const style=getComputedStyle(el);
+      const text=(el.getAttribute("aria-label")||el.textContent||"").trim().toUpperCase();
       return {
         el,
         rect,
-        text:(el.textContent||"").trim().toUpperCase(),
+        text,
+        visibleChars:Math.max(0,Math.min(text.length,parseInt(el.dataset.repelChars||"0",10)||0)),
         fontSize:parseFloat(style.fontSize)||28,
         fontWeight:style.fontWeight||"400",
         fontFamily:style.fontFamily||"Moonscythe",
@@ -4456,7 +4466,7 @@ function createParticleField(){
     });
 
     const signature=descriptors.map(d=>d
-      ?[d.text,d.rect.width.toFixed(1),d.rect.height.toFixed(1),d.fontSize.toFixed(1),d.fontWeight,d.fontFamily,d.letterSpacing.toFixed(2)].join("|")
+      ?[d.text,d.visibleChars,d.rect.width.toFixed(1),d.rect.height.toFixed(1),d.fontSize.toFixed(1),d.fontWeight,d.fontFamily,d.letterSpacing.toFixed(2)].join("|")
       :"x"
     ).join("::");
 
