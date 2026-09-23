@@ -265,55 +265,11 @@ nav{display:none!important}
   text-shadow:none;filter:none;
   will-change:opacity
 }
-/* TEMP: particle-scene inspection — keep Discography DOM intact, just hide it */
-.record{
-  background:transparent!important;
-  border-top-color:transparent!important
-}
-.record>.shell{
-  opacity:0!important;
-  visibility:hidden!important;
-  pointer-events:none!important
-}
-.record-side-label{
-  visibility:visible!important;
-  pointer-events:none!important
-}
-.record>.shell:before{display:none!important}
-
-/* TEMP: working album switcher for particle-scene inspection */
-.particle-album-debug{
-  position:fixed;z-index:9999;
-  left:50%;bottom:22px;transform:translateX(-50%);
-  display:flex!important;align-items:center;justify-content:center;gap:18px;
-  width:max-content;max-width:calc(100% - 40px);
-  padding:10px 16px;
-  font-family:var(--sans);font-size:10px;line-height:1;
-  letter-spacing:.18em;text-transform:uppercase;
-  pointer-events:auto;
-  background:rgba(0,0,0,.78);
-  border:1px solid rgba(255,255,255,.12);
-  box-shadow:0 8px 30px rgba(0,0,0,.45);
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px)
-}
-.particle-album-debug button{
-  appearance:none;border:0;background:none;padding:5px 0;margin:0;
-  font:inherit;letter-spacing:inherit;text-transform:inherit;
-  color:#777;cursor:pointer;
-  transition:color .16s ease,opacity .16s ease
-}
-.particle-album-debug button:hover{color:#d2d0c8}
-.particle-album-debug button.active{color:#f0eee7}
+/* Real Discography is active again. Keep the temporary particle-scene
+   switcher in the DOM for development, but never show it to visitors. */
+.particle-album-debug{display:none!important}
 @media(max-width:720px){
   .hero-sub{margin-top:44px}
-  .particle-album-debug{
-    bottom:12px;z-index:50;
-    gap:10px;padding:9px 12px;
-    max-width:calc(100% - 24px);
-    overflow-x:auto;justify-content:flex-start;
-    font-size:8px;white-space:nowrap
-  }
 }
 
 .record-head{position:relative;z-index:2;margin-bottom:30px}
@@ -1676,9 +1632,36 @@ function prepareSideLabelLetters(label){
 prepareSideLabelLetters(recordSideLabel);
 prepareSideLabelLetters(bioSideLabel);
 
+const sideLabelRepelTimers=new WeakMap();
+
+function setSideLabelActive(label,active){
+  if(!label)return;
+  const previousTimer=sideLabelRepelTimers.get(label);
+  if(previousTimer){
+    window.clearTimeout(previousTimer);
+    sideLabelRepelTimers.delete(label);
+  }
+
+  label.classList.toggle("side-label-visible",active);
+  label.classList.remove("side-label-repelling");
+  particleField?.markSideFieldDirty?.();
+
+  if(!active)return;
+
+  // Letters start after 1s. Turn the particle field on at the same moment,
+  // never before the typography itself becomes visible.
+  const timer=window.setTimeout(()=>{
+    sideLabelRepelTimers.delete(label);
+    if(!label.classList.contains("side-label-visible"))return;
+    label.classList.add("side-label-repelling");
+    particleField?.markSideFieldDirty?.();
+  },1000);
+  sideLabelRepelTimers.set(label,timer);
+}
+
 function setSideLabelScene(key){
-  recordSideLabel?.classList.toggle("side-label-visible",key==="discography");
-  bioSideLabel?.classList.toggle("side-label-visible",key==="biography");
+  setSideLabelActive(recordSideLabel,key==="discography");
+  setSideLabelActive(bioSideLabel,key==="biography");
 }
 
 /* ---------- PARTICLE BOOT LOADER ---------- */
@@ -2389,7 +2372,10 @@ function createParticleField(){
       "        vec2 awayScreen=vec2(ml-mr,mu-md);",
       "        float awayLen=length(awayScreen);",
       "        if(awayLen>.001){",
-      "          float repel=smoother(haloInk)*7.5;",
+      "          // Only part of the nearby cloud yields to the letters. Keeping",
+      "          // some particles in place prevents a clean black outline/moat.",
+      "          float particleYield=smoother((a_seed.x*.55+a_seed.w*.45-.18)/.72);",
+      "          float repel=smoother(haloInk)*5.25*particleYield;",
       "          pos+=awayScreen/awayLen*repel;",
       "        }",
       "      }",
@@ -4522,6 +4508,7 @@ function createParticleField(){
       const k=i*4;
       const rect=el?.getBoundingClientRect();
       const visible=
+        el?.classList.contains("side-label-repelling")&&
         rect&&rect.width>1&&rect.height>1&&
         rect.right>-40&&rect.left<state.width+40&&
         rect.bottom>-40&&rect.top<state.height+40;
