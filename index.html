@@ -261,7 +261,7 @@ nav{display:none!important}
   transform:translate(-50%,-50%) rotate(-90deg);
   transform-origin:center;white-space:nowrap;
   font-family:var(--moon-display);font-size:clamp(24px,2.1vw,32px);font-weight:400;
-  letter-spacing:.07em;text-transform:uppercase;color:#d3d0c8;
+  letter-spacing:.07em;text-transform:uppercase;color:#aaa9a4;
   text-shadow:none;filter:none;
   will-change:opacity
 }
@@ -533,8 +533,37 @@ nav{display:none!important}
   transform:translate(-50%,-50%) rotate(-90deg);
   transform-origin:center;white-space:nowrap;
   font-family:var(--moon-display);font-size:clamp(24px,2.1vw,32px);font-weight:400;
-  letter-spacing:.07em;text-transform:uppercase;color:#d3d0c8;
+  letter-spacing:.07em;text-transform:uppercase;color:#aaa9a4;
   text-shadow:none;filter:none
+}
+.record-side-label .side-label-letter,
+.bio-side-label .side-label-letter{
+  display:inline-block;
+  opacity:0;
+  filter:blur(9px);
+  transform:translate3d(0,3px,0) scale(.94);
+  transform-origin:center;
+  will-change:opacity,filter,transform;
+  transition:
+    opacity .28s ease,
+    filter .38s cubic-bezier(.2,.72,.2,1),
+    transform .38s cubic-bezier(.2,.78,.2,1);
+  transition-delay:0ms
+}
+.record-side-label.side-label-visible .side-label-letter,
+.bio-side-label.side-label-visible .side-label-letter{
+  opacity:1;
+  filter:blur(0);
+  transform:translate3d(0,0,0) scale(1);
+  transition-delay:calc(1000ms + var(--side-letter-index,0) * 65ms)
+}
+@media(prefers-reduced-motion:reduce){
+  .record-side-label .side-label-letter,
+  .bio-side-label .side-label-letter{
+    filter:none!important;
+    transform:none!important;
+    transition:none!important
+  }
 }
 .bio-figure{display:none!important}
 .bio-figure-left{left:max(-18px,calc((100vw - var(--shell))/2 - 110px))}
@@ -1628,6 +1657,30 @@ const bioSideLabel=parallaxBio?.querySelector(".bio-side-label");
 const parallaxLayer=document.querySelector(".site-parallax-bg");
 const reducedMotionQuery=window.matchMedia("(prefers-reduced-motion: reduce)");
 
+function prepareSideLabelLetters(label){
+  if(!label||label.dataset.letterRevealReady==="1")return;
+  const text=(label.textContent||"").trim();
+  label.setAttribute("aria-label",text);
+  label.textContent="";
+  Array.from(text).forEach((char,index)=>{
+    const span=document.createElement("span");
+    span.className="side-label-letter";
+    span.setAttribute("aria-hidden","true");
+    span.style.setProperty("--side-letter-index",index);
+    span.textContent=char===" "?"\u00a0":char;
+    label.appendChild(span);
+  });
+  label.dataset.letterRevealReady="1";
+}
+
+prepareSideLabelLetters(recordSideLabel);
+prepareSideLabelLetters(bioSideLabel);
+
+function setSideLabelScene(key){
+  recordSideLabel?.classList.toggle("side-label-visible",key==="discography");
+  bioSideLabel?.classList.toggle("side-label-visible",key==="biography");
+}
+
 /* ---------- PARTICLE BOOT LOADER ---------- */
 const bootLoaderCanvas=document.getElementById("boot-particle-loader");
 
@@ -2312,9 +2365,9 @@ function createParticleField(){
 
   const sideMaskShaderLines=supportsSideGlyphMask
     ?[
-      "  // Pixel-accurate Moonscythe glyph anti-field for the vertical labels.",
-      "  // Particles clear the actual letter strokes and a tight ~6px neighbourhood.",
-      "  float sideLabelClear=0.0;",
+      "  // Pixel-accurate Moonscythe repulsion field for the vertical labels.",
+      "  // Nothing is alpha-cut here: nearby particles are physically displaced",
+      "  // so the text sits inside an irregular, living pocket instead of a halo line.",
       "  for(int sfi=0;sfi<2;sfi++){",
       "    vec4 sf=u_sideFields[sfi];",
       "    if(sf.z>2.0&&sf.w>2.0){",
@@ -2325,9 +2378,7 @@ function createParticleField(){
       "        float bandBase=float(sfi)*.5;",
       "        vec2 atlasUV=vec2(luv.x,bandBase+luv.y*.5);",
       "        vec4 glyphMask=texture2D(u_sideMask,atlasUV);",
-      "        float coreInk=glyphMask.r;",
       "        float haloInk=glyphMask.g;",
-      "        sideLabelClear=max(sideLabelClear,smoothstep(.025,.18,haloInk));",
       "",
       "        float gradX=2.0/max(1.0,sf.z);",
       "        float gradY=2.0/max(1.0,sf.w)*.5;",
@@ -2338,7 +2389,7 @@ function createParticleField(){
       "        vec2 awayScreen=vec2(ml-mr,mu-md);",
       "        float awayLen=length(awayScreen);",
       "        if(awayLen>.001){",
-      "          float repel=smoother(haloInk)*(1.0-smoothstep(.05,.40,coreInk))*5.0;",
+      "          float repel=smoother(haloInk)*7.5;",
       "          pos+=awayScreen/awayLen*repel;",
       "        }",
       "      }",
@@ -2348,9 +2399,7 @@ function createParticleField(){
     ]
     :[
       // Old WebGL1 implementations may expose zero vertex texture units.
-      // In that case we simply skip this decorative anti-field instead of
-      // failing the entire particle shader.
-      "  float sideLabelClear=0.0;",
+      // In that case we simply skip this decorative repulsion field.
       ""
     ];
 
@@ -2778,7 +2827,6 @@ function createParticleField(){
     "    passAlpha=mix(materialToneAlpha*bookSpineTone*materialProtection*.72,logoToneAlpha,logoLanding);",
     "  }",
     "  passAlpha*=bookBrightness*bookRayTone*bioBrightness;",
-    "  passAlpha*=1.0-sideLabelClear;",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
     "  v_color=color;",
     "  v_alpha=passAlpha*visible;",
@@ -5101,7 +5149,7 @@ function renderScenes(){
       recordShell.style.transform=`translate3d(0,${((1-recordReveal)*24).toFixed(2)}px,0)`;
     }
     if(recordSide){
-      recordSide.style.opacity=(recordReveal*.96).toFixed(3);
+      recordSide.style.opacity=recordReveal.toFixed(3);
     }
   }
 
@@ -5203,6 +5251,7 @@ function applyDesktopSceneState(key,{force=false,biographyImmediate=false}={}){
   // run many times without restarting Biography timers or particle transitions.
   particleField?.setBiographyActive?.(biographyActive);
   setBiographyTextActive(biographyActive,{immediate:biographyImmediate});
+  setSideLabelScene(key);
   return true;
 }
 
@@ -5433,6 +5482,7 @@ function resetDesktopIntroSnap(){
   desktopSnapKey="logo";
   desktopSceneStateKey="logo";
   setBiographyTextActive(false);
+  setSideLabelScene("logo");
   desktopWheelLastAt=0;
   desktopWheelGestureLocked=false;
   desktopWheelDirection=0;
