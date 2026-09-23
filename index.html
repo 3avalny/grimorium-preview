@@ -1809,6 +1809,19 @@ function createBootParticleLoader(){
         const tx=logoX+(x+.5)/rasterScale;
         const ty=logoY+(y+.5)/rasterScale;
 
+        // Match the main WebGL logo palette instead of copying the white PNG.
+        // Base tone mirrors vec3(.80,.76,.68); a few points receive the same
+        // restrained warm highlight used by the main particle field.
+        const toneSeed=hash(seedIndex*7919+53);
+        const sparkleSeed=hash(seedIndex*1741+191);
+        const hotMix=Math.max(0,(sparkleSeed-.78)/.22)*.18;
+        const brightness=.48+toneSeed*.46+(sparkleSeed>.965?.10:0);
+        const baseR=204,baseG=194,baseB=173;
+        const hotR=255,hotG=246,hotB=230;
+        const tone=(base,hot)=>Math.max(0,Math.min(255,Math.round(
+          (base+(hot-base)*hotMix)*brightness
+        )));
+
         exact.push({
           px:x,
           py:y,
@@ -1816,10 +1829,15 @@ function createBootParticleLoader(){
           ty,
           sx:tx+Math.cos(angle)*travelRadius+Math.sin(angle)*tangent,
           sy:ty+Math.sin(angle)*travelRadius-Math.cos(angle)*tangent,
-          r:sourcePixels[k],
-          g:sourcePixels[k+1],
-          b:sourcePixels[k+2],
+          r:tone(baseR,hotR),
+          g:tone(baseG,hotG),
+          b:tone(baseB,hotB),
           a,
+          opacity:.44+hash(seedIndex*3571+127)*.48,
+          // Every source point still flies, but only a deterministic portion
+          // remains after landing. That keeps the final mark particulate instead
+          // of rebuilding a continuous bitmap.
+          settleKeep:hash(seedIndex*6151+389)<.57,
           phase:hash(seedIndex*9901+11)*Math.PI*2,
           birth:0,
           duration:260+hash(seedIndex*6421+27)*260
@@ -1900,13 +1918,15 @@ function createBootParticleLoader(){
 
           const raw=Math.min(1,(now-p.birth)/p.duration);
           if(raw>=1||reducedMotion){
-            const k=(p.py*rasterW+p.px)*4;
-            settledPixels.data[k]=p.r;
-            settledPixels.data[k+1]=p.g;
-            settledPixels.data[k+2]=p.b;
-            settledPixels.data[k+3]=p.a;
+            if(p.settleKeep){
+              const k=(p.py*rasterW+p.px)*4;
+              settledPixels.data[k]=p.r;
+              settledPixels.data[k+1]=p.g;
+              settledPixels.data[k+2]=p.b;
+              settledPixels.data[k+3]=Math.round(p.a*p.opacity);
+              committedThisFrame=true;
+            }
             settledCount+=1;
-            committedThisFrame=true;
             continue;
           }
 
@@ -1920,8 +1940,8 @@ function createBootParticleLoader(){
           const bend=(hash((p.px+p.py*rasterW)*4999+7)-.5)*18*arc;
           const x=p.sx+dx*t+nx*bend;
           const y=p.sy+dy*t+ny*bend;
-          const alpha=(p.a/255)*Math.min(1,raw*3.2);
-          const particleSize=Math.max(.72,1/rasterScale)*(.86+.24*(1-t));
+          const alpha=(p.a/255)*p.opacity*Math.min(1,raw*3.2);
+          const particleSize=Math.max(.44,.68/rasterScale)*(.80+.20*(1-t));
 
           ctx.fillStyle=`rgba(${p.r},${p.g},${p.b},${alpha})`;
           ctx.beginPath();
@@ -1957,7 +1977,7 @@ function createBootParticleLoader(){
     finished=true;
     if(raf)cancelAnimationFrame(raf);
 
-    // The loader has now assembled every visible pixel of the real GV PNG.
+    // The loader resolves as a dense particle structure, never as a bitmap.
     // Main WebGL is already alive underneath, so the overlay can hand off cleanly.
     bootLoaderCanvas.classList.add("is-complete");
     document.body.classList.remove("boot-loading");
