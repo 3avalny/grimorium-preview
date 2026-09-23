@@ -47,11 +47,13 @@
 }
 html{
   scroll-behavior:smooth;background:var(--bg);
+  touch-action:pan-x pan-y;
   width:100%;max-width:100%;overflow-x:hidden
 }
 html.desktop-snapping{scroll-behavior:auto!important}
 html.spotify-scroll-lock{overflow-y:hidden!important}
 body{
+  touch-action:pan-x pan-y;
   margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
   width:100%;max-width:100%;overflow-x:hidden;
   touch-action:pan-y
@@ -5342,9 +5344,31 @@ function bindSpotifyScrollIsolation(){
 window.addEventListener("blur",()=>setSpotifyScrollLock(false));
 window.addEventListener("resize",()=>setSpotifyScrollLock(false),{passive:true});
 
+// Hard-disable page zoom everywhere. Normal one-finger/two-axis scrolling
+// remains available; pinch, browser gesture zoom and keyboard/wheel zoom do not.
+["gesturestart","gesturechange","gestureend"].forEach(type=>{
+  document.addEventListener(type,e=>e.preventDefault(),{passive:false,capture:true});
+});
+
+document.addEventListener("touchmove",e=>{
+  if(e.touches&&e.touches.length>1)e.preventDefault();
+},{passive:false,capture:true});
+
+window.addEventListener("wheel",e=>{
+  if(e.ctrlKey||e.metaKey)e.preventDefault();
+},{passive:false,capture:true});
+
+window.addEventListener("keydown",e=>{
+  if(!(e.ctrlKey||e.metaKey))return;
+  const key=e.key;
+  if(key==="+"||key==="-"||key==="="||key==="0"){
+    e.preventDefault();
+  }
+},{capture:true});
+
 window.addEventListener("wheel",e=>{
   if(window.innerWidth<=720)return;
-  if(e.ctrlKey)return;
+  if(e.ctrlKey||e.metaKey)return;
 
   if(wheelIsOverSpotifyPlayer(e)){
     e.preventDefault();
