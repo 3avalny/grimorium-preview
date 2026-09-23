@@ -1698,6 +1698,7 @@ function createBootParticleLoader(){
 
   let targetProgress=0;
   let displayProgress=0;
+  let loadDrive=0;
   let particles=[];
   let activeFlights=[];
   let revealedCount=0;
@@ -1869,45 +1870,43 @@ function createBootParticleLoader(){
     const dt=lastAt?Math.min(50,now-lastAt):16;
     lastAt=now;
 
-    // Loading stages no longer drive the visible assembly at all. While the
-    // critical engine is still preparing, particles follow one continuous
-    // asymptotic curve: fast at first, progressively slower near completion,
-    // but never parked on a stage boundary.
-    const elapsed=Math.max(0,now-loaderStartedAt);
-    const waitingTarget=.978*(1-Math.exp(-elapsed/1550));
-    const visualTarget=targetProgress>=1?1:waitingTarget;
-    const response=1-Math.exp(-dt/(targetProgress>=1?180:260));
-    displayProgress+=(visualTarget-displayProgress)*response;
-    if(targetProgress>=1&&1-displayProgress<.0015)displayProgress=1;
+    // Readiness changes in large stage jumps, but the visible assembly must
+    // never inherit those jumps. Smooth readiness into a continuous drive that
+    // only controls speed: slow at the start, progressively faster near ready.
+    const driveResponse=1-Math.exp(-dt/720);
+    loadDrive+=(targetProgress-loadDrive)*driveResponse;
+    loadDrive=Math.max(0,Math.min(1,loadDrive));
 
     ctx.fillStyle="#050607";
     ctx.fillRect(0,0,w,h);
 
     if(targetsReady&&particles.length){
-      const desiredReveal=Math.min(
-        particles.length,
-        displayProgress*particles.length
-      );
-
-      // Meter launches with a damped velocity instead of frame-sized batches.
-      // This removes the Safari "pulse / pause / pulse" rhythm while still
-      // allowing the stream to accelerate when the engine becomes ready.
+      // No temporary reveal target exists anymore. The stream always advances.
+      // At low readiness it would take roughly 12s to assemble by itself; as
+      // readiness rises, that rate continuously accelerates toward ~1.15s.
       if(reducedMotion){
-        revealPosition=desiredReveal;
+        revealPosition=particles.length;
       }else{
-        const backlog=Math.max(0,desiredReveal-revealPosition);
-        const minVelocity=particles.length/14000;
-        const maxVelocity=particles.length/850;
-        const desiredVelocity=backlog>0
-          ?Math.min(maxVelocity,Math.max(minVelocity,backlog/320))
-          :0;
-        const velocityResponse=1-Math.exp(-dt/120);
-        revealVelocity+=(desiredVelocity-revealVelocity)*velocityResponse;
+        const easedDrive=loadDrive*loadDrive*(3-2*loadDrive);
+        const slowDuration=12000;
+        const fastDuration=1150;
+        const effectiveDuration=
+          slowDuration+(fastDuration-slowDuration)*easedDrive;
+        const desiredVelocity=particles.length/effectiveDuration;
+        const minimumVelocity=Math.max(.085,particles.length/15000);
+        const velocityResponse=1-Math.exp(-dt/520);
+        revealVelocity+=(
+          Math.max(minimumVelocity,desiredVelocity)-revealVelocity
+        )*velocityResponse;
         revealPosition=Math.min(
-          desiredReveal,
-          revealPosition+revealVelocity*dt
+          particles.length,
+          revealPosition+Math.max(minimumVelocity,revealVelocity)*dt
         );
       }
+
+      displayProgress=particles.length
+        ?Math.min(1,revealPosition/particles.length)
+        :0;
 
       const emitTo=Math.floor(revealPosition);
       const spawnCount=Math.max(0,emitTo-revealedCount);
