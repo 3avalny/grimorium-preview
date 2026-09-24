@@ -2617,8 +2617,8 @@ function createParticleField(){
     "uniform vec4 u_topLogoField;",
     "uniform vec4 u_sideFields[2];",
     ...sideMaskUniformLines,
-    "uniform vec4 u_smoke[8];",
-    "uniform vec4 u_smokeMotion[8];",
+    "uniform vec4 u_smoke[12];",
+    "uniform vec4 u_smokeMotion[12];",
     "varying vec3 v_color;",
     "varying float v_alpha;",
     "varying float v_albumSharp;",
@@ -2742,10 +2742,11 @@ function createParticleField(){
     "  // peel upward before the untouched anchor field reforms underneath.",
     "  float logoInteract=1.0-smoother(u_morph/.16);",
     "  if(u_pass>3.5&&u_pass<4.5&&logoInteract>.001){",
-    "    for(int si=0;si<8;si++){",
+    "    for(int si=0;si<12;si++){",
     "      vec4 node=u_smoke[si];",
     "      vec4 motion=u_smokeMotion[si];",
     "      float nodeStrength=node.z*logoInteract;",
+    "      if(nodeStrength<=.001)continue;",
     "      vec2 smokeDelta=pos-node.xy;",
     "      float smokeDist=max(.001,length(smokeDelta));",
     "      float nodePhase=node.w*PI*2.0;",
@@ -3310,7 +3311,7 @@ function createParticleField(){
     pointerLastAt:0,
     pointerInitialized:false,
     smokeCursor:0,
-    smokeNodes:Array.from({length:8},(_,i)=>({
+    smokeNodes:Array.from({length:12},(_,i)=>({
       x:-9999,y:-9999,
       originX:-9999,originY:-9999,
       strength:0,
@@ -3318,8 +3319,8 @@ function createParticleField(){
       vx:0,vy:0,
       lastTouched:0
     })),
-    smokeUniformData:new Float32Array(32),
-    smokeMotionUniformData:new Float32Array(32)
+    smokeUniformData:new Float32Array(48),
+    smokeMotionUniformData:new Float32Array(48)
   };
 
   function desiredCount(){
@@ -5732,7 +5733,7 @@ function createParticleField(){
   function spawnSmokeNode(x,y,vx,vy,strength){
     const now=performance.now();
     const nodes=state.smokeNodes;
-    const mergeRadius=52;
+    const mergeRadius=68;
     const mergeRadius2=mergeRadius*mergeRadius;
 
     // A gesture inside an already-disturbed region updates only that region.
@@ -5768,21 +5769,46 @@ function createParticleField(){
       return;
     }
 
-    // Prefer a genuinely free/expired slot. Never cycle through and erase a
-    // still-visible deformation just because a new gesture happened elsewhere.
+    // Prefer a genuinely free/expired slot.
     let node=nodes.find(candidate=>candidate.strength<.025);
+
     if(!node){
-      let weakest=null;
+      // Then prefer a deformation that is both old and already fading.
+      // This keeps recently touched areas completely independent.
+      let best=null;
+      let bestScore=Infinity;
       for(const candidate of nodes){
-        if(candidate.strength>.16)continue;
-        if(!weakest||candidate.strength<weakest.strength)weakest=candidate;
+        const age=Math.max(0,now-candidate.lastTouched);
+        const ageRelief=particleClamp(age/3600);
+        const score=candidate.strength*.72+(1-ageRelief)*.28;
+        if(
+          (age>1350||candidate.strength<.28)&&
+          score<bestScore
+        ){
+          best=candidate;
+          bestScore=score;
+        }
       }
-      node=weakest;
+      node=best;
     }
 
-    // All independent regions are still visibly alive: preserve them rather
-    // than sacrificing one. Nearby pointer samples will merge as slots decay.
-    if(!node)return;
+    if(!node){
+      // Hard saturation is now exceptional (12 live regions). Never drop the
+      // user's gesture: recycle the least important old region instead of doing
+      // nothing. Fresh/strong deformations naturally score as most protected.
+      let best=null;
+      let bestScore=Infinity;
+      for(const candidate of nodes){
+        const age=Math.max(0,now-candidate.lastTouched);
+        const freshness=Math.exp(-age/1700);
+        const score=candidate.strength*.76+freshness*.24;
+        if(score<bestScore){
+          best=candidate;
+          bestScore=score;
+        }
+      }
+      node=best;
+    }
 
     state.smokeCursor+=1;
     node.x=x;
