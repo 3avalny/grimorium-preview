@@ -2617,8 +2617,8 @@ function createParticleField(){
     "uniform vec4 u_topLogoField;",
     "uniform vec4 u_sideFields[2];",
     ...sideMaskUniformLines,
-    "uniform vec4 u_smoke[5];",
-    "uniform vec4 u_smokeMotion[5];",
+    "uniform vec4 u_smoke[8];",
+    "uniform vec4 u_smokeMotion[8];",
     "varying vec3 v_color;",
     "varying float v_alpha;",
     "varying float v_albumSharp;",
@@ -2742,7 +2742,7 @@ function createParticleField(){
     "  // peel upward before the untouched anchor field reforms underneath.",
     "  float logoInteract=1.0-smoother(u_morph/.16);",
     "  if(u_pass>3.5&&u_pass<4.5&&logoInteract>.001){",
-    "    for(int si=0;si<5;si++){",
+    "    for(int si=0;si<8;si++){",
     "      vec4 node=u_smoke[si];",
     "      vec4 motion=u_smokeMotion[si];",
     "      float nodeStrength=node.z*logoInteract;",
@@ -3310,15 +3310,16 @@ function createParticleField(){
     pointerLastAt:0,
     pointerInitialized:false,
     smokeCursor:0,
-    smokeNodes:Array.from({length:5},(_,i)=>({
+    smokeNodes:Array.from({length:8},(_,i)=>({
       x:-9999,y:-9999,
       originX:-9999,originY:-9999,
       strength:0,
       phase:(i*.38196601125)%1,
-      vx:0,vy:0
+      vx:0,vy:0,
+      lastTouched:0
     })),
-    smokeUniformData:new Float32Array(20),
-    smokeMotionUniformData:new Float32Array(20)
+    smokeUniformData:new Float32Array(32),
+    smokeMotionUniformData:new Float32Array(32)
   };
 
   function desiredCount(){
@@ -5729,8 +5730,61 @@ function createParticleField(){
   },{passive:true});
 
   function spawnSmokeNode(x,y,vx,vy,strength){
-    const node=state.smokeNodes[state.smokeCursor%state.smokeNodes.length];
-    state.smokeCursor=(state.smokeCursor+1)%state.smokeNodes.length;
+    const now=performance.now();
+    const nodes=state.smokeNodes;
+    const mergeRadius=52;
+    const mergeRadius2=mergeRadius*mergeRadius;
+
+    // A gesture inside an already-disturbed region updates only that region.
+    // Moving to another part of the GV gets a different node, so old deformations
+    // continue evolving independently instead of being overwritten.
+    let localNode=null;
+    let localDist2=Infinity;
+    for(const candidate of nodes){
+      if(candidate.strength<.025)continue;
+      const dx=x-candidate.originX;
+      const dy=y-candidate.originY;
+      const d2=dx*dx+dy*dy;
+      if(d2<mergeRadius2&&d2<localDist2){
+        localNode=candidate;
+        localDist2=d2;
+      }
+    }
+
+    if(localNode){
+      localNode.x=x;
+      localNode.y=y;
+      localNode.vx=localNode.vx*.42+vx*.58;
+      localNode.vy=localNode.vy*.42+vy*.58;
+      localNode.strength=Math.max(
+        localNode.strength,
+        particleClamp(strength,.12,1)
+      );
+      // Keep the residual memory centred on the region rather than following
+      // every pointer pixel. A slow blend prevents the region from jumping.
+      localNode.originX=particleMix(localNode.originX,x,.14);
+      localNode.originY=particleMix(localNode.originY,y,.14);
+      localNode.lastTouched=now;
+      return;
+    }
+
+    // Prefer a genuinely free/expired slot. Never cycle through and erase a
+    // still-visible deformation just because a new gesture happened elsewhere.
+    let node=nodes.find(candidate=>candidate.strength<.025);
+    if(!node){
+      let weakest=null;
+      for(const candidate of nodes){
+        if(candidate.strength>.16)continue;
+        if(!weakest||candidate.strength<weakest.strength)weakest=candidate;
+      }
+      node=weakest;
+    }
+
+    // All independent regions are still visibly alive: preserve them rather
+    // than sacrificing one. Nearby pointer samples will merge as slots decay.
+    if(!node)return;
+
+    state.smokeCursor+=1;
     node.x=x;
     node.y=y;
     node.originX=x;
@@ -5739,6 +5793,7 @@ function createParticleField(){
     node.vy=vy;
     node.strength=particleClamp(strength,.12,1);
     node.phase=particleHash(state.smokeCursor*977+Math.round(x)*13+Math.round(y)*7);
+    node.lastTouched=now;
   }
 
   function pointerInsideHomeLogo(x,y){
