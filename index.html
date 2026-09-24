@@ -2762,7 +2762,24 @@ function createParticleField(){
     "      vec2 advect=pointerDir*wake*speedGate*pointerSpeed*(22.0+24.0*a_seed.y);",
     "      vec2 vortex=curl*wake*(7.5+12.5*speedGate)*( .72+.28*a_seed.w);",
     "      vec2 buoyancy=vec2(0.0,-wake*(1.5+3.4*speedGate)*( .55+.45*a_seed.x));",
-    "      pos+=advect+vortex+buoyancy;",
+    "",
+    "      // Once the gesture slows or leaves the logo, keep a second field",
+    "      // anchored to the original contact point. This is the deformation",
+    "      // memory: displaced particles keep drifting instead of snapping home",
+    "      // as soon as the moving eddy travels away from them.",
+    "      vec2 memoryDelta=pos-motion.zw;",
+    "      float memoryDist=max(.001,length(memoryDelta));",
+    "      float memoryRadius=82.0+nodeStrength*54.0;",
+    "      float mq=memoryDist/max(1.0,memoryRadius);",
+    "      float memoryGate=1.0-smoother(pointerSpeed/.20);",
+    "      float memory=exp(-mq*mq*1.42)*nodeStrength*memoryGate;",
+    "      vec2 memoryP=memoryDelta*.0125+vec2(nodePhase*.19,nodePhase*.27);",
+    "      vec2 memoryCurl=curlFlow(memoryP,u_time*.00068+nodePhase*.73);",
+    "      memoryCurl/=max(.38,length(memoryCurl));",
+    "      vec2 residual=memoryCurl*memory*(8.0+7.0*a_seed.w);",
+    "      residual+=pointerDir*memory*(2.0+3.8*a_seed.y);",
+    "      residual.y-=memory*(.55+1.25*a_seed.x);",
+    "      pos+=advect+vortex+buoyancy+residual;",
     "    }",
     "  }",
     "",
@@ -3295,6 +3312,7 @@ function createParticleField(){
     smokeCursor:0,
     smokeNodes:Array.from({length:5},(_,i)=>({
       x:-9999,y:-9999,
+      originX:-9999,originY:-9999,
       strength:0,
       phase:(i*.38196601125)%1,
       vx:0,vy:0
@@ -5147,9 +5165,9 @@ function createParticleField(){
           // drifts with the gesture and rises slightly before dissipating.
           node.x+=node.vx*dt*.058;
           node.y+=node.vy*dt*.058-dt*.00135*(.55+node.phase);
-          node.vx*=Math.exp(-dt/1380);
-          node.vy*=Math.exp(-dt/1380);
-          node.strength*=Math.exp(-dt/2700);
+          node.vx*=Math.exp(-dt/1750);
+          node.vy*=Math.exp(-dt/1750);
+          node.strength*=Math.exp(-dt/4600);
           if(node.strength<.002)node.strength=0;
         }
         const k=i*4;
@@ -5159,8 +5177,8 @@ function createParticleField(){
         smokeData[k+3]=node.phase;
         motionData[k]=node.vx;
         motionData[k+1]=node.vy;
-        motionData[k+2]=node.strength;
-        motionData[k+3]=node.phase;
+        motionData[k+2]=node.originX;
+        motionData[k+3]=node.originY;
       }
     }
     adaptPerformance(dt);
@@ -5715,10 +5733,31 @@ function createParticleField(){
     state.smokeCursor=(state.smokeCursor+1)%state.smokeNodes.length;
     node.x=x;
     node.y=y;
+    node.originX=x;
+    node.originY=y;
     node.vx=vx;
     node.vy=vy;
     node.strength=particleClamp(strength,.12,1);
     node.phase=particleHash(state.smokeCursor*977+Math.round(x)*13+Math.round(y)*7);
+  }
+
+  function pointerInsideHomeLogo(x,y){
+    if(state.morph>=.18||!source.naturalWidth||!source.naturalHeight)return false;
+
+    const logoW=Math.min(state.width*.56,820);
+    const logoH=logoW*(source.naturalHeight/Math.max(1,source.naturalWidth));
+    const logoX=state.width*.5-logoW*.5;
+    const logoY=state.height*.5-logoH*.5;
+    const lb=state.logoBounds;
+    const padX=Math.max(22,logoW*.055);
+    const padY=Math.max(18,logoH*.075);
+
+    const left=logoX+lb.minU*logoW-padX;
+    const right=logoX+lb.maxU*logoW+padX;
+    const top=logoY+lb.minV*logoH-padY;
+    const bottom=logoY+lb.maxV*logoH+padY;
+
+    return x>=left&&x<=right&&y>=top&&y<=bottom;
   }
 
   window.addEventListener("pointermove",e=>{
@@ -5744,7 +5783,7 @@ function createParticleField(){
     // Emit a compact velocity trail. Nodes carry both position and mouse
     // velocity into the shader, where a coherent curl field turns that gesture
     // into a smoke-like wake instead of a circular repulsion.
-    if(dist>3&&state.morph<.18){
+    if(dist>3&&pointerInsideHomeLogo(x,y)){
       const vx=dx/eventDt;
       const vy=dy/eventDt;
       const baseStrength=particleClamp(.20+speed*.94,.18,1.0);
