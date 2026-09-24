@@ -3241,6 +3241,7 @@ function createParticleField(){
     bookScene:null,
     bioSceneRaw:null,
     bioSceneMapped:null,
+    bioSceneReady:false,
     bioCandidates:[],
     discMorph:0,
     discMorphFrom:0,
@@ -4248,6 +4249,11 @@ function createParticleField(){
       metaData:data.bioMetaData,
       colorData:data.bioColorData
     };
+    state.bioSceneReady=
+      !handoffCoreOnly&&
+      !document.body.classList.contains("boot-loading")&&
+      !!state.bioReference.naturalWidth&&
+      state.bioCandidates!==state.referenceCandidates;
 
     state.albumScenes=data.albumScenes;
     const requestedId=ALBUMS[activeAlbumIndex]?.id||state.pendingAlbumSceneId||"reall";
@@ -4373,7 +4379,27 @@ function createParticleField(){
   }
 
   function updateBioMorph(now,shouldShowBio){
-    const desired=shouldShowBio?1:0;
+    let desired=0;
+
+    if(shouldShowBio&&state.bioSceneReady){
+      const id=state.albumSceneTransitioning
+        ?state.albumSceneTargetId
+        :state.albumSceneCurrentId;
+
+      if(!state.bioMappedByAlbum[id]&&!state.bioWorkerBusyId){
+        const current=
+          state.albumSceneTransitioning
+            ?state.albumToData
+            :(state.albumFromData||state.albumScenes[id]);
+        scheduleBiographyMapping(current,id);
+      }
+
+      // Do not begin the visual morph until the real candle target is mapped
+      // and uploaded. This prevents the temporary Book target from ever showing.
+      if(applyBiographyMappingForCurrentAlbum()){
+        desired=1;
+      }
+    }
 
     if(!state.bioMorphInitialized){
       state.bioMorph=desired;
@@ -4386,9 +4412,6 @@ function createParticleField(){
     }
 
     if(desired!==state.bioMorphTo){
-      if(desired>.5){
-        applyBiographyMappingForCurrentAlbum();
-      }
       state.bioMorphFrom=state.bioMorph;
       state.bioMorphTo=desired;
       state.bioMorphStartedAt=now;
@@ -4708,7 +4731,12 @@ function createParticleField(){
   }
 
   function scheduleBiographyMapping(scene,id){
-    if(!scene||!state.bioSceneRaw||state.bioMappedByAlbum[id])return;
+    if(
+      !scene||
+      !state.bioSceneReady||
+      !state.bioSceneRaw||
+      state.bioMappedByAlbum[id]
+    )return;
 
     const worker=ensureBiographyWorker();
     if(!worker)return;
@@ -5535,7 +5563,7 @@ function createParticleField(){
                     matched
                   );
 
-                  if(state.bioSceneRaw&&state.bioSceneRaw!==state.bookScene){
+                  if(state.bioSceneReady){
                     scheduleBiographyMapping(matched,item.id);
                   }
                 }
@@ -5555,6 +5583,7 @@ function createParticleField(){
         buildDeferredBioScene(ref,candidates,scene=>{
           if(!scene)return;
           state.bioSceneRaw=scene;
+          state.bioSceneReady=true;
           state.bioMappedByAlbum={};
           state.bioSceneMapped=null;
 
@@ -5598,6 +5627,7 @@ function createParticleField(){
     fullQualityBuildRequested=true;
     handoffCoreOnly=true;
     deferredReferencesDirty=false;
+    state.bioSceneReady=false;
     state.bioMappedByAlbum={};
     state.bioSceneMapped=null;
 
