@@ -2618,6 +2618,7 @@ function createParticleField(){
     "uniform vec4 u_sideFields[2];",
     ...sideMaskUniformLines,
     "uniform vec4 u_smoke[3];",
+    "uniform vec4 u_smokeMotion[3];",
     "varying vec3 v_color;",
     "varying float v_alpha;",
     "varying float v_albumSharp;",
@@ -2625,6 +2626,15 @@ function createParticleField(){
     "float sat(float v){return clamp(v,0.0,1.0);}",
     "float smoother(float v){v=sat(v);return v*v*v*(v*(v*6.0-15.0)+10.0);}",
     "vec2 rot(vec2 p,float a){float c=cos(a),s=sin(a);return vec2(p.x*c-p.y*s,p.x*s+p.y*c);}",
+    "vec2 curlFlow(vec2 p,float t){",
+    "  float a=p.x*1.70+p.y*1.30+t;",
+    "  float b=-p.x*2.35+p.y*1.85-t*.83;",
+    "  float c=p.x*.92-p.y*2.72+t*.57;",
+    "  float ca=cos(a),cb=cos(b),cc=cos(c);",
+    "  float dX=ca*1.70+cb*(-2.35)*.42+cc*.92*.24;",
+    "  float dY=ca*1.30+cb*1.85*.42+cc*(-2.72)*.24;",
+    "  return vec2(dY,-dX);",
+    "}",
     "void main(){",
     "  // Album-to-album morph is intentionally per-particle, not per-fragment.",
     "  // Every point starts at a slightly different moment and follows its own",
@@ -2726,26 +2736,33 @@ function createParticleField(){
     "  // Header-logo particles are no longer teleported. They leave the large",
     "  // GV and assemble at the top through this same particle morph.",
     "",
-    "  // Large-logo smoke is evaluated only in the dedicated hero pass.",
-    "  // No radial push: radial forces create visible circular boundaries.",
+    "  // Cursor interaction behaves like a local smoke wake rather than a",
+    "  // radial repeller. Mouse velocity advects the field; curl gives the wake",
+    "  // coherent vortices, while a small buoyancy term lets disturbed particles",
+    "  // peel upward before the untouched anchor field reforms underneath.",
     "  float logoInteract=1.0-smoother(u_morph/.16);",
     "  if(u_pass>3.5&&u_pass<4.5&&logoInteract>.001){",
     "    for(int si=0;si<3;si++){",
     "      vec4 node=u_smoke[si];",
+    "      vec4 motion=u_smokeMotion[si];",
     "      float nodeStrength=node.z*logoInteract;",
     "      vec2 smokeDelta=pos-node.xy;",
     "      float smokeDist=max(.001,length(smokeDelta));",
     "      float nodePhase=node.w*PI*2.0;",
-    "      float smokeRadius=58.0+nodeStrength*26.0;",
+    "      float smokeRadius=64.0+nodeStrength*34.0;",
     "      float q=smokeDist/max(1.0,smokeRadius);",
-    "      float smoke=exp(-q*q*2.35)*nodeStrength;",
-    "      vec2 smokeDir=smokeDelta/smokeDist;",
-    "      vec2 smokeTangent=vec2(-smokeDir.y,smokeDir.x);",
-    "      float swirlSign=step(.5,fract(node.w*1.618))*2.0-1.0;",
-    "      float smokeCurl=sin(u_time*.0022+nodePhase+a_seed.x*7.0+a_seed.z*4.0);",
-    "      float dustNoise=sin(a_seed.x*17.0+a_seed.y*31.0+nodePhase);",
-    "      pos+=smokeTangent*smoke*swirlSign*smokeCurl*(9.0+17.0*a_seed.w);",
-    "      pos+=vec2(dustNoise,-dustNoise*.55)*smoke*(2.0+5.0*a_seed.y);",
+    "      float wake=exp(-q*q*2.15)*nodeStrength;",
+    "      float pointerSpeed=length(motion.xy);",
+    "      vec2 pointerDir=motion.xy/max(.08,pointerSpeed);",
+    "      vec2 localP=smokeDelta*.020+vec2(nodePhase*.31,-nodePhase*.23);",
+    "      vec2 curl=curlFlow(localP,u_time*.00125+nodePhase);",
+    "      float curlLen=max(.35,length(curl));",
+    "      curl/=curlLen;",
+    "      float speedGate=smoother(pointerSpeed/.26);",
+    "      vec2 advect=pointerDir*wake*speedGate*pointerSpeed*(16.0+17.0*a_seed.y);",
+    "      vec2 vortex=curl*wake*(6.0+9.5*speedGate)*( .72+.28*a_seed.w);",
+    "      vec2 buoyancy=vec2(0.0,-wake*(1.3+2.8*speedGate)*( .55+.45*a_seed.x));",
+    "      pos+=advect+vortex+buoyancy;",
     "    }",
     "  }",
     "",
@@ -2795,27 +2812,27 @@ function createParticleField(){
     "  float bookUpperRay=(1.0-smoothstep(.018,.070,abs(bookU-.5)))*(1.0-smoothstep(.18,.58,bookV));",
     "  float bookRayTone=1.0-bookUpperRay*u_material*(1.0-discT)*(1.0-u_bio)*.46;",
     "",
-    "  // Biography: the same independent anchor-local life as Book, but with",
-    "  // uniform strength across the frame (no distance-from-center rule).",
+    "  // Biography uses a slow shared flow field instead of independent sine",
+    "  // jitter. Dim candle material barely breathes; bright flame/smoke regions",
+    "  // ride a broader curl and receive a small persistent upward bias.",
     "  float bioLifeGate=u_bio*u_material*localLeave*(1.0-isTop);",
-    "  float bioPhaseX=a_seed.z*PI*2.0+a_seed.y*1.7;",
-    "  float bioPhaseY=a_seed.w*PI*2.0+a_seed.x*2.3;",
-    "  float bioSpeedX=mix(.18,1.05,a_seed.y);",
-    "  float bioSpeedY=mix(.15,.92,a_seed.w);",
-    "  float bioAmpX=mix(.34,2.72,pow(a_seed.x,1.35));",
-    "  float bioAmpY=mix(.30,2.24,pow(a_seed.z,1.35));",
-    "  float bioBreathPhase=bookT*mix(.070,.220,a_seed.x)+bioPhaseY*.73;",
-    "  float bioAmpBreath=.46+.54*(.5+.5*sin(bioBreathPhase));",
-    "  vec2 bioDrift=vec2(",
-    "    sin(bookT*bioSpeedX+bioPhaseX)+.42*sin(bookT*bioSpeedY*.57+bioPhaseY*1.41),",
-    "    cos(bookT*bioSpeedY+bioPhaseY)+.39*sin(bookT*bioSpeedX*.69+bioPhaseX*1.27)",
-    "  );",
-    "  float bioMotionEnergy=mix(.09,.94,smoother((bioEnergy-.025)/.56));",
+    "  float bioMotionEnergy=mix(.10,.82,smoother((bioEnergy-.025)/.56));",
     "  float bioBrightFire=smoother((bioEnergy-.40)/.34)*smoother((a_bioMeta.x-.42)/.34);",
-    "  float bioBrightFireBoost=mix(1.0,2.42,bioBrightFire);",
-    "  bioDrift*=vec2(bioAmpX,bioAmpY)*1.52*bioAmpBreath*bioMotionEnergy*bioBrightFireBoost;",
+    "  vec2 bioCoord=a_bioTarget*.0041;",
+    "  vec2 bioCurl=curlFlow(bioCoord,bookT*.24);",
+    "  bioCurl/=max(.42,length(bioCurl));",
+    "  float bioBreath=.72+.28*sin(bookT*.19+bioCoord.y*1.7);",
+    "  float bioFlowAmp=mix(2.2,6.2,bioMotionEnergy)*mix(1.0,1.72,bioBrightFire)*bioBreath;",
+    "  vec2 bioDrift=vec2(",
+    "    bioCurl.x*1.08,",
+    "    bioCurl.y*.56-(.16+.32*bioBrightFire)",
+    "  )*bioFlowAmp;",
+    "  // Tiny local breakup only at the hottest points; the shared field still",
+    "  // owns the motion, so the candles retain coherent smoke-like streams.",
+    "  float bioMicro=sin(bookT*.73+bioCoord.x*2.2+bioCoord.y*1.4+a_seed.z*2.0);",
+    "  bioDrift+=vec2(bioMicro,-abs(bioMicro)*.42)*bioBrightFire*(.8+1.2*a_seed.w);",
     "  float bioDriftLength=length(bioDrift);",
-    "  float bioMaxDistance=mix(5.0,16.0,bioBrightFire);",
+    "  float bioMaxDistance=mix(5.0,15.0,bioBrightFire);",
     "  if(bioDriftLength>bioMaxDistance){",
     "    bioDrift*=bioMaxDistance/max(.001,bioDriftLength);",
     "  }",
@@ -3145,7 +3162,8 @@ function createParticleField(){
     sideFields:gl.getUniformLocation(particleProgram,"u_sideFields[0]"),
     sideMask:gl.getUniformLocation(particleProgram,"u_sideMask"),
     sideMaskTexel:gl.getUniformLocation(particleProgram,"u_sideMaskTexel"),
-    smoke:gl.getUniformLocation(particleProgram,"u_smoke[0]")
+    smoke:gl.getUniformLocation(particleProgram,"u_smoke[0]"),
+    smokeMotion:gl.getUniformLocation(particleProgram,"u_smokeMotion[0]")
   };
   const blurLoc={
     position:gl.getAttribLocation(blurProgram,"a_position"),
@@ -3280,7 +3298,8 @@ function createParticleField(){
       phase:(i*.38196601125)%1,
       vx:0,vy:0
     })),
-    smokeUniformData:new Float32Array(12)
+    smokeUniformData:new Float32Array(12),
+    smokeMotionUniformData:new Float32Array(12)
   };
 
   function desiredCount(){
@@ -5007,6 +5026,7 @@ function createParticleField(){
       if(pLoc.sideMaskTexel)gl.uniform2f(pLoc.sideMaskTexel,1/SIDE_MASK_W,1/SIDE_MASK_H);
     }
     gl.uniform4fv(pLoc.smoke,state.smokeUniformData);
+    gl.uniform4fv(pLoc.smokeMotion,state.smokeMotionUniformData);
   }
 
   function bindQuad(program,positionLocation){
@@ -5091,16 +5111,17 @@ function createParticleField(){
     }
     if(dt>0){
       const smokeData=state.smokeUniformData;
+      const motionData=state.smokeMotionUniformData;
       for(let i=0;i<state.smokeNodes.length;i++){
         const node=state.smokeNodes[i];
         if(node.strength>.001){
-          // Each eddy keeps a little cursor momentum, slowly rises like smoke,
-          // diffuses by losing strength, then the original particle field reforms.
-          node.x+=node.vx*dt*.038;
-          node.y+=node.vy*dt*.038-dt*.0018*(.45+node.phase);
-          node.vx*=Math.exp(-dt/620);
-          node.vy*=Math.exp(-dt/620);
-          node.strength*=Math.exp(-dt/1500);
+          // Cursor nodes keep momentum long enough to form a wake. Their center
+          // drifts with the gesture and rises slightly before dissipating.
+          node.x+=node.vx*dt*.044;
+          node.y+=node.vy*dt*.044-dt*.00155*(.55+node.phase);
+          node.vx*=Math.exp(-dt/760);
+          node.vy*=Math.exp(-dt/760);
+          node.strength*=Math.exp(-dt/1750);
           if(node.strength<.002)node.strength=0;
         }
         const k=i*4;
@@ -5108,6 +5129,10 @@ function createParticleField(){
         smokeData[k+1]=node.y;
         smokeData[k+2]=node.strength;
         smokeData[k+3]=node.phase;
+        motionData[k]=node.vx;
+        motionData[k+1]=node.vy;
+        motionData[k+2]=node.strength;
+        motionData[k+3]=node.phase;
       }
     }
     adaptPerformance(dt);
@@ -5686,12 +5711,13 @@ function createParticleField(){
     const eventDt=Math.max(8,now-state.pointerLastAt);
     const speed=dist/eventDt;
 
-    // One soft eddy per meaningful pointer sample. A short node history gives
-    // a smoke wake without creating geometry or expensive per-frame trails.
-    if(dist>8&&state.morph<.18){
+    // Emit a compact velocity trail. Nodes carry both position and mouse
+    // velocity into the shader, where a coherent curl field turns that gesture
+    // into a smoke-like wake instead of a circular repulsion.
+    if(dist>5&&state.morph<.18){
       const vx=dx/eventDt;
       const vy=dy/eventDt;
-      const baseStrength=particleClamp(.24+speed*.68,.18,.92);
+      const baseStrength=particleClamp(.18+speed*.82,.16,.96);
       spawnSmokeNode(
         x,
         y,
