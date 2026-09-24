@@ -2839,7 +2839,7 @@ function createParticleField(){
     "  pos+=bioDrift*bioLifeGate;",
     "",
     "  float bioBrightnessRaw=.5+.5*sin(",
-    "    bookT*mix(.30,1.25,a_seed.z)+bioPhaseY+a_seed.x*5.0",
+    "    bookT*mix(.26,.92,a_seed.z)+bioCoord.y*1.35+bioCoord.x*.72+a_seed.x*2.2",
     "  );",
     "  float bioBrightnessPhase=smoother((bioBrightnessRaw-.08)/.84);",
     "  float bioBrightnessFloor=mix(.34,.784,a_seed.x);",
