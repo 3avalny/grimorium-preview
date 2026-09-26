@@ -1002,6 +1002,126 @@ body.boot-loading{overflow:hidden}
     .hero{height:165svh;min-height:1000px}
   }
 }
+
+/* ===== Discography layout redesign 2026-09-26 ===== */
+@media(min-width:901px){
+  .record{
+    --disc-height:430px;
+    --album-size:58px;
+    --title-stack:96px;
+  }
+  .record>.shell{
+    width:min(1500px,100%);
+    padding-inline:clamp(34px,4vw,72px);
+  }
+  .record-head{
+    width:clamp(310px,29vw,430px);
+    margin:0 0 24px calc(var(--album-size) + clamp(20px,1.8vw,28px));
+  }
+  .record-title-slot{font-size:clamp(42px,4.4vw,64px)}
+  .discography-grid{
+    grid-template-columns:var(--album-size) minmax(310px,430px) minmax(210px,1fr) minmax(340px,410px);
+    gap:clamp(20px,2vw,30px);
+    align-items:start;
+  }
+  .album-tabs{
+    grid-column:1;
+    height:calc(var(--disc-height) + var(--title-stack));
+    margin-top:calc(-1 * var(--title-stack));
+    justify-content:space-between;
+    gap:0;
+  }
+  .disc-content-window{grid-column:2/5;height:590px;overflow:hidden}
+  .disc-content-panel{
+    grid-template-columns:minmax(310px,430px) minmax(210px,1fr) minmax(340px,410px);
+    grid-template-rows:auto auto auto;
+    gap:0 clamp(34px,3vw,64px);
+    align-items:start;
+  }
+  .track-col{grid-column:1;grid-row:1/4;height:var(--disc-height)}
+  .cover-col{
+    grid-column:3;grid-row:1;width:min(100%,390px);height:auto;aspect-ratio:1;justify-self:end
+  }
+  .cover-wrap{height:100%}
+  .album-year-wrap{
+    position:absolute;left:0;top:-31px;height:auto;justify-content:flex-start
+  }
+  .album-year{
+    transform:none;font-family:var(--sans);font-size:9px;letter-spacing:.22em;color:#74797c
+  }
+  .stream-col{
+    grid-column:3;grid-row:2;width:min(100%,390px);height:auto;justify-self:end;
+    margin-top:18px;display:flex;flex-direction:column;gap:12px
+  }
+  .player-controls{
+    display:flex;align-items:center;justify-content:center;gap:22px;min-height:48px
+  }
+  .player-control{
+    width:42px;height:42px;padding:0;border:0;background:transparent;display:grid;place-items:center;
+    cursor:pointer;opacity:.72;transition:opacity .18s ease,transform .18s ease
+  }
+  .player-control:hover{opacity:1;transform:scale(1.06)}
+  .player-control svg{
+    width:21px;height:21px;fill:none;stroke:#dddcd5;stroke-width:1.4;
+    stroke-linecap:round;stroke-linejoin:round
+  }
+  .player-control-toggle{width:50px;height:50px;opacity:1}
+  .player-control-toggle svg{width:26px;height:26px}
+  .player-control-toggle .icon-pause{display:none}
+  .player-control-toggle.is-playing .icon-play{display:none}
+  .player-control-toggle.is-playing .icon-pause{display:block}
+  .player{
+    width:100%;height:80px;min-height:80px;border-radius:9px;overflow:hidden;
+    background:rgba(15,17,19,.82);box-shadow:0 10px 28px rgba(0,0,0,.72)
+  }
+  .spotify-embed-host,.spotify-embed-host iframe{
+    display:block;width:100%;height:80px;min-height:80px;border:0
+  }
+  .platforms{
+    grid-column:3;grid-row:3;width:min(100%,390px);height:auto;justify-self:end;
+    flex-direction:row;justify-content:center;gap:16px;margin-top:12px
+  }
+  .platform{width:38px;height:38px}
+  .platform img{width:21px;height:21px}
+  .album-credits{margin-top:18px}
+}
+@media(min-width:901px) and (max-width:1180px){
+  .record{--disc-height:390px;--album-size:52px;--title-stack:88px}
+  .discography-grid{
+    grid-template-columns:var(--album-size) minmax(250px,330px) minmax(110px,1fr) minmax(300px,350px);
+    gap:18px
+  }
+  .disc-content-window{height:555px}
+  .disc-content-panel{
+    grid-template-columns:minmax(250px,330px) minmax(110px,1fr) minmax(300px,350px);
+    grid-template-rows:auto auto auto;gap:0 24px
+  }
+  .cover-col,.stream-col,.platforms{width:min(100%,350px)}
+  .stream-col{height:auto}
+  .platforms{height:auto}
+  .player,.spotify-embed-host,.spotify-embed-host iframe{height:80px;min-height:80px}
+}
+@media(max-width:900px){
+  .player-controls{
+    order:3;display:flex;align-items:center;justify-content:center;gap:20px;width:100%;margin-top:0
+  }
+  .player-control{
+    width:42px;height:42px;padding:0;border:0;background:transparent;display:grid;place-items:center;opacity:.78
+  }
+  .player-control svg{
+    width:21px;height:21px;fill:none;stroke:#dddcd5;stroke-width:1.4;
+    stroke-linecap:round;stroke-linejoin:round
+  }
+  .player-control-toggle .icon-pause{display:none}
+  .player-control-toggle.is-playing .icon-play{display:none}
+  .player-control-toggle.is-playing .icon-pause{display:block}
+  .stream-col{gap:10px}
+  .spotify-embed-host,.spotify-embed-host iframe{
+    display:block;width:100%;height:152px;min-height:152px;border:0
+  }
+  .platforms{order:5}
+}
+
 </style>
 </head>
 <body class="boot-loading">
@@ -1172,6 +1292,12 @@ let desktopTitleSeq=0;
 let desktopTailText="ALL";
 
 function query(a){return encodeURIComponent("Grimorium Verum "+a.title)}
+
+function spotifyContentUrl(a){
+  return a.spotifyEmbed
+    .replace("https://open.spotify.com/embed/","https://open.spotify.com/")
+    .split("?")[0];
+}
 
 function renderTabs(){
   tabs.innerHTML=ALBUMS.map((a,i)=>`
@@ -1376,8 +1502,20 @@ function makeDiscPanel(a){
     </div>
 
     <div class="stream-col cascade-stage stage-stream">
+      <div class="player-controls" aria-label="${a.title} playback controls">
+        <button class="player-control player-control-prev" type="button" data-player-action="prev" aria-label="Previous album" title="Previous album">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5 8 12l8 7"/><path d="M7 5v14"/></svg>
+        </button>
+        <button class="player-control player-control-toggle" type="button" data-player-action="toggle" aria-label="Play" title="Play / pause">
+          <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 9 6-9 6Z"/></svg>
+          <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>
+        </button>
+        <button class="player-control player-control-next" type="button" data-player-action="next" aria-label="Next album" title="Next album">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 8 7-8 7"/><path d="M17 5v14"/></svg>
+        </button>
+      </div>
       <div class="player">
-        <iframe data-src="${a.spotifyEmbed}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="${a.title} — Spotify player"></iframe>
+        <div class="spotify-embed-host" data-spotify-url="${spotifyContentUrl(a)}" aria-label="${a.title} — Spotify player"></div>
       </div>
     </div>
 
@@ -1393,6 +1531,8 @@ function makeDiscPanel(a){
     wrap.innerHTML=`<div class="cover-fallback">${a.title}</div>`;
   });
 
+  bindPlayerControls(panel);
+
   return panel;
 }
 
@@ -1406,45 +1546,53 @@ function discPanelFor(id){
   return discContentWindow.querySelector(`.disc-content-panel[data-album-id="${id}"]`);
 }
 
-const spotifyBackgroundReloadTimers=new WeakMap();
+let spotifyIframeAPI=null;
+const spotifyControllers=new WeakMap();
+
+function setSpotifyButtonState(panel,isPaused=true){
+  const button=panel?.querySelector('[data-player-action="toggle"]');
+  if(!button)return;
+  button.classList.toggle("is-playing",!isPaused);
+  button.setAttribute("aria-label",isPaused?"Play":"Pause");
+}
+
+window.onSpotifyIframeApiReady=(IFrameAPI)=>{
+  spotifyIframeAPI=IFrameAPI;
+  const activePanel=ALBUMS[activeAlbumIndex]?discPanelFor(ALBUMS[activeAlbumIndex].id):null;
+  if(activePanel)ensureSpotifyLoaded(activePanel);
+};
 
 function ensureSpotifyLoaded(panel){
-  const iframe=panel?.querySelector(".player iframe");
-  if(!iframe)return;
+  if(!panel||spotifyControllers.has(panel)||!spotifyIframeAPI)return;
+  const host=panel.querySelector(".spotify-embed-host");
+  if(!host)return;
+  const url=host.dataset.spotifyUrl;
+  if(!url)return;
 
-  const pending=spotifyBackgroundReloadTimers.get(panel);
-  if(pending){
-    window.clearTimeout(pending);
-    spotifyBackgroundReloadTimers.delete(panel);
-  }
-
-  if(iframe.dataset.loaded==="1")return;
-  // Programmatic preloads must actually fetch even while their panel is hidden.
-  iframe.loading="eager";
-  iframe.src=iframe.dataset.src;
-  iframe.dataset.loaded="1";
+  spotifyIframeAPI.createController(host,{
+    width:"100%",
+    height:window.innerWidth<=900?152:80,
+    url
+  },controller=>{
+    spotifyControllers.set(panel,controller);
+    setSpotifyButtonState(panel,true);
+    controller.addListener("playback_update",event=>{
+      const data=event?.data||{};
+      setSpotifyButtonState(panel,data.isPaused!==false);
+    });
+  });
 }
 
 function stopSpotifyPanel(panel){
-  const iframe=panel?.querySelector(".player iframe");
-  if(!iframe || iframe.dataset.loaded!=="1")return;
-
-  const pending=spotifyBackgroundReloadTimers.get(panel);
-  if(pending)window.clearTimeout(pending);
-
-  // Blank navigation stops audio immediately. Then the same embed is rebuilt
-  // off-screen in a fresh paused state, so returning to this album is instant.
-  iframe.src="about:blank";
-  iframe.dataset.loaded="0";
-
-  const timer=window.setTimeout(()=>{
-    spotifyBackgroundReloadTimers.delete(panel);
-    ensureSpotifyLoaded(panel);
-  },320);
-  spotifyBackgroundReloadTimers.set(panel,timer);
+  const controller=spotifyControllers.get(panel);
+  if(controller){
+    try{controller.pause()}catch(_){}
+  }
+  setSpotifyButtonState(panel,true);
 }
 
 function preloadSpotifyNeighbor(index){
+  if(!spotifyIframeAPI)return;
   const nextIndex=Math.min(ALBUMS.length-1,index+1);
   if(nextIndex===index)return;
   const load=()=>ensureSpotifyLoaded(discPanelFor(ALBUMS[nextIndex].id));
@@ -1453,6 +1601,30 @@ function preloadSpotifyNeighbor(index){
   }else{
     window.setTimeout(load,900);
   }
+}
+
+function bindPlayerControls(panel){
+  const prev=panel.querySelector('[data-player-action="prev"]');
+  const next=panel.querySelector('[data-player-action="next"]');
+  const toggle=panel.querySelector('[data-player-action="toggle"]');
+
+  prev?.addEventListener("click",()=>{
+    const index=ALBUMS.findIndex(album=>album.id===panel.dataset.albumId);
+    const target=Math.max(0,index-1);
+    if(target!==index)selectAlbum(ALBUMS[target].id);
+  });
+
+  next?.addEventListener("click",()=>{
+    const index=ALBUMS.findIndex(album=>album.id===panel.dataset.albumId);
+    const target=Math.min(ALBUMS.length-1,index+1);
+    if(target!==index)selectAlbum(ALBUMS[target].id);
+  });
+
+  toggle?.addEventListener("click",()=>{
+    ensureSpotifyLoaded(panel);
+    const controller=spotifyControllers.get(panel);
+    if(controller)controller.togglePlay();
+  });
 }
 
 function resetDiscPanelState(panel){
@@ -6395,5 +6567,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",
   el.scrollIntoView({behavior:"smooth"});
 }));
 </script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 </body>
 </html>
