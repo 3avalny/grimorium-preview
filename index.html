@@ -1600,6 +1600,75 @@ body.boot-loading{overflow:hidden}
   }
 }
 
+
+/* ===== Independent discography frames ===== */
+@media(min-width:901px){
+  .record{
+    margin-top:-12vh;
+    padding:0;
+    height:100vh;
+    min-height:100vh;
+  }
+  .record>.shell{
+    position:relative;
+    height:100%;
+    width:min(1300px,100%);
+    margin:0 auto;
+    padding-inline:clamp(38px,3.6vw,54px);
+  }
+
+  /* Frame 1: album navigation + title/tracklist + cover/streaming,
+     centered independently in the viewport. */
+  .discography-grid{
+    position:absolute;
+    left:0;
+    right:0;
+    top:50%;
+    width:100%;
+    transform:translateY(-50%);
+    margin:0;
+  }
+  .record-head{
+    top:calc(50% - 215px);
+    left:calc(var(--album-size) + var(--layout-gap));
+    width:360px;
+    margin:0;
+  }
+
+  .cover-col,
+  .platforms{
+    left:0!important;
+    transform:none!important;
+  }
+
+  /* Frame 2: credits lives independently near the lower fifth. */
+  .album-credits{
+    position:absolute;
+    left:clamp(38px,3.6vw,54px);
+    right:clamp(38px,3.6vw,54px);
+    top:80%;
+    transform:translateY(-50%);
+    margin:0;
+  }
+}
+
+@media(min-width:901px) and (max-width:1180px){
+  .record>.shell{
+    width:min(1140px,100%);
+    padding-inline:32px;
+  }
+  .record-head{
+    top:calc(50% - 195px);
+    left:calc(var(--album-size) + var(--layout-gap));
+    width:316px;
+  }
+  .album-credits{
+    left:32px;
+    right:32px;
+    top:80%;
+  }
+}
+
 </style>
 </head>
 <body class="boot-loading">
@@ -2058,6 +2127,17 @@ function playNextSpotifyTrack(entry){
 
   if(nextIndex>=album.tracks.length){
     setSpotifyButtonState(true);
+    discContentWindow.querySelectorAll(".track-row").forEach(row=>{
+      row.classList.remove("is-selected","is-playing");
+      const control=row.querySelector(".track-index-control");
+      if(control){
+        const index=Number(row.dataset.trackIndex);
+        control.setAttribute("aria-label",`Play track ${Number.isFinite(index)?index+1:""}`);
+      }
+    });
+    activeTrackState=null;
+    activeSpotifyPlayer=null;
+    spotifyIsPaused=true;
     return;
   }
 
@@ -6824,11 +6904,16 @@ function renderScenes(){
     const move=smoothstep(raw/.36);
     const rawReveal=smoothstep((raw-.30)/.18);
     const morphReveal=particleField?.morphInitialized
-      ? smoothstep((particleField.morph-.84)/.13)
+      ? smoothstep((particleField.morph-.86)/.10)
       : rawReveal;
-    const revealIn=isMobile
-      ? rawReveal*morphReveal
-      : rawReveal;
+    const revealIn=rawReveal*morphReveal;
+
+    // Keep the DOM scene ticking while the WebGL book is still assembling.
+    // This lets Renaissance appear late in the morph without requiring
+    // another wheel event to refresh the text opacity.
+    if(!isMobile&&rawReveal>.01&&morphReveal<.995){
+      requestScenes();
+    }
     const bgReveal=smoothstep((raw-.46)/.24);
     const mobileExit=smoothstep((raw-.80)/.16);
     const desktopExit=smoothstep((raw-.72)/.28);
@@ -6979,6 +7064,7 @@ function applyDesktopSceneState(key,{force=false,biographyImmediate=false}={}){
   if(!force&&desktopSceneStateKey===key)return false;
 
   desktopSceneStateKey=key;
+  if(key!=="logo")desktopLogoAvailable=false;
   const biographyActive=key==="biography";
 
   // One authoritative place owns scene-entry UI side effects. Scroll syncing can
