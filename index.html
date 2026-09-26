@@ -1563,6 +1563,9 @@ body.boot-loading{overflow:hidden}
   white-space:normal;
   overflow:visible;
   text-overflow:clip;
+  font-family:var(--serif)!important;
+  font-size:var(--track-font)!important;
+  color:inherit!important;
   line-height:1;
   padding-bottom:0;
 }
@@ -2204,12 +2207,14 @@ function playTrack(albumId,trackIndex,{autoplay=true,autoAdvance=false}={}){
   if(!autoplay)return;
 
   if(activeSpotifyPlayer&&activeSpotifyPlayer!==entry){
-    clearSpotifyAdvanceTimer(activeSpotifyPlayer);
-    activeSpotifyPlayer.manualPause=false;
-    try{activeSpotifyPlayer.controller?.pause()}catch(_){}
+    const previous=activeSpotifyPlayer;
+    clearSpotifyAdvanceTimer(previous);
+    previous.manualPause=true;
+    activeSpotifyPlayer=entry;
+    try{previous.controller?.pause()}catch(_){}
+  }else{
+    activeSpotifyPlayer=entry;
   }
-
-  activeSpotifyPlayer=entry;
   entry.position=0;
   entry.isPaused=true;
   entry.manualPause=false;
