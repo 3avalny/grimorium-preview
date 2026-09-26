@@ -1124,12 +1124,28 @@ body.boot-loading{overflow:hidden}
 
 
 /* ===== Hidden Spotify engine + clickable tracklist ===== */
-.spotify-engine-layer{
-  position:fixed;z-index:0;left:50%;top:50%;
-  width:320px;height:80px;transform:translate(-50%,-50%);
-  opacity:0;pointer-events:none;overflow:hidden
+.spotify-engine-shell{
+  position:fixed;
+  z-index:0;
+  left:50%;
+  top:50%;
+  width:320px;
+  height:80px;
+  transform:translate(-50%,-50%);
+  opacity:0;
+  pointer-events:none;
+  overflow:hidden;
+  transition:opacity .16s ease;
 }
-.spotify-engine-layer iframe{display:block;width:320px!important;height:80px!important;border:0}
+.spotify-engine-shell #spotifyEngine,
+.spotify-engine-shell iframe{
+  display:block;
+  width:320px!important;
+  height:80px!important;
+  min-width:320px!important;
+  min-height:80px!important;
+  border:0;
+}
 .album-tab,.album-tab:hover,.album-tab.active{opacity:1!important}
 .album-tab img{filter:none!important;opacity:1!important}
 .track{
@@ -1500,18 +1516,18 @@ body.boot-loading{overflow:hidden}
 
 
 /* ===== Spotify first-use activation + inline pause ===== */
-.spotify-engine-layer{
-  transition:opacity .16s ease;
-}
-.spotify-engine-layer.is-activation-visible{
-  z-index:40;
-  left:calc(50% + 320px);
-  top:calc(50% + 205px);
+.spotify-engine-shell.is-activation-visible{
+  z-index:100001;
+  left:auto;
+  right:28px;
+  top:auto;
+  bottom:28px;
+  transform:none;
   opacity:1;
   pointer-events:auto;
   overflow:visible;
 }
-.spotify-engine-layer.is-activation-visible iframe{
+.spotify-engine-shell.is-activation-visible iframe{
   pointer-events:auto!important;
   box-shadow:0 10px 34px rgba(0,0,0,.78);
   border-radius:10px;
@@ -1577,8 +1593,9 @@ body.boot-loading{overflow:hidden}
   }
 }
 @media(max-width:900px){
-  .spotify-engine-layer.is-activation-visible{
+  .spotify-engine-shell.is-activation-visible{
     left:50%;
+    right:auto;
     top:auto;
     bottom:18px;
     transform:translateX(-50%);
@@ -1599,7 +1616,7 @@ body.boot-loading{overflow:hidden}
   <button type="button" data-id="reborn">Reborn</button>
   <button type="button" data-id="retaliation">Retaliation</button>
 </div>
-<div id="spotifyEngine" class="spotify-engine-layer" aria-hidden="true"></div>
+<div id="spotifyEngineShell" class="spotify-engine-shell" aria-hidden="true"><div id="spotifyEngine"></div></div>
 <header>
   <div class="brand" aria-hidden="true"><img src="assets/GV_PNG_bez_fona.png?v=13836c25" alt=""></div>
 </header>
@@ -1998,6 +2015,7 @@ function discPanelFor(id){
 let spotifyIframeAPI=null;
 let spotifyController=null;
 const spotifyEngine=document.getElementById("spotifyEngine");
+const spotifyEngineShell=document.getElementById("spotifyEngineShell");
 let activeTrackState=null;
 let queuedTrackState=null;
 
@@ -2006,11 +2024,13 @@ let spotifyIsPaused=true;
 
 function showSpotifyActivation(){
   if(spotifyPlaybackUnlocked)return;
-  spotifyEngine?.classList.add("is-activation-visible");
+  spotifyEngineShell?.classList.add("is-activation-visible");
+  spotifyEngineShell?.setAttribute("aria-hidden","false");
 }
 
 function hideSpotifyActivation(){
-  spotifyEngine?.classList.remove("is-activation-visible");
+  spotifyEngineShell?.classList.remove("is-activation-visible");
+  spotifyEngineShell?.setAttribute("aria-hidden","true");
 }
 
 function setSpotifyButtonState(isPaused=true){
