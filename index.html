@@ -1971,11 +1971,7 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
   }
 
   spotifyController.loadEntity(uri);
-  if(autoplay){
-    requestAnimationFrame(()=>{
-      try{spotifyController.play()}catch(_){}
-    });
-  }
+  if(autoplay)spotifyController.play();
 }
 
 function pauseSpotify(){
