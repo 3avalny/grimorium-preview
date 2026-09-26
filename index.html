@@ -1153,30 +1153,6 @@ body.boot-loading{overflow:hidden}
   min-height:80px!important;
   border:0;
 }
-.spotify-track-engine.is-fallback-visible{
-  z-index:100001;
-  left:auto;
-  right:28px;
-  top:auto;
-  bottom:28px;
-  transform:none;
-  opacity:1;
-  pointer-events:auto;
-  overflow:visible;
-}
-.spotify-track-engine.is-fallback-visible iframe{
-  pointer-events:auto!important;
-  box-shadow:0 10px 34px rgba(0,0,0,.78);
-  border-radius:10px;
-}
-@media(max-width:900px){
-  .spotify-track-engine.is-fallback-visible{
-    left:50%;
-    right:auto;
-    bottom:18px;
-    transform:translateX(-50%);
-  }
-}
 .album-tab,.album-tab:hover,.album-tab.active{opacity:1!important}
 .album-tab img{filter:none!important;opacity:1!important}
 .track{
@@ -1546,47 +1522,58 @@ body.boot-loading{overflow:hidden}
 }
 
 
-/* ===== Inline pause ===== */
+/* ===== Track number / pause control ===== */
 .track-row{
   width:100%;
   display:grid;
-  grid-template-columns:minmax(0,1fr) 24px;
+  grid-template-columns:28px minmax(0,1fr);
   align-items:center;
-  column-gap:7px;
+  column-gap:9px;
 }
-.track-row .track{
-  width:100%;
-  min-width:0;
-}
-.track-pause{
-  width:24px;
+.track-index-control{
+  width:28px;
+  min-width:28px;
   height:24px;
+  margin:0;
   padding:0;
   border:0;
   background:transparent;
   display:grid;
-  place-items:center;
-  opacity:0;
-  pointer-events:none;
+  place-items:center start;
+  color:#666b6e;
   cursor:pointer;
-  transition:opacity .14s ease,transform .14s ease;
+  appearance:none;
+  -webkit-appearance:none;
+  font-family:var(--sans);
+  font-size:var(--track-num-font);
+  line-height:1;
 }
-.track-row.is-playing .track-pause{
-  opacity:.86;
-  pointer-events:auto;
+.track-row .track{
+  width:100%;
+  min-width:0;
+  display:block!important;
+  grid-template-columns:none!important;
+  font-family:var(--serif);
+  font-size:var(--track-font);
+  color:#aaa9a4;
 }
-.track-row.is-playing .track-pause:hover{
-  opacity:1;
-  transform:scale(1.06);
+.track-row .track-title{
+  display:block;
+  min-width:0;
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  line-height:1;
+  padding-bottom:0;
 }
-.track-pause span{
+.track-pause-icon{
+  display:none;
+  position:relative;
   width:10px;
   height:12px;
-  display:block;
-  position:relative;
 }
-.track-pause span::before,
-.track-pause span::after{
+.track-pause-icon::before,
+.track-pause-icon::after{
   content:"";
   position:absolute;
   top:0;
@@ -1594,13 +1581,15 @@ body.boot-loading{overflow:hidden}
   height:12px;
   background:#dddcd5;
 }
-.track-pause span::before{left:1px}
-.track-pause span::after{right:1px}
-.track-row.is-selected .track{
-  color:#f2f1eb;
-}
-.track-row.is-selected .track span:first-child{
-  color:#bfc1bd;
+.track-pause-icon::before{left:1px}
+.track-pause-icon::after{right:1px}
+.track-row.is-playing .track-number{display:none}
+.track-row.is-playing .track-pause-icon{display:block}
+.track-row.is-playing .track-index-control{color:#dddcd5}
+.track-row.is-selected .track{color:#f2f1eb}
+.track-row.is-selected .track-index-control{color:#bfc1bd}
+.track-row.is-playing .track-index-control:hover{
+  transform:scale(1.06);
 }
 @media(min-width:901px){
   .panel-tracklist>.track-row{
@@ -1980,7 +1969,7 @@ function makeDiscPanel(a){
   panel.innerHTML=`
     <div class="track-col cascade-stage stage-track">
       <div class="panel-tracklist">
-        ${a.tracks.map((t,i)=>`<div class="track-row" data-track-index="${i}" data-track-uri="${a.spotifyTracks?.[i]||""}"><button class="track" type="button" aria-label="Play ${t}"><span>${String(i+1).padStart(2,"0")}</span><span>${t}</span></button><button class="track-pause" type="button" aria-label="Pause ${t}" title="Pause"><span aria-hidden="true"></span></button></div>`).join("")}
+        ${a.tracks.map((t,i)=>`<div class="track-row" data-track-index="${i}" data-track-uri="${a.spotifyTracks?.[i]||""}"><button class="track-index-control" type="button" aria-label="Play track ${i+1}"><span class="track-number">${String(i+1).padStart(2,"0")}</span><span class="track-pause-icon" aria-hidden="true"></span></button><button class="track" type="button" aria-label="Play ${t}"><span class="track-title">${t}</span></button></div>`).join("")}
       </div>
     </div>
 
@@ -2024,7 +2013,6 @@ const spotifyTrackPlayers=new Map();
 let activeSpotifyPlayer=null;
 let activeTrackState=null;
 let spotifyIsPaused=true;
-let spotifyFallbackTimer=0;
 
 function setSpotifyButtonState(isPaused=true){
   spotifyIsPaused=isPaused;
@@ -2032,40 +2020,65 @@ function setSpotifyButtonState(isPaused=true){
   if(isPaused||!activeTrackState)return;
   const row=discPanelFor(activeTrackState.albumId)?.querySelector(`.track-row[data-track-index="${activeTrackState.trackIndex}"]`);
   row?.classList.add("is-playing");
+  const control=row?.querySelector(".track-index-control");
+  if(control)control.setAttribute("aria-label","Pause");
 }
 
 function markTrackSelection(albumId,trackIndex){
-  discContentWindow.querySelectorAll(".track-row").forEach(row=>row.classList.remove("is-selected","is-playing"));
+  discContentWindow.querySelectorAll(".track-row").forEach(row=>{
+    row.classList.remove("is-selected","is-playing");
+    const control=row.querySelector(".track-index-control");
+    if(control){
+      const index=Number(row.dataset.trackIndex);
+      control.setAttribute("aria-label",`Play track ${Number.isFinite(index)?index+1:""}`);
+    }
+  });
   const row=discPanelFor(albumId)?.querySelector(`.track-row[data-track-index="${trackIndex}"]`);
   row?.classList.add("is-selected");
   if(!spotifyIsPaused)row?.classList.add("is-playing");
 }
 
-function hideAllSpotifyFallbacks(){
-  spotifyTrackPlayers.forEach(entry=>{
-    entry.shell?.classList.remove("is-fallback-visible");
-    entry.shell?.setAttribute("aria-hidden","true");
-  });
+function clearSpotifyAdvanceTimer(entry){
+  if(!entry?.advanceTimer)return;
+  window.clearTimeout(entry.advanceTimer);
+  entry.advanceTimer=0;
 }
 
-function showSpotifyFallback(entry){
-  if(!entry?.shell)return;
-  hideAllSpotifyFallbacks();
-  entry.shell.classList.add("is-fallback-visible");
-  entry.shell.setAttribute("aria-hidden","false");
+function playNextSpotifyTrack(entry){
+  if(!entry||entry.endHandled||entry.manualPause)return;
+  const album=ALBUMS.find(item=>item.id===entry.albumId);
+  if(!album)return;
+
+  const nextIndex=entry.trackIndex+1;
+  entry.endHandled=true;
+  clearSpotifyAdvanceTimer(entry);
+
+  if(nextIndex>=album.tracks.length){
+    setSpotifyButtonState(true);
+    return;
+  }
+
+  playTrack(album.id,nextIndex,{autoplay:true,autoAdvance:true});
 }
 
-function scheduleSpotifyFallback(entry){
-  window.clearTimeout(spotifyFallbackTimer);
-  spotifyFallbackTimer=window.setTimeout(()=>{
-    spotifyFallbackTimer=0;
-    if(
-      activeSpotifyPlayer===entry &&
-      (entry.position<=40||entry.isPaused!==false)
-    ){
-      showSpotifyFallback(entry);
-    }
-  },1000);
+function scheduleSpotifyAutoNext(entry){
+  clearSpotifyAdvanceTimer(entry);
+  if(!entry||entry.manualPause||entry.endHandled)return;
+  if(!(entry.duration>0)||!(entry.position>=0))return;
+
+  const remaining=entry.duration-entry.position;
+  if(remaining<=0){
+    playNextSpotifyTrack(entry);
+    return;
+  }
+
+  if(remaining<=1600){
+    entry.advanceTimer=window.setTimeout(()=>{
+      entry.advanceTimer=0;
+      if(activeSpotifyPlayer!==entry||entry.manualPause||entry.isPaused)return;
+      playNextSpotifyTrack(entry);
+    },Math.max(80,remaining+120));
+  }
 }
 
 function createSpotifyTrackPlayer(albumId,trackIndex,uri){
@@ -2088,8 +2101,13 @@ function createSpotifyTrackPlayer(albumId,trackIndex,uri){
     shell,
     controller:null,
     ready:false,
+    pendingPlay:false,
     position:0,
-    isPaused:true
+    duration:0,
+    isPaused:true,
+    manualPause:false,
+    endHandled:false,
+    advanceTimer:0
   };
   spotifyTrackPlayers.set(uri,entry);
 
@@ -2098,6 +2116,10 @@ function createSpotifyTrackPlayer(albumId,trackIndex,uri){
 
     controller.addListener("ready",()=>{
       entry.ready=true;
+      if(entry.pendingPlay){
+        entry.pendingPlay=false;
+        entry.controller.play();
+      }
     });
 
     controller.addListener("playback_started",event=>{
@@ -2105,11 +2127,14 @@ function createSpotifyTrackPlayer(albumId,trackIndex,uri){
       if(playingUri!==uri)return;
 
       if(activeSpotifyPlayer&&activeSpotifyPlayer!==entry){
+        clearSpotifyAdvanceTimer(activeSpotifyPlayer);
         try{activeSpotifyPlayer.controller?.pause()}catch(_){}
       }
 
       activeSpotifyPlayer=entry;
       activeTrackState={albumId,trackIndex,uri};
+      entry.manualPause=false;
+      entry.endHandled=false;
       markTrackSelection(albumId,trackIndex);
     });
 
@@ -2119,21 +2144,34 @@ function createSpotifyTrackPlayer(albumId,trackIndex,uri){
       if(playingUri&&playingUri!==uri)return;
 
       const position=Number(data.position);
+      const duration=Number(data.duration);
       if(Number.isFinite(position))entry.position=position;
+      if(Number.isFinite(duration)&&duration>0)entry.duration=duration;
       if(typeof data.isPaused==="boolean")entry.isPaused=data.isPaused;
 
       if(activeSpotifyPlayer!==entry)return;
 
       if(entry.isPaused===true){
+        clearSpotifyAdvanceTimer(entry);
+
+        // Natural end: advance inside the same album only.
+        if(
+          !entry.manualPause &&
+          !entry.endHandled &&
+          entry.duration>0 &&
+          entry.position>=entry.duration-650
+        ){
+          playNextSpotifyTrack(entry);
+          return;
+        }
+
         setSpotifyButtonState(true);
         return;
       }
 
       if(entry.isPaused===false&&entry.position>40){
-        window.clearTimeout(spotifyFallbackTimer);
-        spotifyFallbackTimer=0;
-        hideAllSpotifyFallbacks();
         setSpotifyButtonState(false);
+        scheduleSpotifyAutoNext(entry);
       }
     });
   });
@@ -2150,7 +2188,7 @@ function ensureSpotifyAlbumControllers(albumId){
   });
 }
 
-function playTrack(albumId,trackIndex,{autoplay=true}={}){
+function playTrack(albumId,trackIndex,{autoplay=true,autoAdvance=false}={}){
   const album=ALBUMS.find(item=>item.id===albumId);
   if(!album)return;
   const uri=album.spotifyTracks?.[trackIndex];
@@ -2165,29 +2203,37 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
 
   if(!autoplay)return;
 
-  // Each controller is created with this exact track URI already loaded.
-  // The user click only starts playback; no entity swap happens here.
-  if(!entry.controller||!entry.ready){
-    showSpotifyFallback(entry);
-    return;
-  }
-
   if(activeSpotifyPlayer&&activeSpotifyPlayer!==entry){
+    clearSpotifyAdvanceTimer(activeSpotifyPlayer);
+    activeSpotifyPlayer.manualPause=false;
     try{activeSpotifyPlayer.controller?.pause()}catch(_){}
   }
 
   activeSpotifyPlayer=entry;
   entry.position=0;
   entry.isPaused=true;
+  entry.manualPause=false;
+  entry.endHandled=false;
+  clearSpotifyAdvanceTimer(entry);
   spotifyIsPaused=true;
+
+  // Spotify embeds always stay hidden. If a controller is still initializing,
+  // remember the play request and execute it on ready instead of surfacing UI.
+  if(!entry.controller||!entry.ready){
+    entry.pendingPlay=true;
+    return;
+  }
+
+  entry.pendingPlay=false;
   entry.controller.play();
-  scheduleSpotifyFallback(entry);
 }
 
 function pauseSpotify(){
-  window.clearTimeout(spotifyFallbackTimer);
-  spotifyFallbackTimer=0;
-  if(activeSpotifyPlayer?.controller){
+  if(!activeSpotifyPlayer)return;
+  activeSpotifyPlayer.manualPause=true;
+  activeSpotifyPlayer.pendingPlay=false;
+  clearSpotifyAdvanceTimer(activeSpotifyPlayer);
+  if(activeSpotifyPlayer.controller){
     try{activeSpotifyPlayer.controller.pause()}catch(_){}
   }
   setSpotifyButtonState(true);
@@ -2195,7 +2241,6 @@ function pauseSpotify(){
 
 window.onSpotifyIframeApiReady=(IFrameAPI)=>{
   spotifyIframeAPI=IFrameAPI;
-
   const initialAlbum=ALBUMS[activeAlbumIndex>=0?activeAlbumIndex:0]?.id||"reall";
   ensureSpotifyAlbumControllers(initialAlbum);
 };
@@ -2205,7 +2250,7 @@ function stopSpotifyPanel(){}
 function bindPlayerControls(panel){
   panel.querySelectorAll(".track-row").forEach(row=>{
     const track=row.querySelector(".track");
-    const pause=row.querySelector(".track-pause");
+    const indexControl=row.querySelector(".track-index-control");
     const index=Number(row.dataset.trackIndex);
     if(!Number.isFinite(index))return;
 
@@ -2213,9 +2258,13 @@ function bindPlayerControls(panel){
       playTrack(panel.dataset.albumId,index,{autoplay:true});
     });
 
-    pause?.addEventListener("click",event=>{
+    indexControl?.addEventListener("click",event=>{
       event.stopPropagation();
-      pauseSpotify();
+      if(row.classList.contains("is-playing")){
+        pauseSpotify();
+      }else{
+        playTrack(panel.dataset.albumId,index,{autoplay:true});
+      }
     });
   });
 }
