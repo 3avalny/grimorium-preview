@@ -1132,17 +1132,28 @@ body.boot-loading{overflow:hidden}
   width:320px;
   height:80px;
   overflow:hidden;
-  opacity:.001;
+  pointer-events:none;
+}
+.spotify-engine-shell::after{
+  content:"";
+  position:absolute;
+  z-index:2;
+  inset:0;
+  background:#000;
   pointer-events:none;
 }
 .spotify-engine-shell #spotifyEngine,
 .spotify-engine-shell iframe{
+  position:relative;
+  z-index:1;
   display:block;
   width:320px!important;
   height:80px!important;
   min-width:320px!important;
   min-height:80px!important;
   border:0;
+  opacity:1!important;
+  visibility:visible!important;
   pointer-events:none!important;
 }
 .album-tab,.album-tab:hover,.album-tab.active{opacity:1!important}
@@ -1421,6 +1432,93 @@ body.boot-loading{overflow:hidden}
   .cover-col,
   .platforms{
     transform:translateX(20px);
+  }
+}
+
+
+/* ===== Discography correction pass ===== */
+@media(min-width:901px){
+  .record>.shell{
+    width:min(1300px,100%);
+    padding-inline:clamp(38px,3.6vw,54px);
+  }
+
+  /* Visually align the decorative album title with the number column.
+     The small positive correction compensates for the left overhang of the display glyphs. */
+  .record-head{
+    left:calc(var(--album-size) + var(--layout-gap) + 18px);
+    width:342px;
+  }
+  .record-title-slot{
+    font-size:clamp(36px,3.55vw,50px);
+    letter-spacing:.105em;
+  }
+
+  .disc-content-panel{
+    grid-template-columns:342px minmax(240px,1fr) 372px;
+    grid-template-rows:372px 22px 36px;
+    gap:0 30px;
+  }
+
+  .album-year-wrap{
+    left:18px;
+    top:52px;
+  }
+
+  /* Fill the available vertical span with type instead of excessive empty gaps. */
+  .panel-tracklist{
+    height:calc(var(--disc-height) - var(--left-head-height));
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+  }
+  .track{
+    flex:0 0 auto;
+    height:auto!important;
+    font-size:var(--track-font);
+    line-height:1;
+  }
+  .track span:first-child{
+    font-size:var(--track-num-font);
+    line-height:1;
+  }
+  .track span:last-child{
+    line-height:1;
+    padding-bottom:0;
+  }
+
+  /* Never use transform here: transform belongs to the album transition animation.
+     A relative left offset stays constant before, during and after the transition. */
+  .cover-col,
+  .platforms{
+    transform:none!important;
+    position:relative;
+    left:34px;
+  }
+}
+
+@media(min-width:901px) and (max-width:1180px){
+  .record>.shell{
+    width:min(1140px,100%);
+    padding-inline:32px;
+  }
+  .record-head{
+    left:calc(var(--album-size) + var(--layout-gap) + 16px);
+    width:300px;
+  }
+  .record-title-slot{
+    font-size:clamp(33px,3.9vw,44px);
+  }
+  .disc-content-panel{
+    grid-template-columns:300px minmax(135px,1fr) 334px;
+    grid-template-rows:334px 20px 36px;
+    gap:0 24px;
+  }
+  .album-year-wrap{left:16px;top:47px}
+  .cover-col,
+  .platforms{
+    transform:none!important;
+    left:22px;
   }
 }
 
@@ -1774,8 +1872,7 @@ function currentDiscHeight(){
 }
 
 function trackFontFor(count){
-  const row=(currentDiscHeight()-82)/Math.max(1,count);
-  return Math.max(11.25,Math.min(15.75,row*.50));
+  return Math.max(13.25,Math.min(18.5,190/Math.max(1,count)));
 }
 
 function makeDiscPanel(a){
@@ -1874,7 +1971,11 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
   }
 
   spotifyController.loadEntity(uri);
-  if(autoplay)spotifyController.play();
+  if(autoplay){
+    requestAnimationFrame(()=>{
+      try{spotifyController.play()}catch(_){}
+    });
+  }
 }
 
 function pauseSpotify(){
