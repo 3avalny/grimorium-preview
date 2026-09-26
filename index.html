@@ -1124,7 +1124,16 @@ body.boot-loading{overflow:hidden}
 
 
 /* ===== Hidden Spotify engine + clickable tracklist ===== */
-.spotify-engine-shell{
+.spotify-preload-pool{
+  position:fixed;
+  z-index:0;
+  inset:0;
+  width:0;
+  height:0;
+  overflow:visible;
+  pointer-events:none;
+}
+.spotify-track-engine{
   position:fixed;
   z-index:0;
   left:50%;
@@ -1136,8 +1145,7 @@ body.boot-loading{overflow:hidden}
   pointer-events:none;
   overflow:hidden;
 }
-.spotify-engine-shell #spotifyEngine,
-.spotify-engine-shell iframe{
+.spotify-track-engine iframe{
   display:block;
   width:320px!important;
   height:80px!important;
@@ -1145,7 +1153,7 @@ body.boot-loading{overflow:hidden}
   min-height:80px!important;
   border:0;
 }
-.spotify-engine-shell.is-fallback-visible{
+.spotify-track-engine.is-fallback-visible{
   z-index:100001;
   left:auto;
   right:28px;
@@ -1156,13 +1164,13 @@ body.boot-loading{overflow:hidden}
   pointer-events:auto;
   overflow:visible;
 }
-.spotify-engine-shell.is-fallback-visible iframe{
+.spotify-track-engine.is-fallback-visible iframe{
   pointer-events:auto!important;
   box-shadow:0 10px 34px rgba(0,0,0,.78);
   border-radius:10px;
 }
 @media(max-width:900px){
-  .spotify-engine-shell.is-fallback-visible{
+  .spotify-track-engine.is-fallback-visible{
     left:50%;
     right:auto;
     bottom:18px;
@@ -1614,7 +1622,7 @@ body.boot-loading{overflow:hidden}
   <button type="button" data-id="reborn">Reborn</button>
   <button type="button" data-id="retaliation">Retaliation</button>
 </div>
-<div id="spotifyEngineShell" class="spotify-engine-shell" aria-hidden="true"><div id="spotifyEngine"></div></div>
+<div id="spotifyPreloadPool" class="spotify-preload-pool" aria-hidden="true"></div>
 <header>
   <div class="brand" aria-hidden="true"><img src="assets/GV_PNG_bez_fona.png?v=13836c25" alt=""></div>
 </header>
@@ -2011,35 +2019,12 @@ function discPanelFor(id){
 }
 
 let spotifyIframeAPI=null;
-let spotifyController=null;
-const spotifyEngine=document.getElementById("spotifyEngine");
-const spotifyEngineShell=document.getElementById("spotifyEngineShell");
+const spotifyPreloadPool=document.getElementById("spotifyPreloadPool");
+const spotifyTrackPlayers=new Map();
+let activeSpotifyPlayer=null;
 let activeTrackState=null;
-let queuedTrackState=null;
 let spotifyIsPaused=true;
-let spotifyRequestedUri=null;
-let spotifyLoadedUri=null;
-let spotifyPendingPlay=null;
 let spotifyFallbackTimer=0;
-let spotifyPlaybackPosition=0;
-
-function showSpotifyFallback(){
-  spotifyEngineShell?.classList.add("is-fallback-visible");
-  spotifyEngineShell?.setAttribute("aria-hidden","false");
-}
-
-function hideSpotifyFallback(){
-  spotifyEngineShell?.classList.remove("is-fallback-visible");
-  spotifyEngineShell?.setAttribute("aria-hidden","true");
-}
-
-function scheduleSpotifyFallback(){
-  window.clearTimeout(spotifyFallbackTimer);
-  spotifyFallbackTimer=window.setTimeout(()=>{
-    spotifyFallbackTimer=0;
-    if(spotifyPlaybackPosition<=40||spotifyIsPaused)showSpotifyFallback();
-  },1400);
-}
 
 function setSpotifyButtonState(isPaused=true){
   spotifyIsPaused=isPaused;
@@ -2056,47 +2041,113 @@ function markTrackSelection(albumId,trackIndex){
   if(!spotifyIsPaused)row?.classList.add("is-playing");
 }
 
-function findTrackStateByUri(uri){
-  for(const album of ALBUMS){
-    const index=(album.spotifyTracks||[]).indexOf(uri);
-    if(index>=0)return{albumId:album.id,trackIndex:index,uri};
-  }
-  return null;
+function hideAllSpotifyFallbacks(){
+  spotifyTrackPlayers.forEach(entry=>{
+    entry.shell?.classList.remove("is-fallback-visible");
+    entry.shell?.setAttribute("aria-hidden","true");
+  });
 }
 
-function requestSpotifyEntity(uri){
-  if(!spotifyController||!uri)return;
-  if(spotifyRequestedUri===uri)return;
-  spotifyRequestedUri=uri;
-  spotifyLoadedUri=null;
-  spotifyController.loadEntity(uri);
+function showSpotifyFallback(entry){
+  if(!entry?.shell)return;
+  hideAllSpotifyFallbacks();
+  entry.shell.classList.add("is-fallback-visible");
+  entry.shell.setAttribute("aria-hidden","false");
 }
 
-function issuePendingSpotifyPlay(){
-  if(!spotifyController||!spotifyPendingPlay||spotifyPendingPlay.issued)return;
-  if(spotifyLoadedUri!==spotifyPendingPlay.uri)return;
-
-  spotifyPendingPlay.issued=true;
-  spotifyPlaybackPosition=0;
-  spotifyController.play();
-  scheduleSpotifyFallback();
+function scheduleSpotifyFallback(entry){
+  window.clearTimeout(spotifyFallbackTimer);
+  spotifyFallbackTimer=window.setTimeout(()=>{
+    spotifyFallbackTimer=0;
+    if(
+      activeSpotifyPlayer===entry &&
+      (entry.position<=40||entry.isPaused!==false)
+    ){
+      showSpotifyFallback(entry);
+    }
+  },1000);
 }
 
-function armTrack(albumId,trackIndex){
+function createSpotifyTrackPlayer(albumId,trackIndex,uri){
+  if(!spotifyIframeAPI||!spotifyPreloadPool||!uri)return null;
+  if(spotifyTrackPlayers.has(uri))return spotifyTrackPlayers.get(uri);
+
+  const shell=document.createElement("div");
+  shell.className="spotify-track-engine";
+  shell.setAttribute("aria-hidden","true");
+  shell.dataset.spotifyUri=uri;
+
+  const target=document.createElement("div");
+  shell.appendChild(target);
+  spotifyPreloadPool.appendChild(shell);
+
+  const entry={
+    albumId,
+    trackIndex,
+    uri,
+    shell,
+    controller:null,
+    ready:false,
+    position:0,
+    isPaused:true
+  };
+  spotifyTrackPlayers.set(uri,entry);
+
+  spotifyIframeAPI.createController(target,{width:320,height:80,uri},controller=>{
+    entry.controller=controller;
+
+    controller.addListener("ready",()=>{
+      entry.ready=true;
+    });
+
+    controller.addListener("playback_started",event=>{
+      const playingUri=event?.data?.playingURI||uri;
+      if(playingUri!==uri)return;
+
+      if(activeSpotifyPlayer&&activeSpotifyPlayer!==entry){
+        try{activeSpotifyPlayer.controller?.pause()}catch(_){}
+      }
+
+      activeSpotifyPlayer=entry;
+      activeTrackState={albumId,trackIndex,uri};
+      markTrackSelection(albumId,trackIndex);
+    });
+
+    controller.addListener("playback_update",event=>{
+      const data=event?.data||{};
+      const playingUri=data.playingURI;
+      if(playingUri&&playingUri!==uri)return;
+
+      const position=Number(data.position);
+      if(Number.isFinite(position))entry.position=position;
+      if(typeof data.isPaused==="boolean")entry.isPaused=data.isPaused;
+
+      if(activeSpotifyPlayer!==entry)return;
+
+      if(entry.isPaused===true){
+        setSpotifyButtonState(true);
+        return;
+      }
+
+      if(entry.isPaused===false&&entry.position>40){
+        window.clearTimeout(spotifyFallbackTimer);
+        spotifyFallbackTimer=0;
+        hideAllSpotifyFallbacks();
+        setSpotifyButtonState(false);
+      }
+    });
+  });
+
+  return entry;
+}
+
+function ensureSpotifyAlbumControllers(albumId){
+  if(!spotifyIframeAPI)return;
   const album=ALBUMS.find(item=>item.id===albumId);
   if(!album)return;
-  const uri=album.spotifyTracks?.[trackIndex];
-  if(!uri)return;
-
-  activeTrackState={albumId,trackIndex,uri};
-  markTrackSelection(albumId,trackIndex);
-
-  if(!spotifyController){
-    queuedTrackState={albumId,trackIndex,uri,autoplay:false};
-    return;
-  }
-
-  if(spotifyLoadedUri!==uri)requestSpotifyEntity(uri);
+  (album.spotifyTracks||[]).forEach((uri,trackIndex)=>{
+    createSpotifyTrackPlayer(album.id,trackIndex,uri);
+  });
 }
 
 function playTrack(albumId,trackIndex,{autoplay=true}={}){
@@ -2108,120 +2159,45 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
   activeTrackState={albumId,trackIndex,uri};
   markTrackSelection(albumId,trackIndex);
 
-  if(!spotifyController){
-    queuedTrackState={albumId,trackIndex,uri,autoplay};
+  ensureSpotifyAlbumControllers(albumId);
+  const entry=spotifyTrackPlayers.get(uri);
+  if(!entry)return;
+
+  if(!autoplay)return;
+
+  // Each controller is created with this exact track URI already loaded.
+  // The user click only starts playback; no entity swap happens here.
+  if(!entry.controller||!entry.ready){
+    showSpotifyFallback(entry);
     return;
   }
 
-  if(!autoplay){
-    if(spotifyLoadedUri!==uri)requestSpotifyEntity(uri);
-    return;
+  if(activeSpotifyPlayer&&activeSpotifyPlayer!==entry){
+    try{activeSpotifyPlayer.controller?.pause()}catch(_){}
   }
 
-  // Do not guess that loadEntity() has completed. The first click records a
-  // pending play request; Spotify's own playback_update/ready event confirms
-  // when that URI is actually loaded, then issuePendingSpotifyPlay() starts it.
-  spotifyPendingPlay={albumId,trackIndex,uri,issued:false};
-  spotifyPlaybackPosition=0;
-
-  if(spotifyLoadedUri===uri){
-    issuePendingSpotifyPlay();
-  }else{
-    requestSpotifyEntity(uri);
-    scheduleSpotifyFallback();
-  }
+  activeSpotifyPlayer=entry;
+  entry.position=0;
+  entry.isPaused=true;
+  spotifyIsPaused=true;
+  entry.controller.play();
+  scheduleSpotifyFallback(entry);
 }
 
 function pauseSpotify(){
-  spotifyPendingPlay=null;
   window.clearTimeout(spotifyFallbackTimer);
   spotifyFallbackTimer=0;
-  if(spotifyController){
-    try{spotifyController.pause()}catch(_){}
+  if(activeSpotifyPlayer?.controller){
+    try{activeSpotifyPlayer.controller.pause()}catch(_){}
   }
   setSpotifyButtonState(true);
 }
 
 window.onSpotifyIframeApiReady=(IFrameAPI)=>{
   spotifyIframeAPI=IFrameAPI;
-  const initialUri=ALBUMS[0]?.spotifyTracks?.[0];
-  if(!spotifyEngine||!initialUri)return;
 
-  spotifyRequestedUri=initialUri;
-
-  spotifyIframeAPI.createController(spotifyEngine,{width:320,height:80,uri:initialUri},controller=>{
-    spotifyController=controller;
-    setSpotifyButtonState(true);
-
-    controller.addListener("ready",()=>{
-      // "ready" confirms the initial Embed can stream its requested entity.
-      if(!spotifyLoadedUri&&spotifyRequestedUri){
-        spotifyLoadedUri=spotifyRequestedUri;
-      }
-      issuePendingSpotifyPlay();
-    });
-
-    controller.addListener("playback_started",event=>{
-      const uri=event?.data?.playingURI;
-      if(uri){
-        spotifyLoadedUri=uri;
-        spotifyRequestedUri=uri;
-      }
-      const state=uri?findTrackStateByUri(uri):null;
-      if(state){
-        activeTrackState=state;
-        markTrackSelection(state.albumId,state.trackIndex);
-      }
-      // Wait for playback_update + real playhead movement before showing Pause.
-    });
-
-    controller.addListener("playback_update",event=>{
-      const data=event?.data||{};
-      const uri=data.playingURI;
-
-      if(uri){
-        spotifyLoadedUri=uri;
-        spotifyRequestedUri=uri;
-        const state=findTrackStateByUri(uri);
-        if(state)activeTrackState=state;
-      }
-
-      const position=Number(data.position);
-      if(Number.isFinite(position))spotifyPlaybackPosition=position;
-
-      // This is the missing bridge: once Spotify confirms that the requested
-      // entity is loaded and paused, automatically complete the FIRST click.
-      if(
-        spotifyPendingPlay &&
-        uri===spotifyPendingPlay.uri &&
-        data.isPaused===true &&
-        !spotifyPendingPlay.issued
-      ){
-        issuePendingSpotifyPlay();
-        setSpotifyButtonState(true);
-        return;
-      }
-
-      if(data.isPaused===true){
-        setSpotifyButtonState(true);
-        return;
-      }
-
-      if(data.isPaused===false && spotifyPlaybackPosition>40){
-        spotifyPendingPlay=null;
-        window.clearTimeout(spotifyFallbackTimer);
-        spotifyFallbackTimer=0;
-        hideSpotifyFallback();
-        setSpotifyButtonState(false);
-      }
-    });
-
-    if(queuedTrackState){
-      const queued=queuedTrackState;
-      queuedTrackState=null;
-      playTrack(queued.albumId,queued.trackIndex,{autoplay:queued.autoplay});
-    }
-  });
+  const initialAlbum=ALBUMS[activeAlbumIndex>=0?activeAlbumIndex:0]?.id||"reall";
+  ensureSpotifyAlbumControllers(initialAlbum);
 };
 
 function stopSpotifyPanel(){}
@@ -2232,13 +2208,6 @@ function bindPlayerControls(panel){
     const pause=row.querySelector(".track-pause");
     const index=Number(row.dataset.trackIndex);
     if(!Number.isFinite(index))return;
-
-    const arm=()=>armTrack(panel.dataset.albumId,index);
-
-    track?.addEventListener("pointerdown",arm,{passive:true});
-    track?.addEventListener("keydown",event=>{
-      if(event.key==="Enter"||event.key===" ")arm();
-    });
 
     track?.addEventListener("click",()=>{
       playTrack(panel.dataset.albumId,index,{autoplay:true});
@@ -2379,6 +2348,7 @@ function selectAlbum(id){
 
   // Browsing the catalogue does not interrupt playback.
   // Audio changes only when the visitor explicitly clicks another track.
+  ensureSpotifyAlbumControllers(id);
   animateTitle(a,direction,token);
   animateDiscWindow(newPanel,oldPanel,direction,token);
   animateWindow(creditsTextWindow,makeCreditsPanel(a),direction,token);
