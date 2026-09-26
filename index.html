@@ -1144,6 +1144,167 @@ body.boot-loading{overflow:hidden}
   .platforms{margin-top:6px}
 }
 
+
+/* ===== Discography one-frame alignment ===== */
+@media(min-width:901px){
+  .record{
+    --disc-height:430px;
+    --album-size:58px;
+    --layout-gap:22px;
+    --left-head-height:82px;
+  }
+  .record>.shell{
+    width:min(1240px,100%);
+    padding-inline:clamp(34px,3.6vw,52px);
+  }
+
+  .record-head{
+    position:absolute;
+    z-index:5;
+    top:0;
+    left:calc(var(--album-size) + var(--layout-gap));
+    width:360px;
+    margin:0;
+    pointer-events:none;
+  }
+  .record-title-slot{
+    font-size:clamp(36px,3.7vw,52px);
+    line-height:1;
+    letter-spacing:.115em;
+  }
+
+  .discography-grid{
+    grid-template-columns:var(--album-size) minmax(0,1fr);
+    gap:var(--layout-gap);
+    width:100%;
+    margin:0;
+    align-items:start;
+  }
+  .album-tabs{
+    grid-column:1;
+    height:var(--disc-height)!important;
+    margin-top:0!important;
+    justify-content:space-between!important;
+    gap:0!important;
+  }
+
+  .disc-content-window{
+    grid-column:2;
+    height:var(--disc-height);
+    overflow:hidden;
+  }
+  .disc-content-panel{
+    grid-template-columns:360px minmax(190px,1fr) 372px;
+    grid-template-rows:372px 22px 36px;
+    gap:0 28px;
+    height:var(--disc-height);
+    align-items:start;
+  }
+
+  .track-col{
+    grid-column:1;
+    grid-row:1/4;
+    height:var(--disc-height);
+    padding-top:var(--left-head-height);
+  }
+  .panel-tracklist{height:100%}
+  .track{
+    height:calc((var(--disc-height) - var(--left-head-height)) / var(--track-count));
+    padding:0;
+  }
+
+  .album-year-wrap{
+    position:absolute;
+    left:0;
+    top:52px;
+    height:18px;
+    align-items:center;
+    justify-content:flex-start;
+    pointer-events:none;
+  }
+  .album-year{
+    transform:none;
+    font-size:8px;
+    letter-spacing:.22em;
+  }
+
+  .cover-col{
+    grid-column:3;
+    grid-row:1;
+    width:372px;
+    height:372px;
+    aspect-ratio:1;
+    justify-self:end;
+  }
+
+  .platforms{
+    grid-column:3;
+    grid-row:3;
+    width:372px;
+    height:36px;
+    margin:0;
+    justify-self:end;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+  }
+  .platform{
+    width:36px;
+    height:36px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    line-height:0;
+  }
+  .platform img{
+    display:block;
+    width:22px;
+    height:22px;
+    object-fit:contain;
+    margin:0;
+  }
+
+  .album-credits{margin-top:18px}
+}
+
+@media(min-width:901px) and (max-width:1180px){
+  .record{
+    --disc-height:390px;
+    --album-size:52px;
+    --layout-gap:18px;
+    --left-head-height:76px;
+  }
+  .record>.shell{
+    width:min(1080px,100%);
+    padding-inline:32px;
+  }
+  .record-head{
+    left:calc(var(--album-size) + var(--layout-gap));
+    width:310px;
+  }
+  .record-title-slot{font-size:clamp(34px,4vw,46px)}
+  .disc-content-panel{
+    grid-template-columns:310px minmax(100px,1fr) 334px;
+    grid-template-rows:334px 20px 36px;
+    gap:0 22px;
+    height:var(--disc-height);
+  }
+  .cover-col{width:334px;height:334px}
+  .platforms{width:334px;height:36px}
+  .album-year-wrap{top:47px}
+  .track{
+    height:calc((var(--disc-height) - var(--left-head-height)) / var(--track-count));
+  }
+}
+
+@media(max-width:900px){
+  .player-controls,.stream-col{display:none!important}
+  .platforms{order:3!important}
+}
+
 </style>
 </head>
 <body class="boot-loading">
@@ -1494,8 +1655,8 @@ function currentDiscHeight(){
 }
 
 function trackFontFor(count){
-  const row=currentDiscHeight()/Math.max(1,count);
-  return Math.max(13.25,Math.min(18,row*.5));
+  const row=(currentDiscHeight()-82)/Math.max(1,count);
+  return Math.max(11.5,Math.min(16.5,row*.52));
 }
 
 function makeDiscPanel(a){
@@ -1527,21 +1688,6 @@ function makeDiscPanel(a){
 
     <div class="album-year-wrap cascade-stage stage-year">
       <div class="album-year">${a.year}</div>
-    </div>
-
-    <div class="stream-col cascade-stage stage-stream">
-      <div class="player-controls" aria-label="${a.title} playback controls">
-        <button class="player-control player-control-prev" type="button" data-player-action="prev" aria-label="Previous track" title="Previous track">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5 8 12l8 7"/><path d="M7 5v14"/></svg>
-        </button>
-        <button class="player-control player-control-toggle" type="button" data-player-action="toggle" aria-label="Play" title="Play / pause">
-          <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 9 6-9 6Z"/></svg>
-          <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>
-        </button>
-        <button class="player-control player-control-next" type="button" data-player-action="next" aria-label="Next track" title="Next track">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 8 7-8 7"/><path d="M17 5v14"/></svg>
-        </button>
-      </div>
     </div>
 
     <div class="platforms cascade-stage stage-platforms" aria-label="Streaming platforms">
@@ -1576,11 +1722,8 @@ const spotifyEngine=document.getElementById("spotifyEngine");
 let activeTrackState=null;
 let queuedTrackState=null;
 
-function setSpotifyButtonState(isPaused=true){
-  document.querySelectorAll('[data-player-action="toggle"]').forEach(button=>{
-    button.classList.toggle("is-playing",!isPaused);
-    button.setAttribute("aria-label",isPaused?"Play":"Pause");
-  });
+function setSpotifyButtonState(){
+  // Playback controls are intentionally hidden; track rows are the only controls.
 }
 
 function markTrackSelection(albumId,trackIndex){
@@ -1656,43 +1799,13 @@ window.onSpotifyIframeApiReady=(IFrameAPI)=>{
 function stopSpotifyPanel(){}
 
 function bindPlayerControls(panel){
-  const prev=panel.querySelector('[data-player-action="prev"]');
-  const next=panel.querySelector('[data-player-action="next"]');
-  const toggle=panel.querySelector('[data-player-action="toggle"]');
-
   panel.querySelectorAll(".track").forEach(track=>{
     track.addEventListener("click",()=>{
       const index=Number(track.dataset.trackIndex);
       if(Number.isFinite(index))playTrack(panel.dataset.albumId,index,{autoplay:true});
     });
   });
-
-  prev?.addEventListener("click",()=>{
-    const album=ALBUMS.find(item=>item.id===panel.dataset.albumId);
-    if(!album)return;
-    const current=activeTrackState?.albumId===album.id?activeTrackState.trackIndex:0;
-    playTrack(album.id,Math.max(0,current-1),{autoplay:true});
-  });
-
-  next?.addEventListener("click",()=>{
-    const album=ALBUMS.find(item=>item.id===panel.dataset.albumId);
-    if(!album)return;
-    const current=activeTrackState?.albumId===album.id?activeTrackState.trackIndex:-1;
-    playTrack(album.id,Math.min(album.tracks.length-1,current+1),{autoplay:true});
-  });
-
-  toggle?.addEventListener("click",()=>{
-    const album=ALBUMS.find(item=>item.id===panel.dataset.albumId);
-    if(!album)return;
-    if(!activeTrackState||activeTrackState.albumId!==album.id){
-      playTrack(album.id,0,{autoplay:true});
-      return;
-    }
-    if(spotifyController)spotifyController.togglePlay();
-    else playTrack(album.id,activeTrackState.trackIndex,{autoplay:true});
-  });
 }
-
 
 function resetDiscPanelState(panel){
   panel.classList.remove("current","incoming","outgoing","up","down","go","preparing");
