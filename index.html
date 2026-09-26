@@ -1126,13 +1126,13 @@ body.boot-loading{overflow:hidden}
 /* ===== Hidden Spotify engine + clickable tracklist ===== */
 .spotify-engine-shell{
   position:fixed;
-  z-index:-2147483648;
-  left:-10000px;
-  top:-10000px;
-  width:1px;
-  height:1px;
+  z-index:0;
+  left:0;
+  top:0;
+  width:320px;
+  height:80px;
   overflow:hidden;
-  opacity:0;
+  opacity:.001;
   pointer-events:none;
 }
 .spotify-engine-shell #spotifyEngine,
@@ -1143,6 +1143,7 @@ body.boot-loading{overflow:hidden}
   min-width:320px!important;
   min-height:80px!important;
   border:0;
+  pointer-events:none!important;
 }
 .album-tab,.album-tab:hover,.album-tab.active{opacity:1!important}
 .album-tab img{filter:none!important;opacity:1!important}
@@ -1317,6 +1318,110 @@ body.boot-loading{overflow:hidden}
 @media(max-width:900px){
   .player-controls,.stream-col{display:none!important}
   .platforms{order:3!important}
+}
+
+
+/* ===== Discography balance pass ===== */
+@media(min-width:901px){
+  .record{
+    --disc-height:430px;
+    --album-size:58px;
+    --layout-gap:22px;
+    --left-head-height:82px;
+  }
+
+  /* Keep the whole discography frame geometrically centered in the viewport. */
+  .record>.shell{
+    width:min(1280px,100%);
+    padding-inline:clamp(38px,3.8vw,56px);
+  }
+
+  /* The title starts at the same top line as the first thumbnail and cover,
+     but clears the thumbnail visually and aligns closer to the track names. */
+  .record-head{
+    top:0;
+    left:calc(var(--album-size) + var(--layout-gap) + 34px);
+    width:326px;
+  }
+  .record-title-slot{
+    font-size:clamp(34px,3.45vw,48px);
+    letter-spacing:.105em;
+  }
+
+  .disc-content-panel{
+    grid-template-columns:326px minmax(220px,1fr) 372px;
+    grid-template-rows:372px 22px 36px;
+    gap:0 30px;
+  }
+
+  /* Track rows are distributed from the top of the list area to the exact
+     bottom edge of the last album thumbnail instead of sitting in equal cells. */
+  .track-col{
+    height:var(--disc-height);
+    padding-top:var(--left-head-height);
+  }
+  .panel-tracklist{
+    height:calc(var(--disc-height) - var(--left-head-height));
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    overflow:visible;
+  }
+  .track{
+    flex:0 0 auto;
+    height:auto!important;
+    min-height:0;
+    padding:0;
+    line-height:1;
+  }
+  .track span:last-child{
+    line-height:1;
+    padding-bottom:0;
+  }
+
+  .album-year-wrap{
+    left:34px;
+    top:51px;
+  }
+
+  /* Add a little more visual weight to the right side; the cover and streaming
+     links still finish on the same 430px lower boundary as the thumbnail stack. */
+  .cover-col,
+  .platforms{
+    transform:translateX(30px);
+  }
+
+  .platforms{
+    align-items:center;
+  }
+  .platform,
+  .platform img{
+    vertical-align:middle;
+  }
+}
+
+@media(min-width:901px) and (max-width:1180px){
+  .record>.shell{
+    width:min(1120px,100%);
+    padding-inline:32px;
+  }
+  .record-head{
+    left:calc(var(--album-size) + var(--layout-gap) + 30px);
+    width:286px;
+  }
+  .record-title-slot{
+    font-size:clamp(32px,3.8vw,43px);
+  }
+  .disc-content-panel{
+    grid-template-columns:286px minmax(120px,1fr) 334px;
+    grid-template-rows:334px 20px 36px;
+    gap:0 24px;
+  }
+  .album-year-wrap{left:30px;top:46px}
+  .cover-col,
+  .platforms{
+    transform:translateX(20px);
+  }
 }
 
 </style>
@@ -1670,7 +1775,7 @@ function currentDiscHeight(){
 
 function trackFontFor(count){
   const row=(currentDiscHeight()-82)/Math.max(1,count);
-  return Math.max(11.5,Math.min(16.5,row*.52));
+  return Math.max(11.25,Math.min(15.75,row*.50));
 }
 
 function makeDiscPanel(a){
