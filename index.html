@@ -3399,8 +3399,25 @@ function createParticleField(){
     "  float bendAmp=min(22.0,2.0+travel*.032)*(.24+a_seed.y*.76);",
     "",
     "  vec2 pos=mix(warped,target,localLeave);",
-    "  pos+=normal*transition*bendAmp*bendSign;",
-    "  pos+=dir*transition*sin(localLeave*PI*2.0+a_seed.y*PI*2.0)*(1.0+a_seed.x*4.0);",
+    "  vec2 legacyArc=normal*transition*bendAmp*bendSign;",
+    "  legacyArc+=dir*transition*sin(localLeave*PI*2.0+a_seed.y*PI*2.0)*(1.0+a_seed.x*4.0);",
+    "",
+    "  // Logo -> Book: first dissolve into an irregular smoke cloud instead",
+    "  // of exploding radially from the center. Each point gets a stable random",
+    "  // direction plus a curl-flow component, then converges on the book.",
+    "  float scatterAngle=fract(a_seed.x*1.6180339+a_seed.y*2.4142136+a_seed.z*.7548777+a_seed.w*1.3247179)*PI*2.0;",
+    "  vec2 scatterDir=vec2(cos(scatterAngle),sin(scatterAngle));",
+    "  float scatterPulse=sin(PI*localLeave)*u_direction;",
+    "  float scatterFront=smoother((localLeave-.015)/.30)*(1.0-smoother((localLeave-.72)/.28));",
+    "  float scatterAmp=mix(28.0,124.0,pow(a_seed.y,.72))*scatterPulse*(.42+.58*scatterFront);",
+    "  vec2 smokeP=(warped/u_resolution-vec2(.5))*vec2(5.2,4.1);",
+    "  smokeP+=vec2(a_seed.z*2.7-a_seed.x*1.3,a_seed.w*2.1-a_seed.y*1.7);",
+    "  vec2 smokeCurl=curlFlow(smokeP,u_time*.00042+scatterAngle*.31);",
+    "  smokeCurl/=max(.35,length(smokeCurl));",
+    "  float smokeAmp=mix(9.0,34.0,a_seed.w)*scatterPulse*(.65+.35*(1.0-localLeave));",
+    "  vec2 forwardSmoke=scatterDir*scatterAmp+smokeCurl*smokeAmp;",
+    "  forwardSmoke.y-=scatterPulse*mix(1.0,10.0,a_seed.z);",
+    "  pos+=mix(legacyArc,forwardSmoke,u_direction);",
     "",
     "  // Large home GV has a very small independent anchor-local life. Each",
     "  // particle moves differently, but the amplitude stays sub-pixel-ish so",
@@ -3724,6 +3741,9 @@ function createParticleField(){
     "    passRadius=mix(reconstructionMeta.z*mix(.86,.68,materialDetail),logoSharpRadius,logoLanding);",
     "    color=mix(mix(reconstructionColor,reconstructionColor*1.12,materialDetail),logoSharpColor,logoLanding);",
     "    passAlpha=mix(materialToneAlpha*bookSpineTone*materialProtection*.72,logoToneAlpha,logoLanding);",
+    "    float logoBookSmoke=sin(PI*localLeave)*u_direction;",
+    "    passRadius*=1.0+logoBookSmoke*(.18+.34*a_seed.w);",
+    "    passAlpha*=mix(1.0,.74,logoBookSmoke);",
     "  }",
     "  passAlpha*=bookBrightness*bookRayTone*bioBrightness;",
     "  gl_PointSize=max(1.0,passRadius*2.0*u_dpr*u_renderScale);",
@@ -6666,7 +6686,9 @@ function renderScenes(){
     const morphReveal=particleField?.morphInitialized
       ? smoothstep((particleField.morph-.84)/.13)
       : rawReveal;
-    const revealIn=rawReveal*morphReveal;
+    const revealIn=isMobile
+      ? rawReveal*morphReveal
+      : rawReveal;
     const bgReveal=smoothstep((raw-.46)/.24);
     const mobileExit=smoothstep((raw-.80)/.16);
     const desktopExit=smoothstep((raw-.72)/.28);
