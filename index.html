@@ -48,8 +48,18 @@
 html{
   scroll-behavior:smooth;background:var(--bg);
   touch-action:pan-x pan-y;
-  width:100%;max-width:100%;overflow-x:hidden
+  width:100%;max-width:100%;overflow-x:hidden;
+  scrollbar-width:thin;
+  scrollbar-color:#111 #000
 }
+html::-webkit-scrollbar{width:7px}
+html::-webkit-scrollbar-track{background:#000}
+html::-webkit-scrollbar-thumb{
+  background:#111;
+  border-radius:999px;
+  border:2px solid #000
+}
+html::-webkit-scrollbar-thumb:hover{background:#1b1b1b}
 html.desktop-snapping{scroll-behavior:auto!important}
 html.spotify-scroll-lock{overflow-y:hidden!important}
 body{
@@ -1669,6 +1679,11 @@ body.boot-loading{overflow:hidden}
   }
 }
 
+
+/* ===== Discography background cleanup ===== */
+@media(min-width:721px){
+  .record>.shell:before{display:none!important}
+}
 </style>
 </head>
 <body class="boot-loading">
@@ -7017,6 +7032,7 @@ let desktopSnapKey="logo";
 let desktopSceneStateKey=null;
 let desktopSnapFrame=0;
 let desktopLogoAvailable=true;
+let desktopForceRenaissanceNext=false;
 
 let desktopWheelLastAt=0;
 let desktopWheelGestureLocked=false;
@@ -7148,6 +7164,21 @@ function animateDesktopSnap(target){
 function triggerDesktopSnap(direction){
   const targets=desktopSnapTargets();
   if(!targets.length)return;
+
+  // After the explicit "return to logo" action, the first downward gesture
+  // must always visit Renaissance. This bypasses nearest-target sync noise
+  // caused by the instantaneous scroll reset.
+  if(desktopForceRenaissanceNext&&direction>0){
+    const renaissance=targets.find(target=>target.key==="renaissance");
+    if(renaissance){
+      desktopForceRenaissanceNext=false;
+      desktopLogoAvailable=false;
+      applyDesktopSceneState("renaissance",{force:true});
+      particleField?.releaseHome?.();
+      animateDesktopSnap(renaissance.y);
+      return;
+    }
+  }
 
   let currentIndex=targets.findIndex(target=>target.key===desktopSnapKey);
 
@@ -7299,6 +7330,7 @@ window.addEventListener("wheel",e=>{
 
 function resetDesktopIntroSnap(){
   desktopLogoAvailable=true;
+  desktopForceRenaissanceNext=true;
   desktopSnapKey="logo";
   desktopSceneStateKey="logo";
   setBiographyTextActive(false);
