@@ -1124,38 +1124,12 @@ body.boot-loading{overflow:hidden}
 
 
 /* ===== Hidden Spotify engine + clickable tracklist ===== */
-.spotify-engine-shell{
-  position:fixed;
-  z-index:0;
-  left:0;
-  top:0;
-  width:320px;
-  height:80px;
-  overflow:hidden;
-  pointer-events:none;
+.spotify-engine-layer{
+  position:fixed;z-index:0;left:50%;top:50%;
+  width:320px;height:80px;transform:translate(-50%,-50%);
+  opacity:0;pointer-events:none;overflow:hidden
 }
-.spotify-engine-shell::after{
-  content:"";
-  position:absolute;
-  z-index:2;
-  inset:0;
-  background:#000;
-  pointer-events:none;
-}
-.spotify-engine-shell #spotifyEngine,
-.spotify-engine-shell iframe{
-  position:relative;
-  z-index:1;
-  display:block;
-  width:320px!important;
-  height:80px!important;
-  min-width:320px!important;
-  min-height:80px!important;
-  border:0;
-  opacity:1!important;
-  visibility:visible!important;
-  pointer-events:none!important;
-}
+.spotify-engine-layer iframe{display:block;width:320px!important;height:80px!important;border:0}
 .album-tab,.album-tab:hover,.album-tab.active{opacity:1!important}
 .album-tab img{filter:none!important;opacity:1!important}
 .track{
@@ -1446,12 +1420,13 @@ body.boot-loading{overflow:hidden}
   /* Visually align the decorative album title with the number column.
      The small positive correction compensates for the left overhang of the display glyphs. */
   .record-head{
-    left:calc(var(--album-size) + var(--layout-gap) + 18px);
-    width:342px;
+    left:calc(var(--album-size) + var(--layout-gap));
+    width:360px;
   }
   .record-title-slot{
     font-size:clamp(36px,3.55vw,50px);
     letter-spacing:.105em;
+    padding-left:32px;
   }
 
   .disc-content-panel{
@@ -1503,11 +1478,12 @@ body.boot-loading{overflow:hidden}
     padding-inline:32px;
   }
   .record-head{
-    left:calc(var(--album-size) + var(--layout-gap) + 16px);
-    width:300px;
+    left:calc(var(--album-size) + var(--layout-gap));
+    width:316px;
   }
   .record-title-slot{
     font-size:clamp(33px,3.9vw,44px);
+    padding-left:28px;
   }
   .disc-content-panel{
     grid-template-columns:300px minmax(135px,1fr) 334px;
@@ -1536,7 +1512,7 @@ body.boot-loading{overflow:hidden}
   <button type="button" data-id="reborn">Reborn</button>
   <button type="button" data-id="retaliation">Retaliation</button>
 </div>
-<div class="spotify-engine-shell" aria-hidden="true"><div id="spotifyEngine"></div></div>
+<div id="spotifyEngine" class="spotify-engine-layer" aria-hidden="true"></div>
 <header>
   <div class="brand" aria-hidden="true"><img src="assets/GV_PNG_bez_fona.png?v=13836c25" alt=""></div>
 </header>
