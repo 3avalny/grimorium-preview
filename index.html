@@ -1122,6 +1122,28 @@ body.boot-loading{overflow:hidden}
   .platforms{order:5}
 }
 
+
+/* ===== Hidden Spotify engine + clickable tracklist ===== */
+.spotify-engine-layer{
+  position:fixed;z-index:0;left:50%;top:50%;
+  width:320px;height:80px;transform:translate(-50%,-50%);
+  opacity:0;pointer-events:none;overflow:hidden
+}
+.spotify-engine-layer iframe{display:block;width:320px!important;height:80px!important;border:0}
+.album-tab,.album-tab:hover,.album-tab.active{opacity:1!important}
+.album-tab img{filter:none!important;opacity:1!important}
+.track{
+  width:100%;border:0;background:transparent;text-align:left;cursor:pointer;
+  appearance:none;-webkit-appearance:none;transition:color .16s ease,opacity .16s ease
+}
+.track:hover,.track.is-selected{color:#f2f1eb}
+.track:hover span:first-child,.track.is-selected span:first-child{color:#bfc1bd}
+@media(min-width:901px){
+  .album-tabs{height:var(--disc-height)!important;margin-top:0!important;justify-content:space-between!important}
+  .stream-col{margin-top:18px;gap:0}
+  .platforms{margin-top:6px}
+}
+
 </style>
 </head>
 <body class="boot-loading">
@@ -1136,6 +1158,7 @@ body.boot-loading{overflow:hidden}
   <button type="button" data-id="reborn">Reborn</button>
   <button type="button" data-id="retaliation">Retaliation</button>
 </div>
+<div id="spotifyEngine" class="spotify-engine-layer" aria-hidden="true"></div>
 <header>
   <div class="brand" aria-hidden="true"><img src="assets/GV_PNG_bez_fona.png?v=13836c25" alt=""></div>
 </header>
@@ -1235,6 +1258,7 @@ const ALBUMS=[
     cover:"assets/reall.jpeg?v=6710c774",
     spotifyEmbed:"https://open.spotify.com/embed/album/0jTARMxhJPbdDQloe0KsYH?utm_source=generator&si=06b8c957be2e4c76",
     tracks:["Through the labyrinth of times","The black church of eternity","The lamp of destiny","Hourglass","Last ritual","In the catacombs","Burn Gypsy burn","Brocken hourglass","It's time....padre","A slave of the lamp","REALL"],
+    spotifyTracks:["spotify:track:2ftj7TajP3G3oOMcTXQyE3","spotify:track:4HsJcsv0B0pnNhYe8NwBzh","spotify:track:2hD3NkZOYLqH2dvI43WJcY","spotify:track:47tstw8Li8OYLc2nBIgfCp","spotify:track:6d5bw11hHNvDdZxCu5vLz2","spotify:track:7AHCR8SgFYpO47ckyHnL7W","spotify:track:22zBKsSX87D6AhfhsJnkJ7","spotify:track:3iDp2eEqXfRRiwrAsfWOhE","spotify:track:0qI2wbrdfpXophU70qYrqC","spotify:track:7hcNy7LCAU2a8Cz97RFRzz","spotify:track:5Zmfxn9DdFoBeWM6soMFcM"],
     creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, keyboards; <strong>Nikita Klimychev</strong> — bass; <strong>Ilya Ponomarev</strong> — drums; <strong>Vitaliy Molodetskov</strong> — solo guitar; <strong>Uliana Zavalnaya</strong> — back vocal. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>.",
     creditsProduction:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio."
   },
@@ -1243,6 +1267,7 @@ const ALBUMS=[
     cover:"assets/revenant.jpeg?v=b220b651",
     spotifyEmbed:"https://open.spotify.com/embed/album/2MBtLeyZ55D7I9YATEaYWU?utm_source=generator&si=62937a9bf4984a39",
     tracks:["The born son of the devil","The kingdom of the pain","The march of the northern kings","Blind faith in nothing","The light of dark father","Revenant","The circus of the dark illusion","Sacred temple of blood","The great serpentine saint","The resurrected on the devil’s hands"],
+    spotifyTracks:["spotify:track:0UeLUc7vujhkz0Anq2GRnE","spotify:track:2cXZETzl8GoZGGounCjXSj","spotify:track:3MKnBWZaOg8Bg0fG3lhIkb","spotify:track:09DA6jWN1QG1WNLPzpePy8","spotify:track:2yzXfYpMWxX9gGmZTCo4j4","spotify:track:3n95sYKHRC8BcpcbPJFu8m","spotify:track:6mv2AnZJjcLnEHKciQH7Bg","spotify:track:6a0wtz78C5do43jiy7ubp5","spotify:track:5CtfGnXRhIjiMQPeIqMIWw","spotify:track:1GjzFa95VKMcKOVmctSZu4"],
     creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, bass, keyboards; <strong>Ivan N.</strong> — drums; <strong>Vitaliy Molodetskov</strong> — solo guitar; <strong><a class='credit-person-link' href='https://www.instagram.com/3avalny/' target='_blank' rel='noopener'>Efim Zavalny</a></strong> — back vocal & piano; <strong>Uliana Zavalnaya</strong> — back vocal. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>.",
     creditsProduction:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed & mastered at Dead Witch Studio."
   },
@@ -1251,6 +1276,7 @@ const ALBUMS=[
     cover:"assets/relict.jpeg?v=b1bc0539",
     spotifyEmbed:"https://open.spotify.com/embed/album/7Lhq9XHjHSRsJTHLA6MQEw?utm_source=generator&si=b2a917a1d77a4acc",
     tracks:["Relict","Rising morning star","At the gates of darkness","Black tears monastery","Night burning icons","The vision in solar eclipse","Pilgrimage to satan","In satan we trust","The truth forgotten in time","Odium"],
+    spotifyTracks:["spotify:track:228pwFwnbvhCKeRDFRDtq2","spotify:track:6ckTh3JsslHWK1suUFwBct","spotify:track:0fNoJ2VRN4xAEKJ9HdDNNn","spotify:track:2r54Ym4W462lNePOMAGwQi","spotify:track:1sPUVPBRONXqjDxIFkjM5e","spotify:track:6vY6dF2S1GYmiHFS7SsLJr","spotify:track:172sZT706GEcd9ZjvLSlMX","spotify:track:7CUyA3oW1dC8h200OUnEnG","spotify:track:3BlzBHYobz54NRNrg5gYMq","spotify:track:4MgayKhTxigvby3TkVtTpp"],
     creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, bass, keyboards; <strong>Ilya Ponomarev</strong> — drums; <strong>Dmitriy Drugov</strong> — solo guitar; <strong><a class='credit-person-link' href='https://www.instagram.com/3avalny/' target='_blank' rel='noopener'>Efim Zavalny</a></strong> — back vocal & piano; <strong>Uliana Zavalnaya</strong> — back vocal; <strong>Vladimir Matviychuk</strong> — piano. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>.",
     creditsProduction:"Music recorded at Dead Witch Studio. Vocals recorded at R&W Studio. Mixed at Dead Witch Studio."
   },
@@ -1259,6 +1285,7 @@ const ALBUMS=[
     cover:"assets/reborn.jpeg?v=59c27889",
     spotifyEmbed:"https://open.spotify.com/embed/album/6ZTX91DlslOEmhp02VS6K4?utm_source=generator&si=fed339980eb84763",
     tracks:["Among ancient walls","Wolf bite","Witch","Torture","Unfetter","White spirit of the dark side","Fall into oblivion","Immortal soul"],
+    spotifyTracks:["spotify:track:0jmOJghBkcK4at9Fs0YD25","spotify:track:6jSVxyaMH0jDfWDWoDnQM8","spotify:track:51pNHs3MmqOBbppDRC3Uhr","spotify:track:5qMeVWbKtcceiYIBVD3nG1","spotify:track:46UkOQBDQmKaqV2ZxNkSAd","spotify:track:4Bg3d1Z8OG4Rp8SmeSMrCW","spotify:track:61hDVdjWDRMfjXwKvfhOFV","spotify:track:58CxTEOf8oroBek0SFzUa7"],
     creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, bass, keyboards; <strong>Zuban</strong> — drums; <strong><a class='credit-person-link' href='https://www.instagram.com/3avalny/' target='_blank' rel='noopener'>Efim Zavalny</a></strong> — back vocal, orchestration arranged; <strong>Michael Esev</strong> — solo guitar; <strong>Alena Lodygina</strong> — back vocal. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>.",
     creditsProduction:"Recorded at Dead Witch Studio."
   },
@@ -1267,6 +1294,7 @@ const ALBUMS=[
     cover:"assets/retaliation.jpeg?v=04692ece",
     spotifyEmbed:"https://open.spotify.com/embed/album/03bFhnT6mvOsg6cpey99Hq?utm_source=generator&si=7a38e103f9404a1b",
     tracks:["Intro - Undercover guest","Sacrifice","Funeral","God of nothing","Homohereticus","Last night of vampire","A time to kill","Curse of voodoo","Gollywog","Egypt","Twisted human form","Digging grave","...from the grave","Painted black","Outro"],
+    spotifyTracks:["spotify:track:2AAOAsEXe23BftlKqIU2to","spotify:track:09k5hdwmunuic6o6LwrbZ9","spotify:track:0vginvwtsGsA1nto1uCodG","spotify:track:731UA0YSqAe8xIKYcZgh7U","spotify:track:2hrUwUlgfGGbZYE8VRX8pO","spotify:track:2ab7syDfIr0GJFRGoHmA4K","spotify:track:6Br6pyE37WfKh8IoAjwIzu","spotify:track:05eX59k0GbP8dSfy92XAjt","spotify:track:6DhrldHgM0AIvpW5C1yPib","spotify:track:32h7tQWbeSUXSSJBIbVmWc","spotify:track:1ciOmSMnT7xREzEDOlKCDq","spotify:track:73T8YA5kHNpGD6kQrFDc6o","spotify:track:5fZ7RTyABCiDkgvzIygOzp","spotify:track:1apNDoWMz0eMY8S9wpwk4a","spotify:track:6oTBEM5XvzW9vKpPv1xp3I"],
     creditsPeople:"<strong>Roma Diamond</strong> — vocals; <strong>Andrey Zavalny</strong> — guitars, bass, keyboards, drums. Lyrics by <strong>Roma Diamond</strong>; Music by <strong>Andrey Zavalny</strong>, <strong>Yura Linber</strong>, <strong>John Money</strong>.",
     creditsProduction:"Recorded at Dead Witch Studio. Co-produced by Yura Linber."
   }
@@ -1489,7 +1517,7 @@ function makeDiscPanel(a){
   panel.innerHTML=`
     <div class="track-col cascade-stage stage-track">
       <div class="panel-tracklist">
-        ${a.tracks.map((t,i)=>`<div class="track"><span>${String(i+1).padStart(2,"0")}</span><span>${t}</span></div>`).join("")}
+        ${a.tracks.map((t,i)=>`<button class="track" type="button" data-track-index="${i}" data-track-uri="${a.spotifyTracks?.[i]||""}" aria-label="Play ${t}"><span>${String(i+1).padStart(2,"0")}</span><span>${t}</span></button>`).join("")}
       </div>
     </div>
 
@@ -1503,19 +1531,16 @@ function makeDiscPanel(a){
 
     <div class="stream-col cascade-stage stage-stream">
       <div class="player-controls" aria-label="${a.title} playback controls">
-        <button class="player-control player-control-prev" type="button" data-player-action="prev" aria-label="Previous album" title="Previous album">
+        <button class="player-control player-control-prev" type="button" data-player-action="prev" aria-label="Previous track" title="Previous track">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5 8 12l8 7"/><path d="M7 5v14"/></svg>
         </button>
         <button class="player-control player-control-toggle" type="button" data-player-action="toggle" aria-label="Play" title="Play / pause">
           <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 9 6-9 6Z"/></svg>
           <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>
         </button>
-        <button class="player-control player-control-next" type="button" data-player-action="next" aria-label="Next album" title="Next album">
+        <button class="player-control player-control-next" type="button" data-player-action="next" aria-label="Next track" title="Next track">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 8 7-8 7"/><path d="M17 5v14"/></svg>
         </button>
-      </div>
-      <div class="player">
-        <div class="spotify-embed-host" data-spotify-url="${spotifyContentUrl(a)}" aria-label="${a.title} — Spotify player"></div>
       </div>
     </div>
 
@@ -1539,7 +1564,6 @@ function makeDiscPanel(a){
 function renderDiscPanels(){
   discContentWindow.innerHTML="";
   ALBUMS.forEach(a=>discContentWindow.appendChild(makeDiscPanel(a)));
-  bindSpotifyScrollIsolation();
 }
 
 function discPanelFor(id){
@@ -1547,85 +1571,128 @@ function discPanelFor(id){
 }
 
 let spotifyIframeAPI=null;
-const spotifyControllers=new WeakMap();
+let spotifyController=null;
+const spotifyEngine=document.getElementById("spotifyEngine");
+let activeTrackState=null;
+let queuedTrackState=null;
 
-function setSpotifyButtonState(panel,isPaused=true){
-  const button=panel?.querySelector('[data-player-action="toggle"]');
-  if(!button)return;
-  button.classList.toggle("is-playing",!isPaused);
-  button.setAttribute("aria-label",isPaused?"Play":"Pause");
+function setSpotifyButtonState(isPaused=true){
+  document.querySelectorAll('[data-player-action="toggle"]').forEach(button=>{
+    button.classList.toggle("is-playing",!isPaused);
+    button.setAttribute("aria-label",isPaused?"Play":"Pause");
+  });
+}
+
+function markTrackSelection(albumId,trackIndex){
+  discContentWindow.querySelectorAll(".track").forEach(track=>track.classList.remove("is-selected"));
+  const track=discPanelFor(albumId)?.querySelector(`.track[data-track-index="${trackIndex}"]`);
+  track?.classList.add("is-selected");
+}
+
+function findTrackStateByUri(uri){
+  for(const album of ALBUMS){
+    const index=(album.spotifyTracks||[]).indexOf(uri);
+    if(index>=0)return{albumId:album.id,trackIndex:index,uri};
+  }
+  return null;
+}
+
+function playTrack(albumId,trackIndex,{autoplay=true}={}){
+  const album=ALBUMS.find(item=>item.id===albumId);
+  if(!album)return;
+  const uri=album.spotifyTracks?.[trackIndex];
+  if(!uri)return;
+
+  activeTrackState={albumId,trackIndex,uri};
+  markTrackSelection(albumId,trackIndex);
+
+  if(!spotifyController){
+    queuedTrackState={albumId,trackIndex,uri,autoplay};
+    return;
+  }
+
+  spotifyController.loadEntity(uri);
+  if(autoplay)spotifyController.play();
+}
+
+function pauseSpotify(){
+  if(spotifyController){
+    try{spotifyController.pause()}catch(_){}
+  }
+  setSpotifyButtonState(true);
 }
 
 window.onSpotifyIframeApiReady=(IFrameAPI)=>{
   spotifyIframeAPI=IFrameAPI;
-  const activePanel=ALBUMS[activeAlbumIndex]?discPanelFor(ALBUMS[activeAlbumIndex].id):null;
-  if(activePanel)ensureSpotifyLoaded(activePanel);
+  const initialUri=ALBUMS[0]?.spotifyTracks?.[0];
+  if(!spotifyEngine||!initialUri)return;
+
+  spotifyIframeAPI.createController(spotifyEngine,{width:320,height:80,uri:initialUri},controller=>{
+    spotifyController=controller;
+    setSpotifyButtonState(true);
+
+    controller.addListener("playback_started",event=>{
+      const uri=event?.data?.playingURI;
+      const state=uri?findTrackStateByUri(uri):null;
+      if(state){
+        activeTrackState=state;
+        markTrackSelection(state.albumId,state.trackIndex);
+      }
+      setSpotifyButtonState(false);
+    });
+
+    controller.addListener("playback_update",event=>{
+      setSpotifyButtonState(event?.data?.isPaused!==false);
+    });
+
+    if(queuedTrackState){
+      const queued=queuedTrackState;
+      queuedTrackState=null;
+      playTrack(queued.albumId,queued.trackIndex,{autoplay:queued.autoplay});
+    }
+  });
 };
 
-function ensureSpotifyLoaded(panel){
-  if(!panel||spotifyControllers.has(panel)||!spotifyIframeAPI)return;
-  const host=panel.querySelector(".spotify-embed-host");
-  if(!host)return;
-  const url=host.dataset.spotifyUrl;
-  if(!url)return;
-
-  spotifyIframeAPI.createController(host,{
-    width:"100%",
-    height:window.innerWidth<=900?152:80,
-    url
-  },controller=>{
-    spotifyControllers.set(panel,controller);
-    setSpotifyButtonState(panel,true);
-    controller.addListener("playback_update",event=>{
-      const data=event?.data||{};
-      setSpotifyButtonState(panel,data.isPaused!==false);
-    });
-  });
-}
-
-function stopSpotifyPanel(panel){
-  const controller=spotifyControllers.get(panel);
-  if(controller){
-    try{controller.pause()}catch(_){}
-  }
-  setSpotifyButtonState(panel,true);
-}
-
-function preloadSpotifyNeighbor(index){
-  if(!spotifyIframeAPI)return;
-  const nextIndex=Math.min(ALBUMS.length-1,index+1);
-  if(nextIndex===index)return;
-  const load=()=>ensureSpotifyLoaded(discPanelFor(ALBUMS[nextIndex].id));
-  if("requestIdleCallback" in window){
-    requestIdleCallback(load,{timeout:1800});
-  }else{
-    window.setTimeout(load,900);
-  }
-}
+function stopSpotifyPanel(){}
 
 function bindPlayerControls(panel){
   const prev=panel.querySelector('[data-player-action="prev"]');
   const next=panel.querySelector('[data-player-action="next"]');
   const toggle=panel.querySelector('[data-player-action="toggle"]');
 
+  panel.querySelectorAll(".track").forEach(track=>{
+    track.addEventListener("click",()=>{
+      const index=Number(track.dataset.trackIndex);
+      if(Number.isFinite(index))playTrack(panel.dataset.albumId,index,{autoplay:true});
+    });
+  });
+
   prev?.addEventListener("click",()=>{
-    const index=ALBUMS.findIndex(album=>album.id===panel.dataset.albumId);
-    const target=Math.max(0,index-1);
-    if(target!==index)selectAlbum(ALBUMS[target].id);
+    const album=ALBUMS.find(item=>item.id===panel.dataset.albumId);
+    if(!album)return;
+    const current=activeTrackState?.albumId===album.id?activeTrackState.trackIndex:0;
+    playTrack(album.id,Math.max(0,current-1),{autoplay:true});
   });
 
   next?.addEventListener("click",()=>{
-    const index=ALBUMS.findIndex(album=>album.id===panel.dataset.albumId);
-    const target=Math.min(ALBUMS.length-1,index+1);
-    if(target!==index)selectAlbum(ALBUMS[target].id);
+    const album=ALBUMS.find(item=>item.id===panel.dataset.albumId);
+    if(!album)return;
+    const current=activeTrackState?.albumId===album.id?activeTrackState.trackIndex:-1;
+    playTrack(album.id,Math.min(album.tracks.length-1,current+1),{autoplay:true});
   });
 
   toggle?.addEventListener("click",()=>{
-    ensureSpotifyLoaded(panel);
-    const controller=spotifyControllers.get(panel);
-    if(controller)controller.togglePlay();
+    const album=ALBUMS.find(item=>item.id===panel.dataset.albumId);
+    if(!album)return;
+    if(!activeTrackState||activeTrackState.albumId!==album.id){
+      playTrack(album.id,0,{autoplay:true});
+      return;
+    }
+    if(spotifyController)spotifyController.togglePlay();
+    else playTrack(album.id,activeTrackState.trackIndex,{autoplay:true});
   });
 }
+
 
 function resetDiscPanelState(panel){
   panel.classList.remove("current","incoming","outgoing","up","down","go","preparing");
@@ -1753,14 +1820,17 @@ function selectAlbum(id){
     button.setAttribute("aria-pressed",selected?"true":"false");
   });
 
-  ensureSpotifyLoaded(newPanel);
+  if(previousIndex>=0)pauseSpotify();
+  activeTrackState=null;
+  queuedTrackState=null;
+  setSpotifyButtonState(true);
   animateTitle(a,direction,token);
   animateDiscWindow(newPanel,oldPanel,direction,token);
   animateWindow(creditsTextWindow,makeCreditsPanel(a),direction,token);
 
   activeAlbumIndex=nextIndex;
   particleField?.setAlbumScene?.(id);
-  preloadSpotifyNeighbor(nextIndex);
+
 }
 
 renderTabs();
