@@ -2003,7 +2003,6 @@ let queuedTrackState=null;
 
 let spotifyPlaybackUnlocked=false;
 let spotifyIsPaused=true;
-let spotifyUnlockTimer=0;
 
 function showSpotifyActivation(){
   if(spotifyPlaybackUnlocked)return;
@@ -2046,10 +2045,16 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
   activeTrackState={albumId,trackIndex,uri};
   markTrackSelection(albumId,trackIndex);
 
-  if(!spotifyPlaybackUnlocked)showSpotifyActivation();
-
   if(!spotifyController){
     queuedTrackState={albumId,trackIndex,uri,autoplay};
+    if(!spotifyPlaybackUnlocked)showSpotifyActivation();
+    return;
+  }
+
+  if(!spotifyPlaybackUnlocked){
+    spotifyController.loadEntity(uri);
+    setSpotifyButtonState(true);
+    showSpotifyActivation();
     return;
   }
 
@@ -2080,10 +2085,8 @@ window.onSpotifyIframeApiReady=(IFrameAPI)=>{
         activeTrackState=state;
         markTrackSelection(state.albumId,state.trackIndex);
       }
-
-      // playback_started only means Spotify attempted to start.
-      // Safari can still immediately force the embed back to paused.
-      setSpotifyButtonState(false);
+      // Do not mark the row as playing here. Safari can still reject the
+      // attempt; playback_update with isPaused:false is authoritative.
     });
 
     controller.addListener("playback_update",event=>{
@@ -2091,12 +2094,7 @@ window.onSpotifyIframeApiReady=(IFrameAPI)=>{
       if(typeof data.isPaused!=="boolean")return;
 
       if(data.isPaused){
-        window.clearTimeout(spotifyUnlockTimer);
-        spotifyUnlockTimer=0;
         setSpotifyButtonState(true);
-
-        // If Safari rejected the first programmatic play, keep the official
-        // Embed available so the visitor can perform the one required click.
         if(!spotifyPlaybackUnlocked)showSpotifyActivation();
         return;
       }
@@ -2104,13 +2102,8 @@ window.onSpotifyIframeApiReady=(IFrameAPI)=>{
       setSpotifyButtonState(false);
 
       if(!spotifyPlaybackUnlocked && !data.isBuffering){
-        window.clearTimeout(spotifyUnlockTimer);
-        spotifyUnlockTimer=window.setTimeout(()=>{
-          spotifyUnlockTimer=0;
-          if(spotifyIsPaused)return;
-          spotifyPlaybackUnlocked=true;
-          hideSpotifyActivation();
-        },350);
+        spotifyPlaybackUnlocked=true;
+        hideSpotifyActivation();
       }
     });
 
