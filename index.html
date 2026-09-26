@@ -2176,8 +2176,8 @@ window.onSpotifyIframeApiReady=(IFrameAPI)=>{
       queuedTrackState=null;
       armTrack(queued.albumId,queued.trackIndex);
       if(queued.autoplay){
-        // The next explicit click remains the playback gesture.
         setSpotifyButtonState(true);
+        showSpotifyFallback();
       }
     }
   });
@@ -2197,9 +2197,6 @@ function bindPlayerControls(panel){
     // Mouse/touch: preload before click. Keyboard: keydown preloads before the
     // native button click fired on keyup.
     track?.addEventListener("pointerdown",arm,{passive:true});
-    track?.addEventListener("mouseenter",()=>{
-      if(window.matchMedia("(hover:hover)").matches)arm();
-    },{passive:true});
     track?.addEventListener("keydown",event=>{
       if(event.key==="Enter"||event.key===" ")arm();
     });
