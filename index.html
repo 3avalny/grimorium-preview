@@ -2003,6 +2003,7 @@ let queuedTrackState=null;
 
 let spotifyPlaybackUnlocked=false;
 let spotifyIsPaused=true;
+let spotifyUnlockTimer=0;
 
 function showSpotifyActivation(){
   if(spotifyPlaybackUnlocked)return;
@@ -2073,19 +2074,44 @@ window.onSpotifyIframeApiReady=(IFrameAPI)=>{
     setSpotifyButtonState(true);
 
     controller.addListener("playback_started",event=>{
-      spotifyPlaybackUnlocked=true;
-      hideSpotifyActivation();
       const uri=event?.data?.playingURI;
       const state=uri?findTrackStateByUri(uri):null;
       if(state){
         activeTrackState=state;
         markTrackSelection(state.albumId,state.trackIndex);
       }
+
+      // playback_started only means Spotify attempted to start.
+      // Safari can still immediately force the embed back to paused.
       setSpotifyButtonState(false);
     });
 
     controller.addListener("playback_update",event=>{
-      setSpotifyButtonState(event?.data?.isPaused!==false);
+      const data=event?.data||{};
+      if(typeof data.isPaused!=="boolean")return;
+
+      if(data.isPaused){
+        window.clearTimeout(spotifyUnlockTimer);
+        spotifyUnlockTimer=0;
+        setSpotifyButtonState(true);
+
+        // If Safari rejected the first programmatic play, keep the official
+        // Embed available so the visitor can perform the one required click.
+        if(!spotifyPlaybackUnlocked)showSpotifyActivation();
+        return;
+      }
+
+      setSpotifyButtonState(false);
+
+      if(!spotifyPlaybackUnlocked && !data.isBuffering){
+        window.clearTimeout(spotifyUnlockTimer);
+        spotifyUnlockTimer=window.setTimeout(()=>{
+          spotifyUnlockTimer=0;
+          if(spotifyIsPaused)return;
+          spotifyPlaybackUnlocked=true;
+          hideSpotifyActivation();
+        },350);
+      }
     });
 
     if(queuedTrackState){
