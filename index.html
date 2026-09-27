@@ -3853,6 +3853,10 @@ function createParticleField(){
     "  float bioFlame=step(11.5,structure)*(1.0-step(12.5,structure));",
     "  float bioWeb=step(12.5,structure)*(1.0-step(13.5,structure));",
     "  float bioSpark=step(13.5,structure);",
+    "",
+    "  // Settled Book uses the same fine-grain visual scale as Discography.",
+    "  // The factor fades out immediately when leaving Book for another scene.",
+    "  float settledBook=smoother((u_morph-.94)/.06)*(1.0-discT)*(1.0-bioT);",
     "  // Logo <-> Book engages immediately. Per-particle timing still differs,",
     "  // but no particle waits long enough for a disturbed logo to reform first.",
     "  float logoDelay=a_seed.x*.14;",
@@ -4216,8 +4220,10 @@ function createParticleField(){
     "    float travellingVisible=targetVisible*mix(.62,1.0,reconstructionBlend);",
     "    visible=mix(travellingVisible,logoKeep,logoLanding);",
     "    passRadius=mix(reconstructionMeta.z*mix(.86,.68,materialDetail),logoSharpRadius,logoLanding);",
+    "    passRadius*=mix(1.0,.82,settledBook);",
     "    color=mix(mix(reconstructionColor,reconstructionColor*1.12,materialDetail),logoSharpColor,logoLanding);",
     "    passAlpha=mix(materialToneAlpha*bookSpineTone*materialProtection*.72,logoToneAlpha,logoLanding);",
+    "    passAlpha*=mix(1.0,.92,settledBook);",
     "    float logoBookSmoke=sin(PI*localLeave);",
     "    passRadius*=1.0+logoBookSmoke*(.18+.34*a_seed.w);",
     "    passAlpha*=mix(1.0,.74,logoBookSmoke);",
@@ -4991,7 +4997,7 @@ function createParticleField(){
         zone:0,
         glow:p.glow,
         structure:0,
-        radius:p.radius*bookPlacement.scale,
+        radius:p.radius*bookPlacementBase.scale,
         r:p.r,g:p.g,b:p.b
       });
     });
