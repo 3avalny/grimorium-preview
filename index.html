@@ -4229,7 +4229,7 @@ function createParticleField(){
     "  // Global particle-size ceiling. Every scene and every morph may use",
     "  // smaller points, but nothing on the site can render larger than this.",
     "  // Cap is expressed in CSS pixels, then converted to device pixels.",
-    "  float pointDiameterCss=min(passRadius*2.0,2.8);",
+    "  float pointDiameterCss=min(passRadius*2.0,2.5);",
     "  gl_PointSize=max(1.0,pointDiameterCss*u_dpr*u_renderScale);",
     "  v_color=color;",
     "  v_alpha=passAlpha*visible;",
@@ -6420,6 +6420,25 @@ function createParticleField(){
       const bloom=particleSmoother((state.morph-.60)/.40);
       const alpha=particleMix(.94,.72,material)*(1+state.discMorph*.12)*(1+state.bioMorph*.08);
 
+      // Soft passes and bloom make capped points look visually much larger
+      // during morphs. Fade those halos out while anything is moving; the
+      // actual particle trajectories remain smoky/curling, but point scale
+      // stays visually consistent with settled Discography.
+      const logoBookMotion=4*state.morph*(1-state.morph);
+      const bookDiscMotion=4*state.discMorph*(1-state.discMorph);
+      const discBioMotion=4*state.bioMorph*(1-state.bioMorph);
+      const albumMotion=state.albumSceneTransitioning
+        ? 4*state.albumSceneMorph*(1-state.albumSceneMorph)
+        : 0;
+      const transitionActivity=particleClamp(Math.max(
+        logoBookMotion,
+        bookDiscMotion,
+        discBioMotion,
+        albumMotion
+      ));
+      const softPassGain=1-transitionActivity*.94;
+      const transitionBloom=bloom*(1-transitionActivity*.98);
+
       if(particleLogoHit){
         const logoClickable=
           state.morphTo>.5 &&
@@ -6439,12 +6458,12 @@ function createParticleField(){
       setParticleUniforms(now,material,bloom,alpha,1,0);
       gl.drawArrays(gl.POINTS,0,state.count);
 
-      if(material>.01){
+      if(material>.01&&softPassGain>.015){
         gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
-        setParticleUniforms(now,material,bloom,alpha,1,1);
+        setParticleUniforms(now,material,transitionBloom,alpha*softPassGain,1,1);
         gl.drawArrays(gl.POINTS,0,state.count);
 
-        setParticleUniforms(now,material,bloom,alpha,1,2);
+        setParticleUniforms(now,material,transitionBloom,alpha*softPassGain,1,2);
         gl.drawArrays(gl.POINTS,0,state.count);
       }
 
@@ -6454,7 +6473,9 @@ function createParticleField(){
       setParticleUniforms(now,material,bloom,alpha,1,4);
       gl.drawArrays(gl.POINTS,0,state.count);
 
-      renderBloom(now,material,bloom,alpha);
+      if(transitionBloom>.004){
+        renderBloom(now,material,transitionBloom,alpha*softPassGain);
+      }
 
       if(material>.001){
         gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
