@@ -4000,17 +4000,10 @@ function createParticleField(){
     "  bookDrift*=vec2(bookAmpX,bookAmpY)*1.20*bookAmpBreath*bookRadialLife*bookOuterBoost;",
     "  pos+=bookDrift*bookLifeGate;",
     "",
-    "  // Brightness never exceeds the current reconstruction. Each point dims",
-    "  // independently and returns at its own rate.",
-    "  float bookBrightnessRaw=.5+.5*sin(",
-    "    bookT*mix(.30,1.25,a_seed.x)+bookPhaseY+a_seed.y*5.0",
-    "  );",
-    "  float bookBrightnessPhase=smoother((bookBrightnessRaw-.08)/.84);",
-    "  float bookBrightnessFloor=mix(.34,.784,a_seed.z);",
-    "  float bookBrightness=mix(1.0,mix(bookBrightnessFloor,1.0,bookBrightnessPhase),bookLifeGate);",
-    "  float bookV=a_target.y/max(1.0,u_resolution.y);",
-    "  float bookUpperRay=(1.0-smoothstep(.018,.070,abs(bookU-.5)))*(1.0-smoothstep(.18,.58,bookV));",
-    "  float bookRayTone=1.0-bookUpperRay*u_material*(1.0-discT)*(1.0-u_bio)*.46;",
+    "  // Book uses the same stable reconstruction exposure as Discography.",
+    "  // Motion remains alive, but rendered size/alpha no longer breathe over time.",
+    "  float bookBrightness=1.0;",
+    "  float bookRayTone=1.0;",
     "",
     "  // Biography: the same independent anchor-local life as Book, but with",
     "  // uniform strength across the frame (no distance-from-center rule).",
@@ -4210,8 +4203,8 @@ function createParticleField(){
     "    float materialLum=reconstructionMeta.x;",
     "    float materialToneAlpha=mix(.22,.98,smoothstep(.012,.17,materialLum));",
     "    float materialDetail=smoothstep(.055,.28,materialLum);",
-    "    float bookSpine=1.0-smoothstep(.018,.085,abs(bookU-.5));",
-    "    float bookSpineTone=1.0-bookSpine*(1.0-discT)*(1.0-bioT)*.13;",
+    "    // Use the same neutral tone multiplier as album reconstruction.",
+    "    float bookSpineTone=1.0;",
     "    float materialProtection=mix(1.0,.22,topLogoField)*mix(1.0,.08,topLogoCore);",
     "",
     "    // Keep the logo unreadable until each individual point is actually close",
@@ -5414,7 +5407,7 @@ function createParticleField(){
   function rebuildBloomTargets(){
     deleteRenderTarget(state.bloomA);
     deleteRenderTarget(state.bloomB);
-    const scale=state.effectQualityScale<.7?.24:(state.effectQualityScale<.85?.30:.36);
+    const scale=.36;
     state.bloomScale=scale;
     const bw=Math.max(2,Math.round(particleCanvas.width*scale));
     const bh=Math.max(2,Math.round(particleCanvas.height*scale));
@@ -6313,25 +6306,9 @@ function createParticleField(){
   }
 
   function adaptPerformance(dt){
-    if(state.perfAdapted||state.width<=1100||dt<=0||dt>100)return;
-    state.perfSum+=dt;
+    if(state.perfAdapted||dt<=0)return;
     state.perfCount+=1;
-    if(state.perfCount<180)return;
-
-    const avg=state.perfSum/state.perfCount;
-    let scale=state.effectQualityScale;
-    if(avg>29)scale=.52;
-    else if(avg>22)scale=.72;
-
-    state.perfAdapted=true;
-    if(scale<state.effectQualityScale){
-      // Never reduce particle geometry after the scene has settled. Rebuilding
-      // with fewer samples visibly changes the Discography reconstruction and
-      // causes the one-time "blink/blur" after a few seconds. If needed, only
-      // lower the offscreen bloom resolution; the 240k desktop sample stays put.
-      state.effectQualityScale=scale;
-      rebuildBloomTargets();
-    }
+    if(state.perfCount>=180)state.perfAdapted=true;
   }
 
   function render(now){
