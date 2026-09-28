@@ -3670,17 +3670,8 @@ function createParticleField(){
   let fullQualityBuildRequested=false;
   let handoffCoreOnly=false;
 
-  const hardwareCores=Math.max(1,Number(navigator.hardwareConcurrency)||8);
-  const hardwareMemory=Math.max(1,Number(navigator.deviceMemory)||16);
-  const initialGeometryQuality=(()=>{
-    // Geometry quality is chosen once per page load and never reduced at runtime.
-    // Weak hardware gets a smaller deterministic sample immediately, so there is
-    // no later "blink" caused by changing the particle set after it has settled.
-    if(window.innerWidth<=1100)return 1;
-    if(hardwareCores<=4||hardwareMemory<=4)return .68;
-    if(hardwareCores<=6||hardwareMemory<=8)return .84;
-    return 1;
-  })();
+  // Maximum-quality mode: never reduce particle geometry based on hardware.
+  const initialGeometryQuality=1;
 
   const vertexTextureUnits=gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS)||0;
   const supportsSideGlyphMask=vertexTextureUnits>0;
@@ -4532,25 +4523,9 @@ function createParticleField(){
   }
 
   function desiredCount(){
-    const w=state.width;
-    const requested=requestedParticleCount();
-
-    // Keep the hidden handoff field light. The point radius is normalized
-    // separately to requestedParticleCount(), so lowering count never makes
-    // the visible particles larger.
-    if(
-      document.body.classList.contains("boot-loading")&&
-      !fullQualityBuildRequested
-    ){
-      return Math.min(requested,w<=720?5000:28000);
-    }
-
-    if(fullQualityBuildRequested&&handoffCoreOnly){
-      return Math.min(requested,w<=720?12000:60000);
-    }
-
-    return requested;
+    return requestedParticleCount();
   }
+
 
   function pointInBookShape(u,v){
     if(v<.16||v>.82)return false;
@@ -5446,7 +5421,7 @@ function createParticleField(){
 
     state.width=Math.max(1,window.innerWidth);
     state.height=Math.max(1,window.innerHeight);
-    state.dpr=Math.min(window.devicePixelRatio||1,1.75);
+    state.dpr=Math.min(window.devicePixelRatio||1,2);
 
     particleCanvas.width=Math.round(state.width*state.dpr);
     particleCanvas.height=Math.round(state.height*state.dpr);
@@ -5531,12 +5506,7 @@ function createParticleField(){
     document.documentElement.classList.add("particle-field-ready");
     introBrandImg.style.opacity="0";
     grimoriumBootLoader?.mark("particleEngine");
-
-    // Never make the visitor wait for the later high-density rebuild.
-    // The current WebGL field is already valid and interactive.
-    if(!fullQualityBuildRequested){
-      grimoriumBootLoader?.markFullFieldReady?.();
-    }
+    grimoriumBootLoader?.markFullFieldReady?.();
   }
 
   function updateMorph(now,heroRaw){
@@ -6871,7 +6841,6 @@ function createParticleField(){
     deferredSettled.add(ref);
     deferredSettledCount+=1;
     deferredReferencesDirty=true;
-    maybeStartFullHandoff();
   };
 
   function runHiddenFullRebuild(){
@@ -6954,11 +6923,7 @@ function createParticleField(){
   });
 
   grimoriumBootLoader?.onComplete?.(()=>{
-    // The page is already interactive here. Upgrade only after the loader has
-    // disappeared; optional album/Bio scenes are prepared by the upgrade itself.
-    window.setTimeout(()=>{
-      maybeStartFullHandoff();
-    },320);
+    prepareDeferredScenesAfterBoot();
   });
 
   window.addEventListener("resize",()=>{
