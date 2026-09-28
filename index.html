@@ -1913,35 +1913,6 @@ html.home-returning main{
   }
 }
 
-
-/* ===== Measured Discography panel widths ===== */
-@media(min-width:901px){
-  .record{
-    --left-zone-width:300px;
-  }
-  .record-head{
-    width:var(--left-zone-width)!important;
-  }
-  .disc-content-panel{
-    grid-template-columns:var(--left-zone-width) minmax(180px,1fr) var(--right-zone-width)!important;
-  }
-  .discography-grid::before{
-    width:calc(var(--album-size) + var(--layout-gap) + var(--left-zone-width) + 28px)!important;
-  }
-  .platforms{
-    grid-row:3!important;
-    align-self:end!important;
-    height:36px!important;
-    margin:0!important;
-    padding:0!important;
-  }
-}
-@media(min-width:901px) and (max-width:1180px){
-  .disc-content-panel{
-    grid-template-columns:var(--left-zone-width) minmax(100px,1fr) var(--right-zone-width)!important;
-  }
-}
-
 </style>
 </head>
 <body class="boot-loading">
@@ -2347,46 +2318,9 @@ function makeDiscPanel(a){
   return panel;
 }
 
-const discMeasureCanvas=document.createElement("canvas");
-const discMeasureCtx=discMeasureCanvas.getContext("2d");
-
-function updateDiscLeftZoneWidth(){
-  const record=document.querySelector(".record");
-  if(!record||window.innerWidth<=900||!discMeasureCtx)return;
-
-  let longestTrack=0;
-  discContentWindow.querySelectorAll(".track-title").forEach(node=>{
-    const cs=getComputedStyle(node);
-    discMeasureCtx.font=cs.font||(cs.fontSize+" "+cs.fontFamily);
-    longestTrack=Math.max(
-      longestTrack,
-      discMeasureCtx.measureText(node.textContent||"").width
-    );
-  });
-
-  const titleStyle=getComputedStyle(recordTitle);
-  discMeasureCtx.font=titleStyle.font||(titleStyle.fontSize+" "+titleStyle.fontFamily);
-  let longestAlbumTitle=0;
-  ALBUMS.forEach(a=>{
-    longestAlbumTitle=Math.max(
-      longestAlbumTitle,
-      discMeasureCtx.measureText(a.title.toUpperCase()).width
-    );
-  });
-
-  const trackNeed=28+9+longestTrack+22;
-  const titlePad=parseFloat(titleStyle.paddingLeft)||0;
-  const titleNeed=titlePad+longestAlbumTitle+22;
-  const minWidth=window.innerWidth<=1180?270:286;
-  const width=Math.ceil(Math.max(minWidth,trackNeed,titleNeed));
-
-  record.style.setProperty("--left-zone-width",width+"px");
-}
-
 function renderDiscPanels(){
   discContentWindow.innerHTML="";
   ALBUMS.forEach(a=>discContentWindow.appendChild(makeDiscPanel(a)));
-  requestAnimationFrame(updateDiscLeftZoneWidth);
 }
 
 function discPanelFor(id){
@@ -2811,12 +2745,6 @@ particleAlbumDebug?.querySelectorAll("button").forEach(button=>{
   button.addEventListener("click",()=>selectAlbum(button.dataset.id));
 });
 renderDiscPanels();
-if(document.fonts?.ready){
-  document.fonts.ready.then(updateDiscLeftZoneWidth);
-}
-window.addEventListener("resize",()=>{
-  requestAnimationFrame(updateDiscLeftZoneWidth);
-},{passive:true});
 selectAlbum("reall");
 
 const mobileRecord=document.querySelector(".record");
@@ -4040,16 +3968,41 @@ function createParticleField(){
     "  }",
     "",
 
-    "  // Book and Discography use the same coherent scene-flow field.",
+    "  // Discography keeps the coherent field distortion.",
     "  float flowTime=u_time*.00016;",
-    "  vec2 reconstructionUV=sceneTarget/u_resolution;",
+    "  vec2 reconstructionUV=albumSceneTarget/u_resolution;",
     "  vec2 albumFlow=vec2(",
     "    sin(reconstructionUV.y*7.2+flowTime)+.42*sin(reconstructionUV.x*5.4-flowTime*.63),",
     "    cos(reconstructionUV.x*6.4+flowTime*.82)+.36*sin(reconstructionUV.y*8.1+flowTime*.91)",
     "  );",
-    "  float sharedSceneDriftGate=(1.0-u_bio)*u_material*localLeave*(1.0-isTop);",
-    "  pos+=albumFlow*4.8*sharedSceneDriftGate;",
+    "  float bookU=a_target.x/max(1.0,u_resolution.x);",
+    "  float albumDriftGate=discT*u_material*localLeave*(1.0-isTop)*(1.0-u_bio);",
+    "  pos+=albumFlow*4.8*albumDriftGate;",
+    "",
+    "  // Book: every particle has its own anchor-local motion. No shared field.",
+    "  float bookLifeGate=(1.0-discT)*(1.0-u_bio)*u_material*localLeave*(1.0-isTop);",
     "  float bookT=u_time*.001;",
+    "  float bookPhaseX=a_seed.x*PI*2.0;",
+    "  float bookPhaseY=a_seed.z*PI*2.0;",
+    "  float bookSpeedX=mix(.18,1.05,a_seed.y);",
+    "  float bookSpeedY=mix(.15,.92,a_seed.w);",
+    "  float bookAmpX=mix(.55,5.80,pow(a_seed.x,1.35));",
+    "  float bookAmpY=mix(.45,4.90,pow(a_seed.z,1.35));",
+    "  float bookBreathPhase=bookT*mix(.070,.220,a_seed.w)+bookPhaseY*.73;",
+    "  float bookAmpBreath=.46+.54*(.5+.5*sin(bookBreathPhase));",
+    "  vec2 bookAnchorNorm=(a_target-u_resolution*.5)/vec2(u_resolution.x*.48,u_resolution.y*.48);",
+    "  float bookAnchorRadius=length(bookAnchorNorm);",
+    "  float bookRadialLife=mix(.08,1.0,smoother((bookAnchorRadius-.08)/.72));",
+    "  float bookOuterBoost=1.0+.72*smoother((bookAnchorRadius-.85)/.24);",
+    "  vec2 bookDrift=vec2(",
+    "    sin(bookT*bookSpeedX+bookPhaseX)+.42*sin(bookT*bookSpeedY*.57+bookPhaseY*1.41),",
+    "    cos(bookT*bookSpeedY+bookPhaseY)+.39*sin(bookT*bookSpeedX*.69+bookPhaseX*1.27)",
+    "  );",
+    "  bookDrift*=vec2(bookAmpX,bookAmpY)*1.20*bookAmpBreath*bookRadialLife*bookOuterBoost;",
+    "  pos+=bookDrift*bookLifeGate;",
+    "",
+    "  // Book uses the same stable reconstruction exposure as Discography.",
+    "  // Motion remains alive, but rendered size/alpha no longer breathe over time.",
     "  float bookBrightness=1.0;",
     "  float bookRayTone=1.0;",
     "",
@@ -4263,9 +4216,13 @@ function createParticleField(){
     "    float targetVisible=materialKeep*(1.0-isTop);",
     "    float travellingVisible=targetVisible*mix(.62,1.0,reconstructionBlend);",
     "    visible=mix(travellingVisible,logoKeep,logoLanding);",
-    "    passRadius=mix(reconstructionMeta.z*mix(.86,.68,materialDetail),logoSharpRadius,logoLanding);",
+    "    float bookFineScale=mix(.88,1.0,discT);",
+    "    passRadius=mix(reconstructionMeta.z*mix(.86,.68,materialDetail)*bookFineScale,logoSharpRadius,logoLanding);",
     "    color=mix(mix(reconstructionColor,reconstructionColor*1.12,materialDetail),logoSharpColor,logoLanding);",
     "    passAlpha=mix(materialToneAlpha*bookSpineTone*materialProtection*.72,logoToneAlpha,logoLanding);",
+    "    float logoBookSmoke=sin(PI*localLeave);",
+    "    passRadius*=1.0+logoBookSmoke*(.18+.34*a_seed.w);",
+    "    passAlpha*=mix(1.0,.74,logoBookSmoke);",
     "  }",
     "  passAlpha*=bookBrightness*bookRayTone*bioBrightness;",
     "",
@@ -4620,7 +4577,7 @@ function createParticleField(){
     state.referenceCandidates=prepareDiscSceneCandidates(
       state.bookReference,
       false,
-      ""
+      "book"
     );
   }
 
@@ -5009,7 +4966,14 @@ function createParticleField(){
       };
     };
 
-    const bookPlacement=scenePlacement(state.bookReference);
+    const bookPlacementBase=scenePlacement(state.bookReference);
+    const bookPlacement={
+      scale:bookPlacementBase.scale*1.10,
+      width:bookPlacementBase.width*1.10,
+      height:bookPlacementBase.height*1.10,
+      x:(w-bookPlacementBase.width*1.10)*.5,
+      y:(h-bookPlacementBase.height*1.10)*.5
+    };
 
     const albumPlacements={};
     if(!coreOnly){
@@ -5034,7 +4998,7 @@ function createParticleField(){
         zone:0,
         glow:p.glow,
         structure:0,
-        radius:p.radius*bookPlacement.scale,
+        radius:p.radius*bookPlacementBase.scale*.66,
         r:p.r,g:p.g,b:p.b
       });
     });
@@ -6456,6 +6420,25 @@ function createParticleField(){
       const bloom=particleSmoother((state.morph-.60)/.40);
       const alpha=particleMix(.94,.72,material)*(1+state.discMorph*.12)*(1+state.bioMorph*.08);
 
+      // Soft passes and bloom make capped points look visually much larger
+      // during morphs. Fade those halos out while anything is moving; the
+      // actual particle trajectories remain smoky/curling, but point scale
+      // stays visually consistent with settled Discography.
+      const logoBookMotion=4*state.morph*(1-state.morph);
+      const bookDiscMotion=4*state.discMorph*(1-state.discMorph);
+      const discBioMotion=4*state.bioMorph*(1-state.bioMorph);
+      const albumMotion=state.albumSceneTransitioning
+        ? 4*state.albumSceneMorph*(1-state.albumSceneMorph)
+        : 0;
+      const transitionActivity=particleClamp(Math.max(
+        logoBookMotion,
+        bookDiscMotion,
+        discBioMotion,
+        albumMotion
+      ));
+      const softPassGain=1-transitionActivity*.94;
+      const transitionBloom=bloom*(1-transitionActivity*.98);
+
       if(particleLogoHit){
         const logoClickable=
           state.morphTo>.5 &&
@@ -6475,21 +6458,24 @@ function createParticleField(){
       setParticleUniforms(now,material,bloom,alpha,1,0);
       gl.drawArrays(gl.POINTS,0,state.count);
 
-      if(material>.01){
+      if(material>.01&&softPassGain>.015){
         gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
-        setParticleUniforms(now,material,bloom,alpha,1,1);
+        setParticleUniforms(now,material,transitionBloom,alpha*softPassGain,1,1);
         gl.drawArrays(gl.POINTS,0,state.count);
 
-        setParticleUniforms(now,material,bloom,alpha,1,2);
+        setParticleUniforms(now,material,transitionBloom,alpha*softPassGain,1,2);
         gl.drawArrays(gl.POINTS,0,state.count);
       }
+
       // One sharp pass owns the full chain:
       // large GV <-> Book <-> Discography <-> Biography.
       gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
       setParticleUniforms(now,material,bloom,alpha,1,4);
       gl.drawArrays(gl.POINTS,0,state.count);
 
-      renderBloom(now,material,bloom,alpha);
+      if(transitionBloom>.004){
+        renderBloom(now,material,transitionBloom,alpha*softPassGain);
+      }
 
       if(material>.001){
         gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
