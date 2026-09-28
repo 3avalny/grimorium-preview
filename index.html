@@ -4537,6 +4537,13 @@ function createParticleField(){
     ){
       return Math.min(requested,w<=720?5000:28000);
     }
+
+    // Deferred quality upgrade: noticeably denser than the handoff field,
+    // but bounded so Safari never has to synchronously build 160k-240k points.
+    if(fullQualityBuildRequested&&handoffCoreOnly){
+      return Math.min(requested,w<=720?12000:90000);
+    }
+
     return requested;
   }
 
@@ -5512,6 +5519,12 @@ function createParticleField(){
     document.documentElement.classList.add("particle-field-ready");
     introBrandImg.style.opacity="0";
     grimoriumBootLoader?.mark("particleEngine");
+
+    // Never make the visitor wait for the later high-density rebuild.
+    // The current WebGL field is already valid and interactive.
+    if(!fullQualityBuildRequested){
+      grimoriumBootLoader?.markFullFieldReady?.();
+    }
   }
 
   function updateMorph(now,heroRaw){
@@ -6854,6 +6867,7 @@ function createParticleField(){
 
   function maybeStartFullHandoff(){
     if(!started||!fullHandoffRequested||fullHandoffStarted)return;
+    if(document.body.classList.contains("boot-loading"))return;
     if(deferredSettledCount<deferredReferences.length)return;
 
     if("requestIdleCallback" in window){
@@ -6904,11 +6918,17 @@ function createParticleField(){
 
   grimoriumBootLoader?.onHandoffReady?.(()=>{
     fullHandoffRequested=true;
-    maybeStartFullHandoff();
+    grimoriumBootLoader?.markFullFieldReady?.();
   });
 
   grimoriumBootLoader?.onComplete?.(()=>{
     prepareDeferredScenesAfterBoot();
+
+    // Upgrade geometry only after the page is already open and interactive.
+    // Give Safari time to finish the cross-fade and first user-facing frames.
+    window.setTimeout(()=>{
+      maybeStartFullHandoff();
+    },1400);
   });
 
   window.addEventListener("resize",()=>{
