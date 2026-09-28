@@ -4966,14 +4966,7 @@ function createParticleField(){
       };
     };
 
-    const bookPlacementBase=scenePlacement(state.bookReference);
-    const bookPlacement={
-      scale:bookPlacementBase.scale*1.10,
-      width:bookPlacementBase.width*1.10,
-      height:bookPlacementBase.height*1.10,
-      x:(w-bookPlacementBase.width*1.10)*.5,
-      y:(h-bookPlacementBase.height*1.10)*.5
-    };
+    const bookPlacement=scenePlacement(state.bookReference);
 
     const albumPlacements={};
     if(!coreOnly){
@@ -4998,7 +4991,7 @@ function createParticleField(){
         zone:0,
         glow:p.glow,
         structure:0,
-        radius:p.radius*bookPlacementBase.scale*.66,
+        radius:p.radius*bookPlacement.scale,
         r:p.r,g:p.g,b:p.b
       });
     });
