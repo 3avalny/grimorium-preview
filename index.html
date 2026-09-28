@@ -4216,7 +4216,7 @@ function createParticleField(){
     "    float targetVisible=materialKeep*(1.0-isTop);",
     "    float travellingVisible=targetVisible*mix(.62,1.0,reconstructionBlend);",
     "    visible=mix(travellingVisible,logoKeep,logoLanding);",
-    "    float bookFineScale=mix(.88,1.0,discT);",
+    "    float bookFineScale=1.0;",
     "    passRadius=mix(reconstructionMeta.z*mix(.86,.68,materialDetail)*bookFineScale,logoSharpRadius,logoLanding);",
     "    color=mix(mix(reconstructionColor,reconstructionColor*1.12,materialDetail),logoSharpColor,logoLanding);",
     "    passAlpha=mix(materialToneAlpha*bookSpineTone*materialProtection*.72,logoToneAlpha,logoLanding);",
@@ -4998,7 +4998,7 @@ function createParticleField(){
         zone:0,
         glow:p.glow,
         structure:0,
-        radius:p.radius*bookPlacementBase.scale*.66,
+        radius:p.radius*bookPlacementBase.scale,
         r:p.r,g:p.g,b:p.b
       });
     });
