@@ -4191,13 +4191,9 @@ function createParticleField(){
     "    float targetVisible=materialKeep*(1.0-isTop);",
     "    float travellingVisible=targetVisible*mix(.62,1.0,reconstructionBlend);",
     "    visible=mix(travellingVisible,logoKeep,logoLanding);",
-    "    float bookFineScale=mix(.88,1.0,discT);",
-    "    passRadius=mix(reconstructionMeta.z*mix(.86,.68,materialDetail)*bookFineScale,logoSharpRadius,logoLanding);",
+    "    passRadius=mix(reconstructionMeta.z*mix(.86,.68,materialDetail),logoSharpRadius,logoLanding);",
     "    color=mix(mix(reconstructionColor,reconstructionColor*1.12,materialDetail),logoSharpColor,logoLanding);",
     "    passAlpha=mix(materialToneAlpha*bookSpineTone*materialProtection*.72,logoToneAlpha,logoLanding);",
-    "    float logoBookSmoke=sin(PI*localLeave);",
-    "    passRadius*=1.0+logoBookSmoke*(.18+.34*a_seed.w);",
-    "    passAlpha*=mix(1.0,.74,logoBookSmoke);",
     "  }",
     "  passAlpha*=bookBrightness*bookRayTone*bioBrightness;",
     "",
@@ -6388,25 +6384,6 @@ function createParticleField(){
       const bloom=particleSmoother((state.morph-.60)/.40);
       const alpha=particleMix(.94,.72,material)*(1+state.discMorph*.12)*(1+state.bioMorph*.08);
 
-      // Soft passes and bloom make capped points look visually much larger
-      // during morphs. Fade those halos out while anything is moving; the
-      // actual particle trajectories remain smoky/curling, but point scale
-      // stays visually consistent with settled Discography.
-      const logoBookMotion=4*state.morph*(1-state.morph);
-      const bookDiscMotion=4*state.discMorph*(1-state.discMorph);
-      const discBioMotion=4*state.bioMorph*(1-state.bioMorph);
-      const albumMotion=state.albumSceneTransitioning
-        ? 4*state.albumSceneMorph*(1-state.albumSceneMorph)
-        : 0;
-      const transitionActivity=particleClamp(Math.max(
-        logoBookMotion,
-        bookDiscMotion,
-        discBioMotion,
-        albumMotion
-      ));
-      const softPassGain=1-transitionActivity*.94;
-      const transitionBloom=bloom*(1-transitionActivity*.98);
-
       if(particleLogoHit){
         const logoClickable=
           state.morphTo>.5 &&
@@ -6426,24 +6403,21 @@ function createParticleField(){
       setParticleUniforms(now,material,bloom,alpha,1,0);
       gl.drawArrays(gl.POINTS,0,state.count);
 
-      if(material>.01&&softPassGain>.015){
+      if(material>.01){
         gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
-        setParticleUniforms(now,material,transitionBloom,alpha*softPassGain,1,1);
+        setParticleUniforms(now,material,bloom,alpha,1,1);
         gl.drawArrays(gl.POINTS,0,state.count);
 
-        setParticleUniforms(now,material,transitionBloom,alpha*softPassGain,1,2);
+        setParticleUniforms(now,material,bloom,alpha,1,2);
         gl.drawArrays(gl.POINTS,0,state.count);
       }
-
       // One sharp pass owns the full chain:
       // large GV <-> Book <-> Discography <-> Biography.
       gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
       setParticleUniforms(now,material,bloom,alpha,1,4);
       gl.drawArrays(gl.POINTS,0,state.count);
 
-      if(transitionBloom>.004){
-        renderBloom(now,material,transitionBloom,alpha*softPassGain);
-      }
+      renderBloom(now,material,bloom,alpha);
 
       if(material>.001){
         gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
