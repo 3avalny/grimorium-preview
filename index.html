@@ -4541,7 +4541,7 @@ function createParticleField(){
     // Deferred quality upgrade: noticeably denser than the handoff field,
     // but bounded so Safari never has to synchronously build 160k-240k points.
     if(fullQualityBuildRequested&&handoffCoreOnly){
-      return Math.min(requested,w<=720?12000:90000);
+      return Math.min(requested,w<=720?12000:60000);
     }
 
     return requested;
@@ -6863,6 +6863,10 @@ function createParticleField(){
     handoffCoreOnly=false;
     fullQualityBuildRequested=false;
     grimoriumBootLoader?.markFullFieldReady?.();
+
+    // The particle count is now final for this load. Build optional album/Bio
+    // mappings only after this point so they cannot be overwritten by rebuild().
+    prepareDeferredScenesAfterBoot();
   }
 
   function maybeStartFullHandoff(){
@@ -6922,13 +6926,11 @@ function createParticleField(){
   });
 
   grimoriumBootLoader?.onComplete?.(()=>{
-    prepareDeferredScenesAfterBoot();
-
-    // Upgrade geometry only after the page is already open and interactive.
-    // Give Safari time to finish the cross-fade and first user-facing frames.
+    // The page is already interactive here. Upgrade only after the loader has
+    // disappeared; optional album/Bio scenes are prepared by the upgrade itself.
     window.setTimeout(()=>{
       maybeStartFullHandoff();
-    },1400);
+    },320);
   });
 
   window.addEventListener("resize",()=>{
