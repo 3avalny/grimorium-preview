@@ -4508,12 +4508,12 @@ function createParticleField(){
     smokeMotionUniformData:new Float32Array(48)
   };
 
-  function desiredCount(){
+  function requestedParticleCount(){
     const w=state.width;
     let base;
 
     // Continuous quality ramp: no 13x geometry cliff between 1100 and 1101px.
-    // High-resolution desktops still reach the original 240k ceiling.
+    // This is the visual-density reference even when runtime count is capped.
     if(w<=720){
       base=1800;
     }else if(w<=900){
@@ -4528,9 +4528,16 @@ function createParticleField(){
       base=240000;
     }
 
-    const requested=Math.max(600,Math.round(base*state.qualityScale));
-    // Keep the hidden handoff field light until an explicit full-quality build
-    // is requested underneath the still-opaque boot canvas.
+    return Math.max(600,Math.round(base*state.qualityScale));
+  }
+
+  function desiredCount(){
+    const w=state.width;
+    const requested=requestedParticleCount();
+
+    // Keep the hidden handoff field light. The point radius is normalized
+    // separately to requestedParticleCount(), so lowering count never makes
+    // the visible particles larger.
     if(
       document.body.classList.contains("boot-loading")&&
       !fullQualityBuildRequested
@@ -4538,8 +4545,6 @@ function createParticleField(){
       return Math.min(requested,w<=720?5000:28000);
     }
 
-    // Deferred quality upgrade: noticeably denser than the handoff field,
-    // but bounded so Safari never has to synchronously build 160k-240k points.
     if(fullQualityBuildRequested&&handoffCoreOnly){
       return Math.min(requested,w<=720?12000:60000);
     }
@@ -4814,9 +4819,9 @@ function createParticleField(){
     state.albumCandidatesById=next;
   }
 
-  function sampleAlbumPoints(list,count,ref){
+  function sampleAlbumPoints(list,count,ref,visualCount=count){
     // Allocate density by brightness, not by guesses about semantic objects.
-    // Bright hairlines get tight splats; dim grid/atmosphere get broad faint ones.
+    // Radius is based on full visual density, not the capped runtime count.
     const bands=[[],[],[]];
     for(const p of list){
       bands[p.glow>=24/255?0:(p.glow>=6/255?1:2)].push(p);
@@ -4830,6 +4835,8 @@ function createParticleField(){
     const out=[];
     const rw=ref.naturalWidth;
     const rh=ref.naturalHeight;
+    const safeVisualCount=Math.max(count,visualCount);
+    const radiusDensityScale=Math.sqrt(count/safeVisualCount);
 
     active.forEach((band,bandIndex)=>{
       const n=bandIndex===active.length-1
@@ -4838,7 +4845,7 @@ function createParticleField(){
       if(!n)return;
 
       const stride=band.points.length/n;
-      const radius=[.72,.70,.62][bandIndex]*Math.sqrt(stride);
+      const radius=[.72,.70,.62][bandIndex]*Math.sqrt(stride)*radiusDensityScale;
 
       for(let i=0;i<n;i++){
         const seed=i+bandIndex*104729;
@@ -4919,8 +4926,12 @@ function createParticleField(){
     const topLogoCount=Math.max(1,Math.round(count*logoShare));
     const refCount=Math.max(1,count-topLogoCount);
 
-    const sourcePoints=sampleAlbumPoints(state.logoCandidates,count,source);
-    const refPoints=sampleAlbumPoints(state.referenceCandidates,refCount,state.bookReference);
+    const visualCount=requestedParticleCount();
+    const visualTopLogoCount=Math.max(1,Math.round(visualCount*logoShare));
+    const visualRefCount=Math.max(1,visualCount-visualTopLogoCount);
+
+    const sourcePoints=sampleAlbumPoints(state.logoCandidates,count,source,visualCount);
+    const refPoints=sampleAlbumPoints(state.referenceCandidates,refCount,state.bookReference,visualRefCount);
     const albumPointsById={};
     const effectiveAlbumRefs={};
 
@@ -4931,7 +4942,8 @@ function createParticleField(){
         albumPointsById[id]=sampleAlbumPoints(
           state.albumCandidatesById[id],
           refCount,
-          effectiveRef
+          effectiveRef,
+          visualRefCount
         );
       }
     }
@@ -4941,8 +4953,8 @@ function createParticleField(){
       :state.bookReference;
     const bioPoints=coreOnly
       ?null
-      :sampleAlbumPoints(state.bioCandidates,refCount,effectiveBioRef);
-    const topPoints=sampleAlbumPoints(state.logoCandidates,topLogoCount,source);
+      :sampleAlbumPoints(state.bioCandidates,refCount,effectiveBioRef,visualRefCount);
+    const topPoints=sampleAlbumPoints(state.logoCandidates,topLogoCount,source,visualTopLogoCount);
 
     const topLogoW=Math.min(w*.215,360);
     const topLogoH=topLogoW/logoAspect;
@@ -6590,7 +6602,15 @@ function createParticleField(){
         Math.round(count*(state.width>1100?.085:(state.width>720?.13:.12)))
       )
     );
-    const points=sampleAlbumPoints(candidates,nonTopCount,ref);
+    const visualCount=requestedParticleCount();
+    const visualNonTopCount=Math.max(
+      1,
+      visualCount-Math.max(
+        1,
+        Math.round(visualCount*(state.width>1100?.085:(state.width>720?.13:.12)))
+      )
+    );
+    const points=sampleAlbumPoints(candidates,nonTopCount,ref,visualNonTopCount);
     const scale=Math.max(
       state.width/Math.max(1,ref.naturalWidth),
       state.height/Math.max(1,ref.naturalHeight)
@@ -6663,7 +6683,15 @@ function createParticleField(){
         Math.round(count*(state.width>1100?.085:(state.width>720?.13:.12)))
       )
     );
-    const points=sampleAlbumPoints(candidates,nonTopCount,ref);
+    const visualCount=requestedParticleCount();
+    const visualNonTopCount=Math.max(
+      1,
+      visualCount-Math.max(
+        1,
+        Math.round(visualCount*(state.width>1100?.085:(state.width>720?.13:.12)))
+      )
+    );
+    const points=sampleAlbumPoints(candidates,nonTopCount,ref,visualNonTopCount);
     const scale=Math.max(
       state.width/Math.max(1,ref.naturalWidth),
       state.height/Math.max(1,ref.naturalHeight)
