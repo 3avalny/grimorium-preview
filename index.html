@@ -1913,6 +1913,35 @@ html.home-returning main{
   }
 }
 
+
+/* ===== Measured Discography panel widths ===== */
+@media(min-width:901px){
+  .record{
+    --left-zone-width:300px;
+  }
+  .record-head{
+    width:var(--left-zone-width)!important;
+  }
+  .disc-content-panel{
+    grid-template-columns:var(--left-zone-width) minmax(180px,1fr) var(--right-zone-width)!important;
+  }
+  .discography-grid::before{
+    width:calc(var(--album-size) + var(--layout-gap) + var(--left-zone-width) + 28px)!important;
+  }
+  .platforms{
+    grid-row:3!important;
+    align-self:end!important;
+    height:36px!important;
+    margin:0!important;
+    padding:0!important;
+  }
+}
+@media(min-width:901px) and (max-width:1180px){
+  .disc-content-panel{
+    grid-template-columns:var(--left-zone-width) minmax(100px,1fr) var(--right-zone-width)!important;
+  }
+}
+
 </style>
 </head>
 <body class="boot-loading">
@@ -2318,9 +2347,46 @@ function makeDiscPanel(a){
   return panel;
 }
 
+const discMeasureCanvas=document.createElement("canvas");
+const discMeasureCtx=discMeasureCanvas.getContext("2d");
+
+function updateDiscLeftZoneWidth(){
+  const record=document.querySelector(".record");
+  if(!record||window.innerWidth<=900||!discMeasureCtx)return;
+
+  let longestTrack=0;
+  discContentWindow.querySelectorAll(".track-title").forEach(node=>{
+    const cs=getComputedStyle(node);
+    discMeasureCtx.font=cs.font||(cs.fontSize+" "+cs.fontFamily);
+    longestTrack=Math.max(
+      longestTrack,
+      discMeasureCtx.measureText(node.textContent||"").width
+    );
+  });
+
+  const titleStyle=getComputedStyle(recordTitle);
+  discMeasureCtx.font=titleStyle.font||(titleStyle.fontSize+" "+titleStyle.fontFamily);
+  let longestAlbumTitle=0;
+  ALBUMS.forEach(a=>{
+    longestAlbumTitle=Math.max(
+      longestAlbumTitle,
+      discMeasureCtx.measureText(a.title.toUpperCase()).width
+    );
+  });
+
+  const trackNeed=28+9+longestTrack+22;
+  const titlePad=parseFloat(titleStyle.paddingLeft)||0;
+  const titleNeed=titlePad+longestAlbumTitle+22;
+  const minWidth=window.innerWidth<=1180?270:286;
+  const width=Math.ceil(Math.max(minWidth,trackNeed,titleNeed));
+
+  record.style.setProperty("--left-zone-width",width+"px");
+}
+
 function renderDiscPanels(){
   discContentWindow.innerHTML="";
   ALBUMS.forEach(a=>discContentWindow.appendChild(makeDiscPanel(a)));
+  requestAnimationFrame(updateDiscLeftZoneWidth);
 }
 
 function discPanelFor(id){
@@ -2745,6 +2811,12 @@ particleAlbumDebug?.querySelectorAll("button").forEach(button=>{
   button.addEventListener("click",()=>selectAlbum(button.dataset.id));
 });
 renderDiscPanels();
+if(document.fonts?.ready){
+  document.fonts.ready.then(updateDiscLeftZoneWidth);
+}
+window.addEventListener("resize",()=>{
+  requestAnimationFrame(updateDiscLeftZoneWidth);
+},{passive:true});
 selectAlbum("reall");
 
 const mobileRecord=document.querySelector(".record");
