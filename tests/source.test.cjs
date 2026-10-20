@@ -31,10 +31,29 @@ test("Spotify controller is lazy and unique",()=>{
   assert.doesNotMatch(site,/ensureSpotifyAlbumControllers\(/);
 });
 
-test("native zoom, selection and keyboard skip targets remain available",()=>{
-  assert.doesNotMatch(site,/user-scalable=no/);
-  assert.doesNotMatch(site,/maximum-scale=1/);
-  assert.doesNotMatch(site,/user-select:none!important/);
-  assert.match(site,/class="skip-link" href="#music"/);
-  assert.match(site,/class="skip-link" href="#biography"/);
+test("original zoom and text-selection restrictions stay unchanged",()=>{
+  assert.match(site,/maximum-scale=1,user-scalable=no/);
+  assert.match(site,/user-select:none!important/);
+  assert.match(site,/Hard-disable page zoom everywhere/);
+  assert.match(site,/gesturestart/);
+  assert.doesNotMatch(site,/class="skip-link"/);
+});
+
+test("site always uses the animated scene and does not branch on Reduce Motion",()=>{
+  assert.doesNotMatch(site,/prefers-reduced-motion|reducedMotionQuery|reducedMotion/i);
+  assert.match(site,/createParticleField\(\)/);
+  assert.match(site,/const birthWindow=Math\.min\(14,dt\*\.9\)/);
+});
+
+test("JavaScript-off page is standalone, linked, and contains every album",()=>{
+  assert.match(site,/<noscript class="nojs-fallback">/);
+  assert.match(site,/body\.boot-loading\{overflow:auto!important\}/);
+  const start=site.indexOf('<noscript class="nojs-fallback">');
+  const end=site.indexOf('</noscript>',start);
+  const fallback=site.slice(start,end);
+  assert.equal((fallback.match(/<article class="nojs-album">/g)||[]).length,5);
+  assert.equal((fallback.match(/<li>/g)||[]).length,54);
+  assert.match(fallback,/id="nojs-biography"/);
+  assert.match(fallback,/mailto:contact@grimorium-verum\.ru/);
+  assert.match(fallback,/https:\/\/open\.spotify\.com\/album\//);
 });
