@@ -62,13 +62,19 @@ test("one prewarmed Spotify iframe plays and switches between albums",async({pag
   await disableWebGL(page);
   await page.route("https://open.spotify.com/embed/iframe-api/v1",route=>route.fulfill({
     contentType:"application/javascript",
-    body:"window.__spotifyCreates=0;window.__spotifyLoads=[];window.__spotifyPlays=0;\nwindow.onSpotifyIframeApiReady({\n  createController(target,options,callback){\n    window.__spotifyCreates++;\n    const iframe=document.createElement(\"iframe\");\n    iframe.title=\"Spotify mock\";\n    target.appendChild(iframe);\n    let current=options.uri;\n    const listeners={};\n    const controller={\n      addListener(name,fn){\n        listeners[name]=fn;\n        if(name===\"ready\")setTimeout(()=>fn(),0);\n      },\n      loadEntity(uri){current=uri;window.__spotifyLoads.push(uri)},\n      play(){window.__spotifyPlays++;listeners.playback_started?.({data:{playingURI:current}})},\n      resume(){listeners.playback_started?.({data:{playingURI:current}})},\n      pause(){listeners.playback_update?.({data:{playingURI:current,isPaused:true}})}\n    };\n    callback(controller);\n  }\n});"
+    body:"window.__spotifyCreates=0;window.__spotifyLoads=[];window.__spotifyPlays=0;\nwindow.onSpotifyIframeApiReady({\n  createController(target,options,callback){\n    window.__spotifyCreates++;\n    const iframe=document.createElement(\"iframe\");\n    iframe.title=\"Spotify mock\";\n    target.appendChild(iframe);\n    let current=options.uri;\n    const listeners={};\n    const controller={\n      addListener(name,fn){\n        listeners[name]=fn;\n        if(name===\"ready\")setTimeout(()=>fn(),0);\n      },\n      loadEntity(uri){current=uri;window.__spotifyLoads.push(uri)},\n      play(){window.__spotifyPlays++;listeners.playback_started?.({data:{playingURI:current}});listeners.playback_update?.({data:{playingURI:current,isPaused:true,position:0,duration:90000}});setTimeout(()=>listeners.playback_update?.({data:{playingURI:current,isPaused:false,position:600,duration:90000}}),380);setTimeout(()=>listeners.playback_update?.({data:{playingURI:current,isPaused:true,position:600,duration:90000}}),520);setTimeout(()=>listeners.playback_update?.({data:{playingURI:current,isPaused:false,position:650,duration:90000}}),700)},\n      resume(){listeners.playback_started?.({data:{playingURI:current}})},\n      pause(){listeners.playback_update?.({data:{playingURI:current,isPaused:true}})}\n    };\n    callback(controller);\n  }\n});"
   }));
   await page.goto("/",{waitUntil:"domcontentloaded"});
   await expect.poll(()=>page.evaluate(()=>window.__spotifyCreates)).toBe(1);
   await expect(page.locator(".spotify-track-engine iframe")).toHaveCount(1);
   await page.locator('.disc-content-panel[data-album-id="reall"] .track').first().click();
   await expect.poll(()=>page.evaluate(()=>window.__spotifyPlays)).toBe(1);
+  const firstRow=page.locator('.disc-content-panel[data-album-id="reall"] .track-row').first();
+  await expect(firstRow).toHaveClass(/is-playing/);
+  await page.waitForTimeout(250);
+  await expect(firstRow).toHaveClass(/is-playing/); // pending: paused event must not flash index
+  await page.waitForTimeout(400);
+  await expect(firstRow).toHaveClass(/is-playing/); // brief buffered pause after progress is debounced
   expect(await page.evaluate(()=>window.__spotifyLoads.length)).toBe(0);
   await page.locator('.album-tab[data-id="revenant"]').click();
   await page.locator('.disc-content-panel[data-album-id="revenant"] .track').first().click();
