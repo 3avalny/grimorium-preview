@@ -20,7 +20,7 @@ test("full-resolution particle budget and DPR are preserved",()=>{
 test("loader has a real independent unlock fallback",()=>{
   assert.match(site,/const forceComplete=\(\)=>/);
   assert.match(site,/document\.body\.classList\.remove\("boot-loading"\)/);
-  assert.match(site,/if\(!finished&&!finishing\)forceComplete\(\)/);
+  assert.match(site,/if\(!finished\)forceComplete\(\)/);
   assert.match(site,/grimoriumBootLoader\?\.forceComplete\?\.\(\)/);
 });
 
