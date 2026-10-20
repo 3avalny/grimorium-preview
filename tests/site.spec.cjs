@@ -21,11 +21,21 @@ test("without WebGL the loader unlocks and content is usable",async({page})=>{
   await expect(page.locator('.disc-content-panel[data-album-id="reall"]')).toHaveClass(/current/);
 });
 
-test("reduced-motion users bypass animation and reach content",async({page})=>{
-  await page.emulateMedia({reducedMotion:"reduce"});
-  await page.goto("/",{waitUntil:"domcontentloaded"});
-  await expect(page.locator("body")).not.toHaveClass(/boot-loading/);
-  await expect(page.locator("#music")).toBeAttached();
+test("JavaScript-disabled visitors can browse the complete site",async({browser})=>{
+  const context=await browser.newContext({javaScriptEnabled:false});
+  const page=await context.newPage();
+  try{
+    await page.goto("/",{waitUntil:"domcontentloaded"});
+    await expect(page.locator("noscript.nojs-fallback")).toBeVisible();
+    await expect(page.locator(".nojs-album")).toHaveCount(5);
+    await expect(page.locator(".nojs-album li")).toHaveCount(54);
+    await expect(page.locator("#nojs-biography")).toBeVisible();
+    const albumUrl=await page.locator(".nojs-album a.nojs-listen").first().getAttribute("href");
+    expect(albumUrl).toContain("open.spotify.com/album/");
+    await expect(page.locator(".boot-particle-loader")).toBeHidden();
+  }finally{
+    await context.close();
+  }
 });
 
 test("a missing critical image cannot trap the visitor",async({page})=>{
@@ -35,23 +45,21 @@ test("a missing critical image cannot trap the visitor",async({page})=>{
   await expect(page.locator("#boot-particle-loader")).toHaveCount(0);
 });
 
-test("zoom and selection are enabled, and skip navigation focuses content",async({page})=>{
+test("original zoom and selection restrictions remain",async({page})=>{
   await disableWebGL(page);
   await page.goto("/",{waitUntil:"domcontentloaded"});
   const config=await page.evaluate(()=>({
     viewport:document.querySelector('meta[name="viewport"]').content,
     selectable:getComputedStyle(document.querySelector(".bio-copy p")).userSelect
   }));
-  expect(config.viewport).not.toMatch(/user-scalable=no|maximum-scale=1/);
-  expect(config.selectable).not.toBe("none");
-  await page.keyboard.press("Tab");
-  await expect(page.locator(".skip-link").first()).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(page.locator("#music")).toBeFocused();
+  expect(config.viewport).toContain("user-scalable=no");
+  expect(config.viewport).toContain("maximum-scale=1");
+  expect(config.selectable).toBe("none");
+  await expect(page.locator(".skip-link")).toHaveCount(0);
 });
 
 test("Spotify is created on demand once and switches albums using the same iframe",async({page})=>{
-  await page.emulateMedia({reducedMotion:"reduce"});
+  await disableWebGL(page);
   await page.route("https://open.spotify.com/embed/iframe-api/v1",route=>route.fulfill({
     contentType:"application/javascript",
     body:`window.__spotifyCreates=0;window.__spotifyLoads=[];
