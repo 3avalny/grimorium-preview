@@ -523,14 +523,6 @@ nav{display:none!important}
   transform:translate3d(0,0,0) scale(1);
   transition-delay:calc(1000ms + var(--side-letter-index,0) * 65ms)
 }
-@media(prefers-reduced-motion:reduce){
-  .record-side-label .side-label-letter,
-  .bio-side-label .side-label-letter{
-    filter:none!important;
-    transform:none!important;
-    transition:none!important
-  }
-}
 .bio-figure{display:none!important}
 .bio-figure-left{left:max(-18px,calc((100vw - var(--shell))/2 - 110px))}
 .bio-figure-right{right:max(-18px,calc((100vw - var(--shell))/2 - 110px))}
@@ -957,6 +949,7 @@ nav{display:none!important}
   .stream-col,.player,.player iframe{height:152px;min-height:152px}
 }
 
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
 /* Boot particle loader: a lightweight independent canvas starts before WebGL. */
 body.boot-loading{overflow:hidden}
 .boot-particle-loader{
@@ -975,9 +968,6 @@ body.boot-loading{overflow:hidden}
   opacity:0;
   pointer-events:none
 }
-@media(prefers-reduced-motion:reduce){
-  .boot-particle-loader{transition:none}
-}
 
 /* Particle sigil field — the hero logo and the background share the same particles. */
 .particle-field{
@@ -992,17 +982,6 @@ body.boot-loading{overflow:hidden}
   backface-visibility:hidden;
   contain:strict;
 }
-@media(prefers-reduced-motion:reduce){
-  .particle-field{display:none!important}
-  .record>.shell{
-    opacity:1!important;
-    visibility:visible!important;
-    pointer-events:auto!important
-  }
-  .particle-album-debug{display:none!important}
-}
-
-@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 @supports(height:100dvh){
   .hero-inner{height:100dvh}
 }
@@ -1914,8 +1893,98 @@ html.home-returning main{
 }
 
 </style>
+<noscript>
+<style>
+  /* Entirely independent static site shown only if JavaScript is disabled. */
+  html,body{height:auto!important;overflow-x:hidden!important;overflow-y:auto!important}
+  body.boot-loading{overflow:auto!important}
+  body.boot-loading > :not(noscript.nojs-fallback){display:none!important}
+  noscript.nojs-fallback{display:block}
+  .nojs-page{min-height:100vh;background:#050607;color:#dddcd5;font-family:var(--sans);line-height:1.6}
+  .nojs-hero{min-height:76vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:78px 22px 88px;background:radial-gradient(ellipse at center,#111215 0%,#050607 65%,#000 100%)}
+  .nojs-logo{display:block;width:min(620px,86vw);height:auto;margin:0 auto 38px;filter:drop-shadow(0 4px 30px #000)}
+  .nojs-hero h1{font-family:var(--moon-display);font-weight:400;font-size:clamp(44px,7vw,90px);letter-spacing:.06em;line-height:1;margin:0 0 20px}
+  .nojs-hero p{font-family:var(--serif);font-size:clamp(18px,2vw,26px);letter-spacing:.12em;text-transform:uppercase;color:#aaa9a4;margin:0 0 40px}
+  .nojs-navigation{display:flex;flex-wrap:wrap;justify-content:center;gap:24px}
+  .nojs-navigation a,.nojs-listen{font-size:12px;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid #6d6862;padding-bottom:5px}
+  .nojs-main{max-width:1060px;margin:0 auto;padding:60px clamp(20px,5vw,64px) 96px}
+  .nojs-main h2{font-family:var(--moon-display);font-weight:400;letter-spacing:.09em;font-size:clamp(36px,5vw,60px);margin:0 0 40px}
+  .nojs-albums{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 38px}
+  .nojs-album{display:flex;align-items:flex-start;gap:16px;min-width:0;background:rgba(20,22,24,.75);padding:14px;border:1px solid #262626;border-radius:8px}
+  .nojs-cover{display:block;flex:0 0 40%}.nojs-cover img{width:100%;aspect-ratio:1;object-fit:cover}
+  .nojs-album-copy{min-width:0;overflow-wrap:anywhere}
+  .nojs-album h3{font-family:var(--album-display);font-weight:400;font-size:clamp(24px,2.6vw,35px);line-height:1;margin:0 0 6px}
+  .nojs-year{font-size:11px;color:#888;margin:0 0 18px;letter-spacing:.2em}
+  .nojs-album details{margin-bottom:20px;font-family:var(--serif);font-size:17px}
+  .nojs-album summary{cursor:pointer;color:#d2cec6}
+  .nojs-album ol{padding-left:24px}
+  .nojs-bio{margin-top:100px;max-width:790px}
+  .nojs-bio p{font-family:var(--serif);font-size:clamp(18px,2.4vw,23px);line-height:1.55;color:#bcbab5}
+  .nojs-footer{margin-top:60px;padding-top:30px;border-top:1px solid #393535;font-size:12px;color:#96928f}
+  .nojs-footer a{text-decoration:underline;text-underline-offset:4px;margin-right:16px}
+  @media(max-width:700px){.nojs-hero{min-height:65vh}.nojs-albums{grid-template-columns:1fr}.nojs-album{gap:16px}.nojs-cover{flex-basis:39%}}
+</style>
+</noscript>
 </head>
 <body class="boot-loading">
+<noscript class="nojs-fallback">
+<div class="nojs-page">
+  <section class="nojs-hero">
+    <img class="nojs-logo" src="assets/GV_PNG_bez_fona.png?v=13836c25" alt="Grimorium Verum">
+    <h1>Renaissance</h1>
+    <p>New Album · Coming 2026</p>
+    <div class="nojs-navigation"><a href="#nojs-music">Discography</a><a href="#nojs-biography">Biography</a><a href="#nojs-contact">Contact</a></div>
+  </section>
+  <main class="nojs-main">
+    <section id="nojs-music"><h2>Discography</h2><div class="nojs-albums">
+    <article class="nojs-album">
+      <a class="nojs-cover" href="https://open.spotify.com/album/0jTARMxhJPbdDQloe0KsYH" target="_blank" rel="noopener"><img src="assets/reall.jpeg?v=6710c774" alt="REALL album cover" loading="lazy"></a>
+      <div class="nojs-album-copy"><h3>REALL</h3><p class="nojs-year">2022</p>
+        <details><summary>Track list (11)</summary><ol><li>Through the labyrinth of times</li><li>The black church of eternity</li><li>The lamp of destiny</li><li>Hourglass</li><li>Last ritual</li><li>In the catacombs</li><li>Burn Gypsy burn</li><li>Brocken hourglass</li><li>It's time....padre</li><li>A slave of the lamp</li><li>REALL</li></ol></details>
+        <a class="nojs-listen" href="https://open.spotify.com/album/0jTARMxhJPbdDQloe0KsYH" target="_blank" rel="noopener">Listen on Spotify ↗</a>
+      </div>
+    </article>
+    <article class="nojs-album">
+      <a class="nojs-cover" href="https://open.spotify.com/album/2MBtLeyZ55D7I9YATEaYWU" target="_blank" rel="noopener"><img src="assets/revenant.jpeg?v=b220b651" alt="Revenant album cover" loading="lazy"></a>
+      <div class="nojs-album-copy"><h3>Revenant</h3><p class="nojs-year">2018</p>
+        <details><summary>Track list (10)</summary><ol><li>The born son of the devil</li><li>The kingdom of the pain</li><li>The march of the northern kings</li><li>Blind faith in nothing</li><li>The light of dark father</li><li>Revenant</li><li>The circus of the dark illusion</li><li>Sacred temple of blood</li><li>The great serpentine saint</li><li>The resurrected on the devil’s hands</li></ol></details>
+        <a class="nojs-listen" href="https://open.spotify.com/album/2MBtLeyZ55D7I9YATEaYWU" target="_blank" rel="noopener">Listen on Spotify ↗</a>
+      </div>
+    </article>
+    <article class="nojs-album">
+      <a class="nojs-cover" href="https://open.spotify.com/album/7Lhq9XHjHSRsJTHLA6MQEw" target="_blank" rel="noopener"><img src="assets/relict.jpeg?v=b1bc0539" alt="Relict album cover" loading="lazy"></a>
+      <div class="nojs-album-copy"><h3>Relict</h3><p class="nojs-year">2015</p>
+        <details><summary>Track list (10)</summary><ol><li>Relict</li><li>Rising morning star</li><li>At the gates of darkness</li><li>Black tears monastery</li><li>Night burning icons</li><li>The vision in solar eclipse</li><li>Pilgrimage to satan</li><li>In satan we trust</li><li>The truth forgotten in time</li><li>Odium</li></ol></details>
+        <a class="nojs-listen" href="https://open.spotify.com/album/7Lhq9XHjHSRsJTHLA6MQEw" target="_blank" rel="noopener">Listen on Spotify ↗</a>
+      </div>
+    </article>
+    <article class="nojs-album">
+      <a class="nojs-cover" href="https://open.spotify.com/album/6ZTX91DlslOEmhp02VS6K4" target="_blank" rel="noopener"><img src="assets/reborn.jpeg?v=59c27889" alt="Reborn album cover" loading="lazy"></a>
+      <div class="nojs-album-copy"><h3>Reborn</h3><p class="nojs-year">2011</p>
+        <details><summary>Track list (8)</summary><ol><li>Among ancient walls</li><li>Wolf bite</li><li>Witch</li><li>Torture</li><li>Unfetter</li><li>White spirit of the dark side</li><li>Fall into oblivion</li><li>Immortal soul</li></ol></details>
+        <a class="nojs-listen" href="https://open.spotify.com/album/6ZTX91DlslOEmhp02VS6K4" target="_blank" rel="noopener">Listen on Spotify ↗</a>
+      </div>
+    </article>
+    <article class="nojs-album">
+      <a class="nojs-cover" href="https://open.spotify.com/album/03bFhnT6mvOsg6cpey99Hq" target="_blank" rel="noopener"><img src="assets/retaliation.jpeg?v=04692ece" alt="Retaliation album cover" loading="lazy"></a>
+      <div class="nojs-album-copy"><h3>Retaliation</h3><p class="nojs-year">2008</p>
+        <details><summary>Track list (15)</summary><ol><li>Intro - Undercover guest</li><li>Sacrifice</li><li>Funeral</li><li>God of nothing</li><li>Homohereticus</li><li>Last night of vampire</li><li>A time to kill</li><li>Curse of voodoo</li><li>Gollywog</li><li>Egypt</li><li>Twisted human form</li><li>Digging grave</li><li>...from the grave</li><li>Painted black</li><li>Outro</li></ol></details>
+        <a class="nojs-listen" href="https://open.spotify.com/album/03bFhnT6mvOsg6cpey99Hq" target="_blank" rel="noopener">Listen on Spotify ↗</a>
+      </div>
+    </article>
+    </div></section>
+    <section class="nojs-bio" id="nojs-biography"><h2>Biography</h2>
+      <p>Formed in Syktyvkar at the end of 1996, the band quickly stood apart on the local scene through drum machine, sharp guitars and growled vocals. After an active run of shows from 1997 to 1999, the first period came to an end in 2001.</p>
+      <p>In 2005, Roma Diamond’s solo material included songs connected to the band, and renewed work with Andrey Zavalny helped bring the project back in 2006. Samples and orchestral layers became increasingly important to the sound, while <em>Retaliation</em> (2008) and <em>Reborn</em> (2011) established the direction of the later catalogue.</p>
+      <p><em>Relict</em> (2015), <em>Revenant</em> (2018) and <em>REALL</em> (2022) continued that evolution. Across these releases, Diamond has carried the vocals and lyrics, while Zavalny has driven the music, guitars, keyboards, arrangements and production. <em>Renaissance</em> follows in 2026.</p>
+    </section>
+    <footer class="nojs-footer" id="nojs-contact">
+      <p><a href="https://vk.com/grimorium_verum" target="_blank" rel="noopener">VK</a><a href="https://www.instagram.com/grimoriumv" target="_blank" rel="noopener">Instagram</a><a href="https://www.facebook.com/grimoriumverumband" target="_blank" rel="noopener">Facebook</a><a href="mailto:contact@grimorium-verum.ru">Email</a></p>
+      <p>© 2026 Grimorium Verum</p>
+    </footer>
+  </main>
+</div>
+</noscript>
 <canvas id="boot-particle-loader" class="boot-particle-loader" aria-hidden="true"></canvas>
 <div class="site-parallax-bg" aria-hidden="true"></div>
 <canvas id="particle-field" class="particle-field" aria-hidden="true"></canvas>
@@ -1928,6 +1997,7 @@ html.home-returning main{
   <button type="button" data-id="retaliation">Retaliation</button>
 </div>
 <div id="spotifyPreloadPool" class="spotify-preload-pool" aria-hidden="true"></div>
+<span class="sr-only" id="spotifyPlaybackStatus" role="status" aria-live="polite"></span>
 <header>
   <div class="brand" aria-hidden="true"><img src="assets/GV_PNG_bez_fona.png?v=13836c25" alt=""></div>
 </header>
@@ -2327,255 +2397,208 @@ function discPanelFor(id){
   return discContentWindow.querySelector(`.disc-content-panel[data-album-id="${id}"]`);
 }
 
+// One lazy Spotify iframe for the whole catalogue. Merely browsing albums
+// never creates network embeds. The iframe is reused with loadEntity().
 let spotifyIframeAPI=null;
 const spotifyPreloadPool=document.getElementById("spotifyPreloadPool");
-const spotifyTrackPlayers=new Map();
-let activeSpotifyPlayer=null;
+let spotifyController=null;
+let spotifyControllerCreating=false;
+let spotifyControllerReady=false;
+let spotifyScriptRequested=false;
+let spotifyRequested=null;
+let spotifyCurrent=null;
+let spotifyAdvanceTimer=0;
 let activeTrackState=null;
 let spotifyIsPaused=true;
+const spotifyStatus=document.getElementById("spotifyPlaybackStatus");
+const spotifyAnnounce=message=>{if(spotifyStatus)spotifyStatus.textContent=message};
 
 function setSpotifyButtonState(isPaused=true){
   spotifyIsPaused=isPaused;
-  discContentWindow.querySelectorAll(".track-row").forEach(row=>row.classList.remove("is-playing"));
+  discContentWindow.querySelectorAll(".track-row").forEach(row=>{
+    row.classList.remove("is-playing");
+    const control=row.querySelector(".track-index-control");
+    const index=Number(row.dataset.trackIndex);
+    if(control)control.setAttribute("aria-label",`Play track ${index+1}`);
+  });
   if(isPaused||!activeTrackState)return;
   const row=discPanelFor(activeTrackState.albumId)?.querySelector(`.track-row[data-track-index="${activeTrackState.trackIndex}"]`);
   row?.classList.add("is-playing");
-  const control=row?.querySelector(".track-index-control");
-  if(control)control.setAttribute("aria-label","Pause");
+  row?.querySelector(".track-index-control")?.setAttribute("aria-label","Pause");
 }
 
 function markTrackSelection(albumId,trackIndex){
   discContentWindow.querySelectorAll(".track-row").forEach(row=>{
     row.classList.remove("is-selected","is-playing");
-    const control=row.querySelector(".track-index-control");
-    if(control){
-      const index=Number(row.dataset.trackIndex);
-      control.setAttribute("aria-label",`Play track ${Number.isFinite(index)?index+1:""}`);
-    }
   });
   const row=discPanelFor(albumId)?.querySelector(`.track-row[data-track-index="${trackIndex}"]`);
   row?.classList.add("is-selected");
-  if(!spotifyIsPaused)row?.classList.add("is-playing");
+  setSpotifyButtonState(spotifyIsPaused);
 }
 
-function clearSpotifyAdvanceTimer(entry){
-  if(!entry?.advanceTimer)return;
-  window.clearTimeout(entry.advanceTimer);
-  entry.advanceTimer=0;
+function clearSpotifyAdvanceTimer(){
+  if(spotifyAdvanceTimer)window.clearTimeout(spotifyAdvanceTimer);
+  spotifyAdvanceTimer=0;
 }
 
-function playNextSpotifyTrack(entry){
-  if(!entry||entry.endHandled||entry.manualPause)return;
-  const album=ALBUMS.find(item=>item.id===entry.albumId);
-  if(!album)return;
-
-  const nextIndex=entry.trackIndex+1;
-  entry.endHandled=true;
-  clearSpotifyAdvanceTimer(entry);
-
-  if(nextIndex>=album.tracks.length){
+function playNextSpotifyTrack(){
+  if(!spotifyCurrent||spotifyCurrent.endHandled)return;
+  spotifyCurrent.endHandled=true;
+  clearSpotifyAdvanceTimer();
+  const album=ALBUMS.find(item=>item.id===spotifyCurrent.albumId);
+  const nextIndex=spotifyCurrent.trackIndex+1;
+  if(!album||nextIndex>=album.tracks.length){
     setSpotifyButtonState(true);
-    discContentWindow.querySelectorAll(".track-row").forEach(row=>{
-      row.classList.remove("is-selected","is-playing");
-      const control=row.querySelector(".track-index-control");
-      if(control){
-        const index=Number(row.dataset.trackIndex);
-        control.setAttribute("aria-label",`Play track ${Number.isFinite(index)?index+1:""}`);
-      }
-    });
-    activeTrackState=null;
-    activeSpotifyPlayer=null;
-    spotifyIsPaused=true;
     return;
   }
-
   playTrack(album.id,nextIndex,{autoplay:true,autoAdvance:true});
 }
 
-function scheduleSpotifyAutoNext(entry){
-  clearSpotifyAdvanceTimer(entry);
-  if(!entry||entry.manualPause||entry.endHandled)return;
-  if(!(entry.duration>0)||!(entry.position>=0))return;
+function scheduleSpotifyAutoNext(){
+  clearSpotifyAdvanceTimer();
+  if(!spotifyCurrent||spotifyCurrent.manualPause||spotifyCurrent.endHandled||spotifyIsPaused)return;
+  const remaining=spotifyCurrent.duration-spotifyCurrent.position;
+  if(spotifyCurrent.duration<=0||remaining>1600)return;
+  if(remaining<=0){playNextSpotifyTrack();return}
+  const expected=spotifyCurrent;
+  spotifyAdvanceTimer=window.setTimeout(()=>{
+    spotifyAdvanceTimer=0;
+    if(spotifyCurrent===expected&&!spotifyIsPaused&&!expected.manualPause){
+      playNextSpotifyTrack();
+    }
+  },Math.max(80,remaining+120));
+}
 
-  const remaining=entry.duration-entry.position;
-  if(remaining<=0){
-    playNextSpotifyTrack(entry);
+function flushSpotifySelection(){
+  if(!spotifyControllerReady||!spotifyController||!spotifyRequested)return;
+  const requested=spotifyRequested;
+  spotifyRequested=null;
+  if(spotifyCurrent&&spotifyCurrent.uri===requested.uri){
+    spotifyCurrent.manualPause=false;
+    try{
+      spotifyController.resume();
+    }catch(error){
+      console.warn("Spotify resume failed",error);
+      spotifyAnnounce("Spotify is unavailable. Use the Spotify album link.");
+    }
     return;
   }
-
-  if(remaining<=1600){
-    entry.advanceTimer=window.setTimeout(()=>{
-      entry.advanceTimer=0;
-      if(activeSpotifyPlayer!==entry||entry.manualPause||entry.isPaused)return;
-      playNextSpotifyTrack(entry);
-    },Math.max(80,remaining+120));
+  spotifyCurrent={
+    ...requested,
+    position:0,
+    duration:0,
+    manualPause:false,
+    endHandled:false
+  };
+  try{
+    spotifyController.loadEntity(requested.uri);
+    spotifyController.play();
+  }catch(error){
+    console.warn("Spotify playback failed",error);
+    spotifyAnnounce("Spotify is unavailable. Use the Spotify album link.");
+    setSpotifyButtonState(true);
   }
 }
 
-function createSpotifyTrackPlayer(albumId,trackIndex,uri){
-  if(!spotifyIframeAPI||!spotifyPreloadPool||!uri)return null;
-  if(spotifyTrackPlayers.has(uri))return spotifyTrackPlayers.get(uri);
-
+function ensureSpotifyController(){
+  if(!spotifyRequested)return;
+  if(spotifyControllerReady){flushSpotifySelection();return}
+  if(!spotifyIframeAPI){
+    if(spotifyScriptRequested)return;
+    spotifyScriptRequested=true;
+    const script=document.createElement("script");
+    script.src="https://open.spotify.com/embed/iframe-api/v1";
+    script.async=true;
+    script.addEventListener("error",()=>{
+      spotifyAnnounce("Spotify could not load. Use the Spotify album link.");
+      spotifyScriptRequested=false;
+    },{once:true});
+    document.body.appendChild(script);
+    return;
+  }
+  if(spotifyControllerCreating||!spotifyPreloadPool)return;
+  spotifyControllerCreating=true;
   const shell=document.createElement("div");
   shell.className="spotify-track-engine";
   shell.setAttribute("aria-hidden","true");
-  shell.dataset.spotifyUri=uri;
-
   const target=document.createElement("div");
   shell.appendChild(target);
   spotifyPreloadPool.appendChild(shell);
-
-  const entry={
-    albumId,
-    trackIndex,
-    uri,
-    shell,
-    controller:null,
-    ready:false,
-    pendingPlay:false,
-    position:0,
-    duration:0,
-    isPaused:true,
-    manualPause:false,
-    endHandled:false,
-    advanceTimer:0
-  };
-  spotifyTrackPlayers.set(uri,entry);
-
-  spotifyIframeAPI.createController(target,{width:320,height:80,uri},controller=>{
-    entry.controller=controller;
-
+  spotifyIframeAPI.createController(target,{
+    width:320,
+    height:80,
+    uri:spotifyRequested.uri
+  },controller=>{
+    spotifyController=controller;
     controller.addListener("ready",()=>{
-      entry.ready=true;
-      if(entry.pendingPlay){
-        entry.pendingPlay=false;
-        entry.controller.play();
-      }
+      spotifyControllerReady=true;
+      flushSpotifySelection();
     });
-
     controller.addListener("playback_started",event=>{
-      const playingUri=event?.data?.playingURI||uri;
-      if(playingUri!==uri)return;
-
-      if(activeSpotifyPlayer&&activeSpotifyPlayer!==entry){
-        clearSpotifyAdvanceTimer(activeSpotifyPlayer);
-        try{activeSpotifyPlayer.controller?.pause()}catch(_){}
-      }
-
-      activeSpotifyPlayer=entry;
-      activeTrackState={albumId,trackIndex,uri};
-      entry.manualPause=false;
-      entry.endHandled=false;
-      markTrackSelection(albumId,trackIndex);
+      const uri=event?.data?.playingURI;
+      if(!spotifyCurrent||uri&&uri!==spotifyCurrent.uri)return;
+      spotifyCurrent.manualPause=false;
+      spotifyCurrent.endHandled=false;
+      activeTrackState={
+        albumId:spotifyCurrent.albumId,
+        trackIndex:spotifyCurrent.trackIndex,
+        uri:spotifyCurrent.uri
+      };
+      setSpotifyButtonState(false);
     });
-
     controller.addListener("playback_update",event=>{
       const data=event?.data||{};
-      const playingUri=data.playingURI;
-      if(playingUri&&playingUri!==uri)return;
-
+      if(!spotifyCurrent||data.playingURI&&data.playingURI!==spotifyCurrent.uri)return;
       const position=Number(data.position);
       const duration=Number(data.duration);
-      if(Number.isFinite(position))entry.position=position;
-      if(Number.isFinite(duration)&&duration>0)entry.duration=duration;
-      if(typeof data.isPaused==="boolean")entry.isPaused=data.isPaused;
-
-      if(activeSpotifyPlayer!==entry)return;
-
-      if(entry.isPaused===true){
-        clearSpotifyAdvanceTimer(entry);
-
-        // Natural end: advance inside the same album only.
-        if(
-          !entry.manualPause &&
-          !entry.endHandled &&
-          entry.duration>0 &&
-          entry.position>=entry.duration-650
-        ){
-          playNextSpotifyTrack(entry);
-          return;
+      if(Number.isFinite(position))spotifyCurrent.position=position;
+      if(Number.isFinite(duration)&&duration>0)spotifyCurrent.duration=duration;
+      if(typeof data.isPaused!=="boolean")return;
+      if(data.isPaused){
+        clearSpotifyAdvanceTimer();
+        if(!spotifyCurrent.manualPause &&
+           !spotifyCurrent.endHandled &&
+           spotifyCurrent.duration>0 &&
+           spotifyCurrent.position>=spotifyCurrent.duration-650){
+          playNextSpotifyTrack();
+        }else{
+          setSpotifyButtonState(true);
         }
-
-        setSpotifyButtonState(true);
         return;
       }
-
-      if(entry.isPaused===false&&entry.position>40){
+      if(spotifyCurrent.position>40){
         setSpotifyButtonState(false);
-        scheduleSpotifyAutoNext(entry);
+        scheduleSpotifyAutoNext();
       }
     });
   });
-
-  return entry;
 }
 
-function ensureSpotifyAlbumControllers(albumId){
-  if(!spotifyIframeAPI)return;
+function playTrack(albumId,trackIndex,{autoplay=true}={}){
   const album=ALBUMS.find(item=>item.id===albumId);
-  if(!album)return;
-  (album.spotifyTracks||[]).forEach((uri,trackIndex)=>{
-    createSpotifyTrackPlayer(album.id,trackIndex,uri);
-  });
-}
-
-function playTrack(albumId,trackIndex,{autoplay=true,autoAdvance=false}={}){
-  const album=ALBUMS.find(item=>item.id===albumId);
-  if(!album)return;
-  const uri=album.spotifyTracks?.[trackIndex];
+  const uri=album?.spotifyTracks?.[trackIndex];
   if(!uri)return;
-
   activeTrackState={albumId,trackIndex,uri};
   markTrackSelection(albumId,trackIndex);
-
-  ensureSpotifyAlbumControllers(albumId);
-  const entry=spotifyTrackPlayers.get(uri);
-  if(!entry)return;
-
   if(!autoplay)return;
-
-  if(activeSpotifyPlayer&&activeSpotifyPlayer!==entry){
-    const previous=activeSpotifyPlayer;
-    clearSpotifyAdvanceTimer(previous);
-    previous.manualPause=true;
-    activeSpotifyPlayer=entry;
-    try{previous.controller?.pause()}catch(_){}
-  }else{
-    activeSpotifyPlayer=entry;
-  }
-  entry.position=0;
-  entry.isPaused=true;
-  entry.manualPause=false;
-  entry.endHandled=false;
-  clearSpotifyAdvanceTimer(entry);
-  spotifyIsPaused=true;
-
-  // Spotify embeds always stay hidden. If a controller is still initializing,
-  // remember the play request and execute it on ready instead of surfacing UI.
-  if(!entry.controller||!entry.ready){
-    entry.pendingPlay=true;
-    return;
-  }
-
-  entry.pendingPlay=false;
-  entry.controller.play();
+  spotifyRequested={albumId,trackIndex,uri};
+  clearSpotifyAdvanceTimer();
+  setSpotifyButtonState(true);
+  spotifyAnnounce("Loading Spotify playback");
+  ensureSpotifyController();
 }
 
 function pauseSpotify(){
-  if(!activeSpotifyPlayer)return;
-  activeSpotifyPlayer.manualPause=true;
-  activeSpotifyPlayer.pendingPlay=false;
-  clearSpotifyAdvanceTimer(activeSpotifyPlayer);
-  if(activeSpotifyPlayer.controller){
-    try{activeSpotifyPlayer.controller.pause()}catch(_){}
-  }
+  spotifyRequested=null;
+  clearSpotifyAdvanceTimer();
+  if(spotifyCurrent)spotifyCurrent.manualPause=true;
+  try{spotifyController?.pause()}catch(error){console.warn("Spotify pause failed",error)}
   setSpotifyButtonState(true);
 }
 
-window.onSpotifyIframeApiReady=(IFrameAPI)=>{
+window.onSpotifyIframeApiReady=IFrameAPI=>{
   spotifyIframeAPI=IFrameAPI;
-  const initialAlbum=ALBUMS[activeAlbumIndex>=0?activeAlbumIndex:0]?.id||"reall";
-  ensureSpotifyAlbumControllers(initialAlbum);
+  ensureSpotifyController();
 };
 
 function stopSpotifyPanel(){}
@@ -2730,7 +2753,6 @@ function selectAlbum(id){
 
   // Browsing the catalogue does not interrupt playback.
   // Audio changes only when the visitor explicitly clicks another track.
-  ensureSpotifyAlbumControllers(id);
   animateTitle(a,direction,token);
   animateDiscWindow(newPanel,oldPanel,direction,token);
   animateWindow(creditsTextWindow,makeCreditsPanel(a),direction,token);
@@ -2796,7 +2818,6 @@ const parallaxBio=document.querySelector(".bio");
 const recordSideLabel=parallaxRecord?.querySelector(".record-side-label");
 const bioSideLabel=parallaxBio?.querySelector(".bio-side-label");
 const parallaxLayer=document.querySelector(".site-parallax-bg");
-const reducedMotionQuery=window.matchMedia("(prefers-reduced-motion: reduce)");
 
 function prepareSideLabelLetters(label){
   if(!label||label.dataset.letterRevealReady==="1")return;
@@ -2870,7 +2891,6 @@ function createBootParticleLoader(){
     return null;
   }
 
-  const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const stages=new Map();
   const addStage=(key,weight)=>stages.set(key,{weight,done:false});
 
@@ -2976,6 +2996,26 @@ function createBootParticleLoader(){
     targetProgress=progressFromStages();
   };
 
+  // Independent escape route for unsupported graphics, decode failures and
+  // slow devices. The max-resolution WebGL field can finish after unlock.
+  const forceComplete=()=>{
+    if(finished)return;
+    finished=true;
+    finishing=false;
+    targetBuildToken++; // Abort pending logo raster work as well.
+    if(raf)cancelAnimationFrame(raf);
+    document.body.classList.remove("boot-loading");
+    bootLoaderCanvas.classList.add("is-complete");
+    bootLoaderCanvas.style.pointerEvents="none";
+    // Avoid drawing the DOM logo over the already-complete WebGL logo.
+    introBrandImg.style.opacity=document.documentElement.classList.contains("particle-field-ready")?"0":"1";
+    window.setTimeout(()=>bootLoaderCanvas.remove(),1100);
+    completeListeners.forEach(listener=>{
+      try{listener()}catch(error){console.error(error)}
+    });
+    completeListeners.clear();
+  };
+
   const resize=()=>{
     const dpr=Math.min(window.devicePixelRatio||1,1.6);
     const w=Math.max(1,window.innerWidth);
@@ -3020,7 +3060,7 @@ function createBootParticleLoader(){
     let y=0;
 
     const processSlice=()=>{
-      if(token!==targetBuildToken)return;
+      if(finished||token!==targetBuildToken)return;
 
       const sliceStarted=performance.now();
       while(y<nextRasterH){
@@ -3164,24 +3204,20 @@ function createBootParticleLoader(){
       // No temporary reveal target exists anymore. The stream always advances.
       // At low readiness it would take roughly 12s to assemble by itself; as
       // readiness rises, that rate continuously accelerates toward ~1.15s.
-      if(reducedMotion){
-        revealPosition=particles.length;
-      }else{
-        const slowDuration=12000;
-        const fastDuration=1150;
-        const effectiveDuration=
-          slowDuration+(fastDuration-slowDuration)*easedDrive;
-        const desiredVelocity=particles.length/effectiveDuration;
-        const minimumVelocity=Math.max(.085,particles.length/15000);
-        const velocityResponse=1-Math.exp(-dt/520);
-        revealVelocity+=(
-          Math.max(minimumVelocity,desiredVelocity)-revealVelocity
-        )*velocityResponse;
-        revealPosition=Math.min(
-          particles.length,
-          revealPosition+Math.max(minimumVelocity,revealVelocity)*dt
-        );
-      }
+      const slowDuration=12000;
+      const fastDuration=1150;
+      const effectiveDuration=
+        slowDuration+(fastDuration-slowDuration)*easedDrive;
+      const desiredVelocity=particles.length/effectiveDuration;
+      const minimumVelocity=Math.max(.085,particles.length/15000);
+      const velocityResponse=1-Math.exp(-dt/520);
+      revealVelocity+=(
+        Math.max(minimumVelocity,desiredVelocity)-revealVelocity
+      )*velocityResponse;
+      revealPosition=Math.min(
+        particles.length,
+        revealPosition+Math.max(minimumVelocity,revealVelocity)*dt
+      );
 
       displayProgress=particles.length
         ?Math.min(1,revealPosition/particles.length)
@@ -3189,7 +3225,7 @@ function createBootParticleLoader(){
 
       const emitTo=Math.floor(revealPosition);
       const spawnCount=Math.max(0,emitTo-revealedCount);
-      const birthWindow=reducedMotion?0:Math.min(14,dt*.9);
+      const birthWindow=Math.min(14,dt*.9);
 
       for(let n=0;n<spawnCount;n++){
         const p=particles[revealedCount++];
@@ -3214,7 +3250,7 @@ function createBootParticleLoader(){
           }
 
           const raw=Math.min(1,((now-p.birth)*flightSpeed)/p.duration);
-          if(raw>=1||reducedMotion){
+          if(raw>=1){
             if(p.settleKeep){
               const settleAlpha=(p.a/255)*p.opacity;
               const size=p.settleSize;
@@ -3301,10 +3337,12 @@ function createBootParticleLoader(){
     img.decoding="async";
 
     const settle=()=>{
+      if(finished)return;
       const decoded=typeof img.decode==="function"
         ?img.decode().catch(()=>{})
         :Promise.resolve();
       decoded.finally(()=>{
+        if(finished)return;
         if(logo){
           logoImage=img;
           buildTargets(img,()=>mark(key));
@@ -3335,19 +3373,14 @@ function createBootParticleLoader(){
     mark("dom");
   }
 
-  // Safety: a failed resource or WebGL init must never strand the visitor
-  // forever. Normal loads finish long before this path is reached.
-  window.setTimeout(()=>{
-    for(const [key,stage] of stages){
-      if(!stage.done)mark(key);
-    }
-    if(introBrandImg)introBrandImg.style.opacity="1";
-  },8000);
+  // A deadline that actually dismisses the overlay, not just progress.
+  window.setTimeout(()=>{if(!finished)forceComplete()},10000);
 
   raf=requestAnimationFrame(draw);
 
   return {
     mark,
+    forceComplete,
     onHandoffReady(listener){
       if(typeof listener!=="function")return;
       if(handoffArmed){
@@ -3546,7 +3579,7 @@ function setBiographyTextActive(active,{immediate=false}={}){
       });
     };
 
-    if(immediate||reducedMotionQuery.matches){
+    if(immediate){
       biographyCopy.classList.add("bio-text-visible");
     }else{
       biographyEnterTimer=window.setTimeout(reveal,200);
@@ -3658,7 +3691,7 @@ particleBookReference.decoding="async";
 particleBookReference.src=particleAssetUrl("book.webp");
 
 function createParticleField(){
-  if(!particleCanvas||!particleGL||!introBrandImg||reducedMotionQuery.matches)return;
+  if(!particleCanvas||!particleGL||!introBrandImg)return;
 
   const gl=particleGL;
   const source=new Image();
@@ -4321,6 +4354,7 @@ function createParticleField(){
     console.error("Particle WebGL init failed",error);
     introBrandImg.style.opacity="1";
     grimoriumBootLoader?.mark("particleEngine");
+    grimoriumBootLoader?.forceComplete?.();
     return;
   }
 
@@ -6498,7 +6532,14 @@ function createParticleField(){
     gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
     gl.clearColor(0,0,0,0);
 
-    rebuild();
+    // Preserve the full particle count; defer costly album/Bio scenes.
+    handoffCoreOnly=true;
+    try{
+      rebuild();
+    }finally{
+      handoffCoreOnly=false;
+    }
+    fullHandoffStarted=true; // No redundant full-density rebuild.
     state.render=render;
     state.goHome=()=>{
       const now=performance.now();
@@ -6558,6 +6599,9 @@ function createParticleField(){
     state.raf=requestAnimationFrame(render);
     particleField=state;
     state.setAlbumScene(ALBUMS[activeAlbumIndex]?.id||"reall");
+    // If the safety timeout unlocked the page before the GPU was ready,
+    // still build deferred scenes after the full-resolution book appears.
+    if(grimoriumBootLoader?.complete)prepareDeferredScenesAfterBoot();
   }
 
   function buildDeferredAlbumScene(id,ref,candidates,done){
@@ -6923,7 +6967,7 @@ function createParticleField(){
   });
 
   grimoriumBootLoader?.onComplete?.(()=>{
-    prepareDeferredScenesAfterBoot();
+    if(started)prepareDeferredScenesAfterBoot();
   });
 
   window.addEventListener("resize",()=>{
@@ -7098,7 +7142,7 @@ function createParticleField(){
     if(document.hidden){
       state.active=false;
       if(state.raf)cancelAnimationFrame(state.raf);
-    }else if(!state.active&&!state.destroyed&&!reducedMotionQuery.matches){
+    }else if(!state.active&&!state.destroyed){
       state.active=true;
       state.lastFrameAt=0;
       state.raf=requestAnimationFrame(render);
@@ -7110,6 +7154,7 @@ function createParticleField(){
     state.active=false;
     if(state.raf)cancelAnimationFrame(state.raf);
     introBrandImg.style.opacity="1";
+    grimoriumBootLoader?.forceComplete?.();
   });
 
   particleCanvas.addEventListener("webglcontextrestored",()=>{
@@ -7117,35 +7162,16 @@ function createParticleField(){
   },{once:true});
 }
 
-if(reducedMotionQuery.matches){
+if(particleGL){
+  try{createParticleField()}catch(error){
+    console.error("Particle initialization failed",error);
+    if(introBrandImg)introBrandImg.style.opacity="1";
+    grimoriumBootLoader?.forceComplete?.();
+  }
+}else{
   if(introBrandImg)introBrandImg.style.opacity="1";
   grimoriumBootLoader?.mark("particleEngine");
-}else if(particleGL){
-  createParticleField();
-}else if(introBrandImg){
-  introBrandImg.style.opacity="1";
-  grimoriumBootLoader?.mark("particleEngine");
-}
-
-if(typeof reducedMotionQuery.addEventListener==="function"){
-  reducedMotionQuery.addEventListener("change",e=>{
-    if(e.matches){
-      if(particleField?.raf)cancelAnimationFrame(particleField.raf);
-      if(particleField)particleField.active=false;
-      if(introBrandImg)introBrandImg.style.opacity="1";
-      return;
-    }
-
-    if(!particleField&&particleGL){
-      createParticleField();
-      return;
-    }
-    if(particleField&&!particleField.active){
-      particleField.active=true;
-      particleField.lastFrameAt=0;
-      particleField.raf=requestAnimationFrame(particleField.render||(()=>{}));
-    }
-  });
+  grimoriumBootLoader?.forceComplete?.();
 }
 
 /* ---------- /WEBGL PARTICLE / BOOK FIELD ---------- */
@@ -7182,7 +7208,6 @@ function measureScenes(){
 function renderScenes(){
   sceneFrame=0;
   const scrollY=window.scrollY;
-  const reducedMotion=reducedMotionQuery.matches;
   const isMobile=window.innerWidth<=720;
 
   if(introHero && introHeader && introBrand && introBrandImg && introCopy){
@@ -7219,14 +7244,7 @@ function renderScenes(){
     const mobileRelease=mobileReleaseProgress*mobileExitDistance;
     const deltaY=headerDeltaY*move-mobileRelease;
 
-    if(reducedMotion){
-      introBrand.style.transform=`translate(-50%,-50%) translate3d(0,${headerDeltaY.toFixed(2)}px,0) scale(${finalScale.toFixed(4)})`;
-      introCopy.style.opacity="1";
-      introCopy.style.filter="none";
-      introCopy.style.transform="translate3d(0,42px,0) scale(1)";
-      introCopy.style.pointerEvents="auto";
-      introHero.querySelector(".hero-inner").style.visibility=isMobile?"visible":(raw>=.995?"hidden":"visible");
-    }else{
+    {
       introBrand.style.transform=`translate(-50%,-50%) translate3d(0,${deltaY.toFixed(2)}px,0) scale(${scale.toFixed(4)})`;
       const introCopyY=(isMobile?15:62)+(1-revealIn)*28-(isMobile?0:desktopExit*26);
       const introBlur=isMobile?0:Math.max((1-revealIn)*8,desktopExit*16);
@@ -7248,9 +7266,7 @@ function renderScenes(){
     const recordSide=parallaxRecord.querySelector(".record-side-label");
     const rect=parallaxRecord.getBoundingClientRect();
     const vh=Math.max(1,window.innerHeight);
-    const recordReveal=reducedMotion
-      ? (rect.top<vh*.72?1:0)
-      : smoothstep((vh*1.08-rect.top)/(vh*.78));
+    const recordReveal=smoothstep((vh*1.08-rect.top)/(vh*.78));
 
     if(recordShell){
       recordShell.style.opacity=recordReveal.toFixed(3);
@@ -7404,14 +7420,6 @@ function animateDesktopSnap(target){
   }
 
   desktopSnapAnimating=true;
-
-  if(reducedMotionQuery.matches){
-    window.scrollTo(0,target);
-    desktopSnapAnimating=false;
-    document.documentElement.classList.remove("desktop-snapping");
-    requestScenes();
-    return;
-  }
 
   const duration=Math.min(980,Math.max(680,Math.abs(distance)*.52));
   const started=performance.now();
@@ -7644,6 +7652,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",
   el.scrollIntoView({behavior:"smooth"});
 }));
 </script>
-<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+
 </body>
 </html>
