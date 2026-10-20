@@ -2475,6 +2475,12 @@ let spotifyIsPaused=true;
 // That is not a user pause, and must not flash the track number.
 let spotifyPlaybackConfirmed=false;
 let spotifyVisualKey="";
+let spotifyPauseRecheckTimer=0;
+
+function clearSpotifyPauseRecheck(){
+  if(spotifyPauseRecheckTimer)window.clearTimeout(spotifyPauseRecheckTimer);
+  spotifyPauseRecheckTimer=0;
+}
 const spotifyStatus=document.getElementById("spotifyPlaybackStatus");
 const spotifyAnnounce=message=>{if(spotifyStatus)spotifyStatus.textContent=message};
 
@@ -2690,6 +2696,7 @@ function ensureSpotifyController(){
     controller.addListener("playback_started",event=>{
       const uri=event?.data?.playingURI;
       if(!spotifyCurrent||uri&&uri!==spotifyCurrent.uri)return;
+      clearSpotifyPauseRecheck();
       spotifyCurrent.manualPause=false;
       spotifyCurrent.endHandled=false;
       activeTrackState={
@@ -2715,14 +2722,25 @@ function ensureSpotifyController(){
            spotifyCurrent.duration>0 &&
            spotifyCurrent.position>=spotifyCurrent.duration-650){
           playNextSpotifyTrack();
-        }else if(spotifyCurrent.manualPause||spotifyPlaybackConfirmed){
-          // Real pauses after audio was playing still update the UI.
-          // Ignore transient paused events before the first progress tick.
+        }else if(spotifyCurrent.manualPause){
           spotifyPlaybackConfirmed=false;
           setSpotifyButtonState(true);
+        }else if(spotifyPlaybackConfirmed){
+          // A short SDK buffering pause must not flash the track number.
+          // Explicit clicks pause immediately; external pauses settle briefly.
+          clearSpotifyPauseRecheck();
+          const expected=spotifyCurrent;
+          const sequence=spotifyPlaySequence;
+          spotifyPauseRecheckTimer=window.setTimeout(()=>{
+            spotifyPauseRecheckTimer=0;
+            if(spotifyCurrent!==expected||sequence!==spotifyPlaySequence)return;
+            spotifyPlaybackConfirmed=false;
+            setSpotifyButtonState(true);
+          },600);
         }
         return;
       }
+      clearSpotifyPauseRecheck();
       // A confirmed unpaused progress tick ends the buffering phase.
       if(spotifyCurrent.position>40)spotifyPlaybackConfirmed=true;
       setSpotifyButtonState(false);
@@ -2744,6 +2762,7 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
   spotifyRequested={albumId,trackIndex,uri};
   spotifyPlaySequence++;
   spotifyPlaybackConfirmed=false;
+  clearSpotifyPauseRecheck();
   clearSpotifyAdvanceTimer();
   hideSpotifyFallback();
   // Show Pause from the user's click through Spotify's buffering phase.
@@ -2757,6 +2776,7 @@ function pauseSpotify(){
   spotifyRequested=null;
   spotifyPlaySequence++;
   spotifyPlaybackConfirmed=false;
+  clearSpotifyPauseRecheck();
   clearSpotifyAdvanceTimer();
   hideSpotifyFallback();
   if(spotifyCurrent)spotifyCurrent.manualPause=true;
