@@ -26,7 +26,8 @@ test("loader has a real independent unlock fallback",()=>{
 
 test("Spotify controller is one-per-page, prewarmed, and Safari-safe",()=>{
   assert.equal((site.match(/spotifyIframeAPI\.createController\(/g)||[]).length,1);
-  assert.match(site,/window\.setTimeout\(ensureSpotifyController,0\)/);
+  assert.match(site,/grimoriumBootLoader\.onComplete\(warmSpotifyWhenIdle\)/);
+  assert.doesNotMatch(site,/window\.setTimeout\(ensureSpotifyController,0\)/);
   assert.match(site,/if\(spotifyLoadedUri!==requested\.uri\)/);
   assert.match(site,/spotifyController\.loadEntity\(requested\.uri\)/);
   assert.match(site,/spotifyController\.play\(\)/);
@@ -35,6 +36,16 @@ test("Spotify controller is one-per-page, prewarmed, and Safari-safe",()=>{
   assert.match(site,/spotifyFallbackLink\.href=spotifyTrackLink\(uri\)/);
   assert.doesNotMatch(site,/<script src="https:\/\/open\.spotify\.com\/embed\/iframe-api\/v1"/);
   assert.doesNotMatch(site,/ensureSpotifyAlbumControllers\(/);
+});
+
+test("Spotify buffering never flashes track index between play events",()=>{
+  assert.match(site,/spotifyPlaybackConfirmed=false/);
+  assert.match(site,/setSpotifyButtonState\(false\);\s*spotifyAnnounce\("Loading Spotify playback"\)/);
+  assert.match(site,/else if\(spotifyPlaybackConfirmed\)\{/);
+  assert.match(site,/spotifyPauseRecheckTimer=window\.setTimeout/);
+  assert.match(site,/clearSpotifyPauseRecheck\(\)/);
+  assert.match(site,/spotifyVisualKey===visualKey/);
+  assert.match(site,/if\(spotifyCurrent\.position>40\)spotifyPlaybackConfirmed=true/);
 });
 
 test("original zoom and text-selection restrictions stay unchanged",()=>{
