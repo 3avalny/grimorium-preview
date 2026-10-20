@@ -957,6 +957,7 @@ nav{display:none!important}
   .stream-col,.player,.player iframe{height:152px;min-height:152px}
 }
 
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
 .skip-link{position:fixed;left:12px;top:12px;z-index:100001;padding:12px 18px;background:#161516;color:#fff;transform:translateY(-150%);opacity:0}
 .skip-link:focus{transform:none;opacity:1;outline:2px solid #e5e0d5}
 #music:focus,#biography:focus{outline:none}
@@ -1933,6 +1934,7 @@ html.home-returning main{
   <button type="button" data-id="retaliation">Retaliation</button>
 </div>
 <div id="spotifyPreloadPool" class="spotify-preload-pool" aria-hidden="true"></div>
+<span class="sr-only" id="spotifyPlaybackStatus" role="status" aria-live="polite"></span>
 <header>
   <div class="brand" aria-hidden="true"><img src="assets/GV_PNG_bez_fona.png?v=13836c25" alt=""></div>
 </header>
@@ -2332,255 +2334,208 @@ function discPanelFor(id){
   return discContentWindow.querySelector(`.disc-content-panel[data-album-id="${id}"]`);
 }
 
+// One lazy Spotify iframe for the whole catalogue. Merely browsing albums
+// never creates network embeds. The iframe is reused with loadEntity().
 let spotifyIframeAPI=null;
 const spotifyPreloadPool=document.getElementById("spotifyPreloadPool");
-const spotifyTrackPlayers=new Map();
-let activeSpotifyPlayer=null;
+let spotifyController=null;
+let spotifyControllerCreating=false;
+let spotifyControllerReady=false;
+let spotifyScriptRequested=false;
+let spotifyRequested=null;
+let spotifyCurrent=null;
+let spotifyAdvanceTimer=0;
 let activeTrackState=null;
 let spotifyIsPaused=true;
+const spotifyStatus=document.getElementById("spotifyPlaybackStatus");
+const spotifyAnnounce=message=>{if(spotifyStatus)spotifyStatus.textContent=message};
 
 function setSpotifyButtonState(isPaused=true){
   spotifyIsPaused=isPaused;
-  discContentWindow.querySelectorAll(".track-row").forEach(row=>row.classList.remove("is-playing"));
+  discContentWindow.querySelectorAll(".track-row").forEach(row=>{
+    row.classList.remove("is-playing");
+    const control=row.querySelector(".track-index-control");
+    const index=Number(row.dataset.trackIndex);
+    if(control)control.setAttribute("aria-label",`Play track ${index+1}`);
+  });
   if(isPaused||!activeTrackState)return;
   const row=discPanelFor(activeTrackState.albumId)?.querySelector(`.track-row[data-track-index="${activeTrackState.trackIndex}"]`);
   row?.classList.add("is-playing");
-  const control=row?.querySelector(".track-index-control");
-  if(control)control.setAttribute("aria-label","Pause");
+  row?.querySelector(".track-index-control")?.setAttribute("aria-label","Pause");
 }
 
 function markTrackSelection(albumId,trackIndex){
   discContentWindow.querySelectorAll(".track-row").forEach(row=>{
     row.classList.remove("is-selected","is-playing");
-    const control=row.querySelector(".track-index-control");
-    if(control){
-      const index=Number(row.dataset.trackIndex);
-      control.setAttribute("aria-label",`Play track ${Number.isFinite(index)?index+1:""}`);
-    }
   });
   const row=discPanelFor(albumId)?.querySelector(`.track-row[data-track-index="${trackIndex}"]`);
   row?.classList.add("is-selected");
-  if(!spotifyIsPaused)row?.classList.add("is-playing");
+  setSpotifyButtonState(spotifyIsPaused);
 }
 
-function clearSpotifyAdvanceTimer(entry){
-  if(!entry?.advanceTimer)return;
-  window.clearTimeout(entry.advanceTimer);
-  entry.advanceTimer=0;
+function clearSpotifyAdvanceTimer(){
+  if(spotifyAdvanceTimer)window.clearTimeout(spotifyAdvanceTimer);
+  spotifyAdvanceTimer=0;
 }
 
-function playNextSpotifyTrack(entry){
-  if(!entry||entry.endHandled||entry.manualPause)return;
-  const album=ALBUMS.find(item=>item.id===entry.albumId);
-  if(!album)return;
-
-  const nextIndex=entry.trackIndex+1;
-  entry.endHandled=true;
-  clearSpotifyAdvanceTimer(entry);
-
-  if(nextIndex>=album.tracks.length){
+function playNextSpotifyTrack(){
+  if(!spotifyCurrent||spotifyCurrent.endHandled)return;
+  spotifyCurrent.endHandled=true;
+  clearSpotifyAdvanceTimer();
+  const album=ALBUMS.find(item=>item.id===spotifyCurrent.albumId);
+  const nextIndex=spotifyCurrent.trackIndex+1;
+  if(!album||nextIndex>=album.tracks.length){
     setSpotifyButtonState(true);
-    discContentWindow.querySelectorAll(".track-row").forEach(row=>{
-      row.classList.remove("is-selected","is-playing");
-      const control=row.querySelector(".track-index-control");
-      if(control){
-        const index=Number(row.dataset.trackIndex);
-        control.setAttribute("aria-label",`Play track ${Number.isFinite(index)?index+1:""}`);
-      }
-    });
-    activeTrackState=null;
-    activeSpotifyPlayer=null;
-    spotifyIsPaused=true;
     return;
   }
-
   playTrack(album.id,nextIndex,{autoplay:true,autoAdvance:true});
 }
 
-function scheduleSpotifyAutoNext(entry){
-  clearSpotifyAdvanceTimer(entry);
-  if(!entry||entry.manualPause||entry.endHandled)return;
-  if(!(entry.duration>0)||!(entry.position>=0))return;
+function scheduleSpotifyAutoNext(){
+  clearSpotifyAdvanceTimer();
+  if(!spotifyCurrent||spotifyCurrent.manualPause||spotifyCurrent.endHandled||spotifyIsPaused)return;
+  const remaining=spotifyCurrent.duration-spotifyCurrent.position;
+  if(spotifyCurrent.duration<=0||remaining>1600)return;
+  if(remaining<=0){playNextSpotifyTrack();return}
+  const expected=spotifyCurrent;
+  spotifyAdvanceTimer=window.setTimeout(()=>{
+    spotifyAdvanceTimer=0;
+    if(spotifyCurrent===expected&&!spotifyIsPaused&&!expected.manualPause){
+      playNextSpotifyTrack();
+    }
+  },Math.max(80,remaining+120));
+}
 
-  const remaining=entry.duration-entry.position;
-  if(remaining<=0){
-    playNextSpotifyTrack(entry);
+function flushSpotifySelection(){
+  if(!spotifyControllerReady||!spotifyController||!spotifyRequested)return;
+  const requested=spotifyRequested;
+  spotifyRequested=null;
+  if(spotifyCurrent&&spotifyCurrent.uri===requested.uri){
+    spotifyCurrent.manualPause=false;
+    try{
+      spotifyController.resume();
+    }catch(error){
+      console.warn("Spotify resume failed",error);
+      spotifyAnnounce("Spotify is unavailable. Use the Spotify album link.");
+    }
     return;
   }
-
-  if(remaining<=1600){
-    entry.advanceTimer=window.setTimeout(()=>{
-      entry.advanceTimer=0;
-      if(activeSpotifyPlayer!==entry||entry.manualPause||entry.isPaused)return;
-      playNextSpotifyTrack(entry);
-    },Math.max(80,remaining+120));
+  spotifyCurrent={
+    ...requested,
+    position:0,
+    duration:0,
+    manualPause:false,
+    endHandled:false
+  };
+  try{
+    spotifyController.loadEntity(requested.uri);
+    spotifyController.play();
+  }catch(error){
+    console.warn("Spotify playback failed",error);
+    spotifyAnnounce("Spotify is unavailable. Use the Spotify album link.");
+    setSpotifyButtonState(true);
   }
 }
 
-function createSpotifyTrackPlayer(albumId,trackIndex,uri){
-  if(!spotifyIframeAPI||!spotifyPreloadPool||!uri)return null;
-  if(spotifyTrackPlayers.has(uri))return spotifyTrackPlayers.get(uri);
-
+function ensureSpotifyController(){
+  if(!spotifyRequested)return;
+  if(spotifyControllerReady){flushSpotifySelection();return}
+  if(!spotifyIframeAPI){
+    if(spotifyScriptRequested)return;
+    spotifyScriptRequested=true;
+    const script=document.createElement("script");
+    script.src="https://open.spotify.com/embed/iframe-api/v1";
+    script.async=true;
+    script.addEventListener("error",()=>{
+      spotifyAnnounce("Spotify could not load. Use the Spotify album link.");
+      spotifyScriptRequested=false;
+    },{once:true});
+    document.body.appendChild(script);
+    return;
+  }
+  if(spotifyControllerCreating||!spotifyPreloadPool)return;
+  spotifyControllerCreating=true;
   const shell=document.createElement("div");
   shell.className="spotify-track-engine";
   shell.setAttribute("aria-hidden","true");
-  shell.dataset.spotifyUri=uri;
-
   const target=document.createElement("div");
   shell.appendChild(target);
   spotifyPreloadPool.appendChild(shell);
-
-  const entry={
-    albumId,
-    trackIndex,
-    uri,
-    shell,
-    controller:null,
-    ready:false,
-    pendingPlay:false,
-    position:0,
-    duration:0,
-    isPaused:true,
-    manualPause:false,
-    endHandled:false,
-    advanceTimer:0
-  };
-  spotifyTrackPlayers.set(uri,entry);
-
-  spotifyIframeAPI.createController(target,{width:320,height:80,uri},controller=>{
-    entry.controller=controller;
-
+  spotifyIframeAPI.createController(target,{
+    width:320,
+    height:80,
+    uri:spotifyRequested.uri
+  },controller=>{
+    spotifyController=controller;
     controller.addListener("ready",()=>{
-      entry.ready=true;
-      if(entry.pendingPlay){
-        entry.pendingPlay=false;
-        entry.controller.play();
-      }
+      spotifyControllerReady=true;
+      flushSpotifySelection();
     });
-
     controller.addListener("playback_started",event=>{
-      const playingUri=event?.data?.playingURI||uri;
-      if(playingUri!==uri)return;
-
-      if(activeSpotifyPlayer&&activeSpotifyPlayer!==entry){
-        clearSpotifyAdvanceTimer(activeSpotifyPlayer);
-        try{activeSpotifyPlayer.controller?.pause()}catch(_){}
-      }
-
-      activeSpotifyPlayer=entry;
-      activeTrackState={albumId,trackIndex,uri};
-      entry.manualPause=false;
-      entry.endHandled=false;
-      markTrackSelection(albumId,trackIndex);
+      const uri=event?.data?.playingURI;
+      if(!spotifyCurrent||uri&&uri!==spotifyCurrent.uri)return;
+      spotifyCurrent.manualPause=false;
+      spotifyCurrent.endHandled=false;
+      activeTrackState={
+        albumId:spotifyCurrent.albumId,
+        trackIndex:spotifyCurrent.trackIndex,
+        uri:spotifyCurrent.uri
+      };
+      setSpotifyButtonState(false);
     });
-
     controller.addListener("playback_update",event=>{
       const data=event?.data||{};
-      const playingUri=data.playingURI;
-      if(playingUri&&playingUri!==uri)return;
-
+      if(!spotifyCurrent||data.playingURI&&data.playingURI!==spotifyCurrent.uri)return;
       const position=Number(data.position);
       const duration=Number(data.duration);
-      if(Number.isFinite(position))entry.position=position;
-      if(Number.isFinite(duration)&&duration>0)entry.duration=duration;
-      if(typeof data.isPaused==="boolean")entry.isPaused=data.isPaused;
-
-      if(activeSpotifyPlayer!==entry)return;
-
-      if(entry.isPaused===true){
-        clearSpotifyAdvanceTimer(entry);
-
-        // Natural end: advance inside the same album only.
-        if(
-          !entry.manualPause &&
-          !entry.endHandled &&
-          entry.duration>0 &&
-          entry.position>=entry.duration-650
-        ){
-          playNextSpotifyTrack(entry);
-          return;
+      if(Number.isFinite(position))spotifyCurrent.position=position;
+      if(Number.isFinite(duration)&&duration>0)spotifyCurrent.duration=duration;
+      if(typeof data.isPaused!=="boolean")return;
+      if(data.isPaused){
+        clearSpotifyAdvanceTimer();
+        if(!spotifyCurrent.manualPause &&
+           !spotifyCurrent.endHandled &&
+           spotifyCurrent.duration>0 &&
+           spotifyCurrent.position>=spotifyCurrent.duration-650){
+          playNextSpotifyTrack();
+        }else{
+          setSpotifyButtonState(true);
         }
-
-        setSpotifyButtonState(true);
         return;
       }
-
-      if(entry.isPaused===false&&entry.position>40){
+      if(spotifyCurrent.position>40){
         setSpotifyButtonState(false);
-        scheduleSpotifyAutoNext(entry);
+        scheduleSpotifyAutoNext();
       }
     });
   });
-
-  return entry;
 }
 
-function ensureSpotifyAlbumControllers(albumId){
-  if(!spotifyIframeAPI)return;
+function playTrack(albumId,trackIndex,{autoplay=true}={}){
   const album=ALBUMS.find(item=>item.id===albumId);
-  if(!album)return;
-  (album.spotifyTracks||[]).forEach((uri,trackIndex)=>{
-    createSpotifyTrackPlayer(album.id,trackIndex,uri);
-  });
-}
-
-function playTrack(albumId,trackIndex,{autoplay=true,autoAdvance=false}={}){
-  const album=ALBUMS.find(item=>item.id===albumId);
-  if(!album)return;
-  const uri=album.spotifyTracks?.[trackIndex];
+  const uri=album?.spotifyTracks?.[trackIndex];
   if(!uri)return;
-
   activeTrackState={albumId,trackIndex,uri};
   markTrackSelection(albumId,trackIndex);
-
-  ensureSpotifyAlbumControllers(albumId);
-  const entry=spotifyTrackPlayers.get(uri);
-  if(!entry)return;
-
   if(!autoplay)return;
-
-  if(activeSpotifyPlayer&&activeSpotifyPlayer!==entry){
-    const previous=activeSpotifyPlayer;
-    clearSpotifyAdvanceTimer(previous);
-    previous.manualPause=true;
-    activeSpotifyPlayer=entry;
-    try{previous.controller?.pause()}catch(_){}
-  }else{
-    activeSpotifyPlayer=entry;
-  }
-  entry.position=0;
-  entry.isPaused=true;
-  entry.manualPause=false;
-  entry.endHandled=false;
-  clearSpotifyAdvanceTimer(entry);
-  spotifyIsPaused=true;
-
-  // Spotify embeds always stay hidden. If a controller is still initializing,
-  // remember the play request and execute it on ready instead of surfacing UI.
-  if(!entry.controller||!entry.ready){
-    entry.pendingPlay=true;
-    return;
-  }
-
-  entry.pendingPlay=false;
-  entry.controller.play();
+  spotifyRequested={albumId,trackIndex,uri};
+  clearSpotifyAdvanceTimer();
+  setSpotifyButtonState(true);
+  spotifyAnnounce("Loading Spotify playback");
+  ensureSpotifyController();
 }
 
 function pauseSpotify(){
-  if(!activeSpotifyPlayer)return;
-  activeSpotifyPlayer.manualPause=true;
-  activeSpotifyPlayer.pendingPlay=false;
-  clearSpotifyAdvanceTimer(activeSpotifyPlayer);
-  if(activeSpotifyPlayer.controller){
-    try{activeSpotifyPlayer.controller.pause()}catch(_){}
-  }
+  spotifyRequested=null;
+  clearSpotifyAdvanceTimer();
+  if(spotifyCurrent)spotifyCurrent.manualPause=true;
+  try{spotifyController?.pause()}catch(error){console.warn("Spotify pause failed",error)}
   setSpotifyButtonState(true);
 }
 
-window.onSpotifyIframeApiReady=(IFrameAPI)=>{
+window.onSpotifyIframeApiReady=IFrameAPI=>{
   spotifyIframeAPI=IFrameAPI;
-  const initialAlbum=ALBUMS[activeAlbumIndex>=0?activeAlbumIndex:0]?.id||"reall";
-  ensureSpotifyAlbumControllers(initialAlbum);
+  ensureSpotifyController();
 };
 
 function stopSpotifyPanel(){}
@@ -2735,7 +2690,6 @@ function selectAlbum(id){
 
   // Browsing the catalogue does not interrupt playback.
   // Audio changes only when the visitor explicitly clicks another track.
-  ensureSpotifyAlbumControllers(id);
   animateTitle(a,direction,token);
   animateDiscWindow(newPanel,oldPanel,direction,token);
   animateWindow(creditsTextWindow,makeCreditsPanel(a),direction,token);
@@ -7658,6 +7612,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",
   if(el.hasAttribute("tabindex"))el.focus({preventScroll:true});
 }));
 </script>
-<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+
 </body>
 </html>
