@@ -2946,7 +2946,8 @@ function createBootParticleLoader(){
     document.body.classList.remove("boot-loading");
     bootLoaderCanvas.classList.add("is-complete");
     bootLoaderCanvas.style.pointerEvents="none";
-    introBrandImg.style.opacity="1";
+    // Avoid drawing the DOM logo over the already-complete WebGL logo.
+    introBrandImg.style.opacity=document.documentElement.classList.contains("particle-field-ready")?"0":"1";
     window.setTimeout(()=>bootLoaderCanvas.remove(),1100);
     completeListeners.forEach(listener=>{
       try{listener()}catch(error){console.error(error)}
