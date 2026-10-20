@@ -58,42 +58,38 @@ test("original zoom and selection restrictions remain",async({page})=>{
   await expect(page.locator(".skip-link")).toHaveCount(0);
 });
 
-test("Spotify is created on demand once and switches albums using the same iframe",async({page})=>{
+test("one prewarmed Spotify iframe plays and switches between albums",async({page})=>{
   await disableWebGL(page);
   await page.route("https://open.spotify.com/embed/iframe-api/v1",route=>route.fulfill({
     contentType:"application/javascript",
-    body:`window.__spotifyCreates=0;window.__spotifyLoads=[];
-window.onSpotifyIframeApiReady({
-  createController(target,options,callback){
-    window.__spotifyCreates++;
-    const iframe=document.createElement("iframe");
-    iframe.title="Spotify mock";
-    target.appendChild(iframe);
-    let current=options.uri;
-    const listeners={};
-    const controller={
-      addListener(name,fn){
-        listeners[name]=fn;
-        if(name==="ready")setTimeout(()=>fn(),0);
-      },
-      loadEntity(uri){current=uri;window.__spotifyLoads.push(uri)},
-      play(){listeners.playback_started?.({data:{playingURI:current}})},
-      resume(){listeners.playback_started?.({data:{playingURI:current}})},
-      pause(){listeners.playback_update?.({data:{playingURI:current,isPaused:true}})}
-    };
-    callback(controller);
-  }
-});`
+    body:"window.__spotifyCreates=0;window.__spotifyLoads=[];window.__spotifyPlays=0;\nwindow.onSpotifyIframeApiReady({\n  createController(target,options,callback){\n    window.__spotifyCreates++;\n    const iframe=document.createElement(\"iframe\");\n    iframe.title=\"Spotify mock\";\n    target.appendChild(iframe);\n    let current=options.uri;\n    const listeners={};\n    const controller={\n      addListener(name,fn){\n        listeners[name]=fn;\n        if(name===\"ready\")setTimeout(()=>fn(),0);\n      },\n      loadEntity(uri){current=uri;window.__spotifyLoads.push(uri)},\n      play(){window.__spotifyPlays++;listeners.playback_started?.({data:{playingURI:current}})},\n      resume(){listeners.playback_started?.({data:{playingURI:current}})},\n      pause(){listeners.playback_update?.({data:{playingURI:current,isPaused:true}})}\n    };\n    callback(controller);\n  }\n});"
   }));
   await page.goto("/",{waitUntil:"domcontentloaded"});
-  expect(await page.locator(".spotify-track-engine").count()).toBe(0);
-  expect(await page.locator('script[src*="iframe-api"]').count()).toBe(0);
-  await page.locator('.disc-content-panel[data-album-id="reall"] .track').first().click();
   await expect.poll(()=>page.evaluate(()=>window.__spotifyCreates)).toBe(1);
-  await expect.poll(()=>page.evaluate(()=>window.__spotifyLoads.length)).toBe(1);
+  await expect(page.locator(".spotify-track-engine iframe")).toHaveCount(1);
+  await page.locator('.disc-content-panel[data-album-id="reall"] .track').first().click();
+  await expect.poll(()=>page.evaluate(()=>window.__spotifyPlays)).toBe(1);
+  expect(await page.evaluate(()=>window.__spotifyLoads.length)).toBe(0);
   await page.locator('.album-tab[data-id="revenant"]').click();
   await page.locator('.disc-content-panel[data-album-id="revenant"] .track').first().click();
-  await expect.poll(()=>page.evaluate(()=>window.__spotifyLoads.length)).toBe(2);
+  await expect.poll(()=>page.evaluate(()=>window.__spotifyLoads.length)).toBe(1);
+  await expect.poll(()=>page.evaluate(()=>window.__spotifyPlays)).toBe(2);
   expect(await page.evaluate(()=>window.__spotifyCreates)).toBe(1);
-  expect(await page.locator(".spotify-track-engine iframe").count()).toBe(1);
+  await expect(page.locator(".spotify-track-engine")).not.toHaveClass(/needs-interaction/);
+});
+
+test("blocked Spotify autoplay gives a native iframe and track link",async({page})=>{
+  await disableWebGL(page);
+  await page.route("https://open.spotify.com/embed/iframe-api/v1",route=>route.fulfill({
+    contentType:"application/javascript",
+    body:"window.onSpotifyIframeApiReady({\n  createController(target,options,callback){\n    const iframe=document.createElement(\"iframe\");target.appendChild(iframe);\n    const listeners={};\n    callback({\n      addListener(name,fn){\n        listeners[name]=fn;\n        if(name===\"ready\")setTimeout(fn,0);\n      },\n      play(){},resume(){},loadEntity(){},pause(){}\n    });\n  }\n});"
+  }));
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await expect(page.locator(".spotify-track-engine iframe")).toHaveCount(1);
+  await page.locator('.disc-content-panel[data-album-id="reall"] .track').first().click();
+  await expect(page.locator(".spotify-track-engine")).toHaveClass(/needs-interaction/,{timeout:5000});
+  await expect(page.locator(".spotify-fallback-hint a")).toHaveAttribute("href",/open.spotify.com\/track\//);
+  await expect(page.locator(".spotify-fallback-dismiss")).toBeVisible();
+  await page.locator(".spotify-fallback-dismiss").click();
+  await expect(page.locator(".spotify-track-engine")).not.toHaveClass(/needs-interaction/);
 });
