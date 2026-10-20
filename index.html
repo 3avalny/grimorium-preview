@@ -47,7 +47,7 @@
 }
 html{
   scroll-behavior:smooth;background:var(--bg);
-  touch-action:pan-x pan-y;
+  touch-action:auto;
   width:100%;max-width:100%;overflow-x:hidden;
   scrollbar-width:thin;
   scrollbar-color:#111 #000
@@ -63,10 +63,10 @@ html::-webkit-scrollbar-thumb:hover{background:#1b1b1b}
 html.desktop-snapping{scroll-behavior:auto!important}
 html.spotify-scroll-lock{overflow-y:hidden!important}
 body{
-  touch-action:pan-x pan-y;
+  touch-action:auto;
   margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
   width:100%;max-width:100%;overflow-x:hidden;
-  touch-action:pan-y
+  touch-action:auto
 }
 .site-parallax-bg{
   position:fixed;z-index:0;inset:-16vh 0;pointer-events:none;
@@ -428,13 +428,13 @@ nav{display:none!important}
 .player{
   width:100%;height:100%;min-height:0;border:0;
   border-radius:10px;overflow:hidden;background:#111;
-  touch-action:pan-y!important;
+  touch-action:pan-y pinch-zoom!important;
   overscroll-behavior:none
 }
 .player iframe{
   display:block;width:100%;height:100%;min-height:100%;
   border:0;background:#111;
-  touch-action:pan-y!important;
+  touch-action:pan-y pinch-zoom!important;
   overscroll-behavior:none
 }
 .platforms{
@@ -610,8 +610,8 @@ nav{display:none!important}
   transition-delay:var(--bio-exit-delay,0ms)
 }
 .bio-copy,.bio-copy *{
-  -webkit-user-select:none!important;
-  user-select:none!important;
+  -webkit-user-select:text;
+  user-select:text;
   text-shadow:none!important
 }
 
@@ -751,7 +751,7 @@ nav{display:none!important}
   .record>.shell:before{display:none}
   .record{
     margin-top:0;
-    touch-action:pan-y;overscroll-behavior-x:none;
+    touch-action:pan-y pinch-zoom;overscroll-behavior-x:none;
     background:url("assets/bio-background2.webp?v=3c75c6af") center center/cover no-repeat
   }
   :root{--pad:18px}
@@ -2941,6 +2941,7 @@ function createBootParticleLoader(){
     if(finished)return;
     finished=true;
     finishing=false;
+    targetBuildToken++; // Abort pending logo raster work as well.
     if(raf)cancelAnimationFrame(raf);
     document.body.classList.remove("boot-loading");
     bootLoaderCanvas.classList.add("is-complete");
@@ -2997,7 +2998,7 @@ function createBootParticleLoader(){
     let y=0;
 
     const processSlice=()=>{
-      if(token!==targetBuildToken)return;
+      if(finished||token!==targetBuildToken)return;
 
       const sliceStarted=performance.now();
       while(y<nextRasterH){
@@ -3278,10 +3279,12 @@ function createBootParticleLoader(){
     img.decoding="async";
 
     const settle=()=>{
+      if(finished)return;
       const decoded=typeof img.decode==="function"
         ?img.decode().catch(()=>{})
         :Promise.resolve();
       decoded.finally(()=>{
+        if(finished)return;
         if(logo){
           logoImage=img;
           buildTargets(img,()=>mark(key));
@@ -3313,7 +3316,7 @@ function createBootParticleLoader(){
   }
 
   // A deadline that actually dismisses the overlay, not just progress.
-  window.setTimeout(()=>{if(!finished&&!finishing)forceComplete()},10000);
+  window.setTimeout(()=>{if(!finished)forceComplete()},10000);
 
   raf=requestAnimationFrame(draw);
 
@@ -6538,6 +6541,9 @@ function createParticleField(){
     state.raf=requestAnimationFrame(render);
     particleField=state;
     state.setAlbumScene(ALBUMS[activeAlbumIndex]?.id||"reall");
+    // If the safety timeout unlocked the page before the GPU was ready,
+    // still build deferred scenes after the full-resolution book appears.
+    if(grimoriumBootLoader?.complete)prepareDeferredScenesAfterBoot();
   }
 
   function buildDeferredAlbumScene(id,ref,candidates,done){
@@ -6903,7 +6909,7 @@ function createParticleField(){
   });
 
   grimoriumBootLoader?.onComplete?.(()=>{
-    prepareDeferredScenesAfterBoot();
+    if(started)prepareDeferredScenesAfterBoot();
   });
 
   window.addEventListener("resize",()=>{
