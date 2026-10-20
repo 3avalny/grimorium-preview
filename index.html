@@ -2471,6 +2471,10 @@ let spotifyPlaySequence=0;
 let spotifyAdvanceTimer=0;
 let activeTrackState=null;
 let spotifyIsPaused=true;
+// The SDK reports isPaused:true while a requested track is still buffering.
+// That is not a user pause, and must not flash the track number.
+let spotifyPlaybackConfirmed=false;
+let spotifyVisualKey="";
 const spotifyStatus=document.getElementById("spotifyPlaybackStatus");
 const spotifyAnnounce=message=>{if(spotifyStatus)spotifyStatus.textContent=message};
 
@@ -2521,7 +2525,7 @@ function ensureSpotifyShell(){
 }
 
 function showSpotifyFallback(){
-  if(!spotifyIsPaused&&spotifyControllerReady)return;
+  if(spotifyPlaybackConfirmed&&spotifyControllerReady)return;
   const shell=ensureSpotifyShell();
   if(!shell)return;
   const uri=spotifyCurrent?.uri||spotifyRequested?.uri||activeTrackState?.uri;
@@ -2530,6 +2534,7 @@ function showSpotifyFallback(){
   shell.setAttribute("aria-hidden","false");
   spotifyPreloadPool.classList.add("needs-interaction");
   spotifyPreloadPool.removeAttribute("aria-hidden");
+  setSpotifyButtonState(true);
   spotifyAnnounce("Use the Spotify player or open the track in Spotify.");
 }
 
@@ -2538,12 +2543,15 @@ function scheduleSpotifyFallback(){
   const requestId=spotifyPlaySequence;
   spotifyFallbackTimer=window.setTimeout(()=>{
     spotifyFallbackTimer=0;
-    if(requestId===spotifyPlaySequence&&spotifyIsPaused)showSpotifyFallback();
+    if(requestId===spotifyPlaySequence&&!spotifyPlaybackConfirmed)showSpotifyFallback();
   },2200);
 }
 
 function setSpotifyButtonState(isPaused=true){
   spotifyIsPaused=isPaused;
+  const visualKey=`${activeTrackState?.albumId||""}:${activeTrackState?.trackIndex??-1}:${isPaused}`;
+  if(spotifyVisualKey===visualKey)return;
+  spotifyVisualKey=visualKey;
   discContentWindow.querySelectorAll(".track-row").forEach(row=>{
     row.classList.remove("is-playing");
     const control=row.querySelector(".track-index-control");
@@ -2562,6 +2570,7 @@ function markTrackSelection(albumId,trackIndex){
   });
   const row=discPanelFor(albumId)?.querySelector(`.track-row[data-track-index="${trackIndex}"]`);
   row?.classList.add("is-selected");
+  spotifyVisualKey=""; // Selection changed even if the paused flag did not.
   setSpotifyButtonState(spotifyIsPaused);
 }
 
@@ -2604,6 +2613,8 @@ function flushSpotifySelection(){
   spotifyRequested=null;
   if(spotifyCurrent&&spotifyCurrent.uri===requested.uri){
     spotifyCurrent.manualPause=false;
+    spotifyPlaybackConfirmed=false;
+    setSpotifyButtonState(false);
     try{
       spotifyController.resume();
       scheduleSpotifyFallback();
@@ -2613,6 +2624,7 @@ function flushSpotifySelection(){
     }
     return;
   }
+  spotifyPlaybackConfirmed=false;
   spotifyCurrent={
     ...requested,
     position:0,
@@ -2703,13 +2715,18 @@ function ensureSpotifyController(){
            spotifyCurrent.duration>0 &&
            spotifyCurrent.position>=spotifyCurrent.duration-650){
           playNextSpotifyTrack();
-        }else{
+        }else if(spotifyCurrent.manualPause||spotifyPlaybackConfirmed){
+          // Real pauses after audio was playing still update the UI.
+          // Ignore transient paused events before the first progress tick.
+          spotifyPlaybackConfirmed=false;
           setSpotifyButtonState(true);
         }
         return;
       }
-      if(spotifyCurrent.position>40){
-        setSpotifyButtonState(false);
+      // A confirmed unpaused progress tick ends the buffering phase.
+      if(spotifyCurrent.position>40)spotifyPlaybackConfirmed=true;
+      setSpotifyButtonState(false);
+      if(spotifyPlaybackConfirmed){
         hideSpotifyFallback();
         scheduleSpotifyAutoNext();
       }
@@ -2726,9 +2743,11 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
   if(!autoplay)return;
   spotifyRequested={albumId,trackIndex,uri};
   spotifyPlaySequence++;
+  spotifyPlaybackConfirmed=false;
   clearSpotifyAdvanceTimer();
   hideSpotifyFallback();
-  setSpotifyButtonState(true);
+  // Show Pause from the user's click through Spotify's buffering phase.
+  setSpotifyButtonState(false);
   spotifyAnnounce("Loading Spotify playback");
   scheduleSpotifyFallback();
   ensureSpotifyController();
@@ -2737,6 +2756,7 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
 function pauseSpotify(){
   spotifyRequested=null;
   spotifyPlaySequence++;
+  spotifyPlaybackConfirmed=false;
   clearSpotifyAdvanceTimer();
   hideSpotifyFallback();
   if(spotifyCurrent)spotifyCurrent.manualPause=true;
@@ -2916,9 +2936,6 @@ particleAlbumDebug?.querySelectorAll("button").forEach(button=>{
 });
 renderDiscPanels();
 selectAlbum("reall");
-// Create just one idle Spotify embed during the intro, before the visitor
-// reaches the discography. This is much lighter than 54 track embeds.
-window.setTimeout(ensureSpotifyController,0);
 
 const mobileRecord=document.querySelector(".record");
 let swipeStartX=0;
@@ -3557,6 +3574,20 @@ function createBootParticleLoader(){
 }
 
 const grimoriumBootLoader=createBootParticleLoader();
+// Prefetch one Spotify iframe only once the opaque boot animation is gone.
+// It is never a dependency of the initial high-resolution particle render.
+const warmSpotifyWhenIdle=()=>{
+  if("requestIdleCallback" in window){
+    requestIdleCallback(()=>ensureSpotifyController(),{timeout:1200});
+  }else{
+    window.setTimeout(ensureSpotifyController,160);
+  }
+};
+if(grimoriumBootLoader){
+  grimoriumBootLoader.onComplete(warmSpotifyWhenIdle);
+}else{
+  window.setTimeout(warmSpotifyWhenIdle,0);
+}
 /* ---------- /PARTICLE BOOT LOADER ---------- */
 
 
