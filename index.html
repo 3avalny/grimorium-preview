@@ -1142,6 +1142,61 @@ body.boot-loading{overflow:hidden}
   min-height:80px!important;
   border:0;
 }
+/* Only reveal the native Spotify player when autoplay was rejected.
+   The regular artwork, discography and particle field remain unchanged. */
+.spotify-preload-pool.needs-interaction{
+  z-index:100005;
+  pointer-events:auto;
+}
+.spotify-track-engine.needs-interaction{
+  left:auto;
+  top:auto;
+  right:16px;
+  bottom:16px;
+  z-index:1;
+  width:320px;
+  height:auto;
+  max-width:calc(100vw - 32px);
+  padding:6px 6px 12px;
+  opacity:1;
+  transform:none;
+  pointer-events:auto;
+  overflow:visible;
+  background:#111315;
+  border:1px solid rgba(221,220,213,.3);
+  border-radius:12px;
+  box-shadow:0 12px 48px rgba(0,0,0,.8);
+}
+.spotify-fallback-hint{
+  display:none;
+  margin:8px 6px 0;
+  font:12px/1.5 var(--sans);
+  color:#dddcd5;
+}
+.spotify-fallback-hint a{
+  text-decoration:underline;
+  text-underline-offset:3px;
+}
+.spotify-fallback-dismiss{
+  display:none;
+  position:absolute;
+  top:-13px;
+  right:-10px;
+  z-index:2;
+  width:28px;
+  height:28px;
+  padding:0;
+  cursor:pointer;
+  border:1px solid #5f6262;
+  border-radius:50%;
+  background:#181a1a;
+  color:#fff;
+  font:19px/26px sans-serif;
+}
+.spotify-track-engine.needs-interaction .spotify-fallback-hint,
+.spotify-track-engine.needs-interaction .spotify-fallback-dismiss{
+  display:block;
+}
 .album-tab,.album-tab:hover,.album-tab.active{opacity:1!important}
 .album-tab img{filter:none!important;opacity:1!important}
 .track{
@@ -2407,11 +2462,85 @@ let spotifyControllerReady=false;
 let spotifyScriptRequested=false;
 let spotifyRequested=null;
 let spotifyCurrent=null;
+let spotifyLoadedUri=null;
+let spotifyShell=null;
+let spotifyEmbedTarget=null;
+let spotifyFallbackLink=null;
+let spotifyFallbackTimer=0;
+let spotifyPlaySequence=0;
 let spotifyAdvanceTimer=0;
 let activeTrackState=null;
 let spotifyIsPaused=true;
 const spotifyStatus=document.getElementById("spotifyPlaybackStatus");
 const spotifyAnnounce=message=>{if(spotifyStatus)spotifyStatus.textContent=message};
+
+function spotifyTrackLink(uri){
+  const id=/^spotify:track:([a-zA-Z0-9]+)$/.exec(uri||"")?.[1];
+  return id?"https://open.spotify.com/track/"+id:"https://open.spotify.com/";
+}
+
+function hideSpotifyFallback(){
+  if(spotifyFallbackTimer)clearTimeout(spotifyFallbackTimer);
+  spotifyFallbackTimer=0;
+  spotifyShell?.classList.remove("needs-interaction");
+  spotifyShell?.setAttribute("aria-hidden","true");
+  spotifyPreloadPool?.classList.remove("needs-interaction");
+  spotifyPreloadPool?.setAttribute("aria-hidden","true");
+}
+
+function ensureSpotifyShell(){
+  if(spotifyShell)return spotifyShell;
+  if(!spotifyPreloadPool)return null;
+  const shell=document.createElement("div");
+  shell.className="spotify-track-engine";
+  shell.setAttribute("aria-hidden","true");
+  const target=document.createElement("div");
+  shell.appendChild(target);
+  const hint=document.createElement("div");
+  hint.className="spotify-fallback-hint";
+  hint.append("If the track did not start, press Play above or ");
+  const link=document.createElement("a");
+  link.target="_blank";
+  link.rel="noopener";
+  link.textContent="open it in Spotify";
+  link.href="https://open.spotify.com/";
+  hint.append(link,".");
+  shell.appendChild(hint);
+  const dismiss=document.createElement("button");
+  dismiss.className="spotify-fallback-dismiss";
+  dismiss.type="button";
+  dismiss.setAttribute("aria-label","Close Spotify controls");
+  dismiss.textContent="×";
+  dismiss.addEventListener("click",hideSpotifyFallback);
+  shell.appendChild(dismiss);
+  spotifyPreloadPool.appendChild(shell);
+  spotifyShell=shell;
+  spotifyEmbedTarget=target;
+  spotifyFallbackLink=link;
+  return shell;
+}
+
+function showSpotifyFallback(){
+  if(!spotifyIsPaused&&spotifyControllerReady)return;
+  const shell=ensureSpotifyShell();
+  if(!shell)return;
+  const uri=spotifyCurrent?.uri||spotifyRequested?.uri||activeTrackState?.uri;
+  if(spotifyFallbackLink)spotifyFallbackLink.href=spotifyTrackLink(uri);
+  shell.classList.add("needs-interaction");
+  shell.setAttribute("aria-hidden","false");
+  spotifyPreloadPool.classList.add("needs-interaction");
+  spotifyPreloadPool.removeAttribute("aria-hidden");
+  spotifyAnnounce("Use the Spotify player or open the track in Spotify.");
+}
+
+function scheduleSpotifyFallback(){
+  if(spotifyFallbackTimer)clearTimeout(spotifyFallbackTimer);
+  const requestId=spotifyPlaySequence;
+  spotifyFallbackTimer=window.setTimeout(()=>{
+    spotifyFallbackTimer=0;
+    if(requestId===spotifyPlaySequence&&spotifyIsPaused)showSpotifyFallback();
+  },2200);
+}
 
 function setSpotifyButtonState(isPaused=true){
   spotifyIsPaused=isPaused;
@@ -2477,9 +2606,10 @@ function flushSpotifySelection(){
     spotifyCurrent.manualPause=false;
     try{
       spotifyController.resume();
+      scheduleSpotifyFallback();
     }catch(error){
       console.warn("Spotify resume failed",error);
-      spotifyAnnounce("Spotify is unavailable. Use the Spotify album link.");
+      showSpotifyFallback();
     }
     return;
   }
@@ -2491,17 +2621,24 @@ function flushSpotifySelection(){
     endHandled:false
   };
   try{
-    spotifyController.loadEntity(requested.uri);
+    // The preloaded track needs no navigation; play() stays inside the
+    // user's click handler in Safari and preserves transient activation.
+    if(spotifyLoadedUri!==requested.uri){
+      spotifyController.loadEntity(requested.uri);
+      spotifyLoadedUri=requested.uri;
+    }
     spotifyController.play();
+    scheduleSpotifyFallback();
   }catch(error){
     console.warn("Spotify playback failed",error);
-    spotifyAnnounce("Spotify is unavailable. Use the Spotify album link.");
     setSpotifyButtonState(true);
+    showSpotifyFallback();
   }
 }
 
 function ensureSpotifyController(){
-  if(!spotifyRequested)return;
+  // Pre-initialize one player before the first tap so Safari does not have
+  // to turn an asynchronous iframe load into prohibited autoplay.
   if(spotifyControllerReady){flushSpotifySelection();return}
   if(!spotifyIframeAPI){
     if(spotifyScriptRequested)return;
@@ -2510,28 +2647,32 @@ function ensureSpotifyController(){
     script.src="https://open.spotify.com/embed/iframe-api/v1";
     script.async=true;
     script.addEventListener("error",()=>{
-      spotifyAnnounce("Spotify could not load. Use the Spotify album link.");
+      spotifyAnnounce("Spotify could not load.");
       spotifyScriptRequested=false;
+      if(spotifyRequested)showSpotifyFallback();
     },{once:true});
     document.body.appendChild(script);
     return;
   }
   if(spotifyControllerCreating||!spotifyPreloadPool)return;
+  const initialUri=spotifyRequested?.uri||ALBUMS[0]?.spotifyTracks?.[0];
+  if(!initialUri)return;
   spotifyControllerCreating=true;
-  const shell=document.createElement("div");
-  shell.className="spotify-track-engine";
-  shell.setAttribute("aria-hidden","true");
-  const target=document.createElement("div");
-  shell.appendChild(target);
-  spotifyPreloadPool.appendChild(shell);
-  spotifyIframeAPI.createController(target,{
+  ensureSpotifyShell();
+  spotifyLoadedUri=initialUri;
+  spotifyIframeAPI.createController(spotifyEmbedTarget,{
     width:320,
     height:80,
-    uri:spotifyRequested.uri
+    uri:initialUri
   },controller=>{
     spotifyController=controller;
     controller.addListener("ready",()=>{
       spotifyControllerReady=true;
+      const frame=spotifyShell?.querySelector("iframe");
+      if(frame){
+        frame.setAttribute("allow","autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture");
+        frame.setAttribute("title","Grimorium Verum — Spotify player");
+      }
       flushSpotifySelection();
     });
     controller.addListener("playback_started",event=>{
@@ -2545,6 +2686,7 @@ function ensureSpotifyController(){
         uri:spotifyCurrent.uri
       };
       setSpotifyButtonState(false);
+      hideSpotifyFallback();
     });
     controller.addListener("playback_update",event=>{
       const data=event?.data||{};
@@ -2568,6 +2710,7 @@ function ensureSpotifyController(){
       }
       if(spotifyCurrent.position>40){
         setSpotifyButtonState(false);
+        hideSpotifyFallback();
         scheduleSpotifyAutoNext();
       }
     });
@@ -2582,15 +2725,20 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
   markTrackSelection(albumId,trackIndex);
   if(!autoplay)return;
   spotifyRequested={albumId,trackIndex,uri};
+  spotifyPlaySequence++;
   clearSpotifyAdvanceTimer();
+  hideSpotifyFallback();
   setSpotifyButtonState(true);
   spotifyAnnounce("Loading Spotify playback");
+  scheduleSpotifyFallback();
   ensureSpotifyController();
 }
 
 function pauseSpotify(){
   spotifyRequested=null;
+  spotifyPlaySequence++;
   clearSpotifyAdvanceTimer();
+  hideSpotifyFallback();
   if(spotifyCurrent)spotifyCurrent.manualPause=true;
   try{spotifyController?.pause()}catch(error){console.warn("Spotify pause failed",error)}
   setSpotifyButtonState(true);
@@ -2768,6 +2916,9 @@ particleAlbumDebug?.querySelectorAll("button").forEach(button=>{
 });
 renderDiscPanels();
 selectAlbum("reall");
+// Create just one idle Spotify embed during the intro, before the visitor
+// reaches the discography. This is much lighter than 54 track embeds.
+window.setTimeout(ensureSpotifyController,0);
 
 const mobileRecord=document.querySelector(".record");
 let swipeStartX=0;

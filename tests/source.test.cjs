@@ -24,9 +24,15 @@ test("loader has a real independent unlock fallback",()=>{
   assert.match(site,/grimoriumBootLoader\?\.forceComplete\?\.\(\)/);
 });
 
-test("Spotify controller is lazy and unique",()=>{
+test("Spotify controller is one-per-page, prewarmed, and Safari-safe",()=>{
   assert.equal((site.match(/spotifyIframeAPI\.createController\(/g)||[]).length,1);
+  assert.match(site,/window\.setTimeout\(ensureSpotifyController,0\)/);
+  assert.match(site,/if\(spotifyLoadedUri!==requested\.uri\)/);
   assert.match(site,/spotifyController\.loadEntity\(requested\.uri\)/);
+  assert.match(site,/spotifyController\.play\(\)/);
+  assert.match(site,/function showSpotifyFallback\(\)/);
+  assert.match(site,/shell\.classList\.add\("needs-interaction"\)/);
+  assert.match(site,/spotifyFallbackLink\.href=spotifyTrackLink\(uri\)/);
   assert.doesNotMatch(site,/<script src="https:\/\/open\.spotify\.com\/embed\/iframe-api\/v1"/);
   assert.doesNotMatch(site,/ensureSpotifyAlbumControllers\(/);
 });
