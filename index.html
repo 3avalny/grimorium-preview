@@ -2858,7 +2858,7 @@ function ensureSpotifyController(){
   });
 }
 
-function playTrack(albumId,trackIndex,{autoplay=true}={}){
+function playTrack(albumId,trackIndex,{autoplay=true,autoAdvance=false}={}){
   const album=ALBUMS.find(item=>item.id===albumId);
   const uri=album?.spotifyTracks?.[trackIndex];
   if(!uri)return;
@@ -2872,7 +2872,7 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
   clearSpotifyPauseRecheck();
   clearSpotifyAdvanceTimer();
   hideSpotifyFallback();
-  spotifyMobilePending=window.innerWidth<=720;
+  spotifyMobilePending=window.innerWidth<=720&&!autoAdvance;
   if(spotifyMobilePending){
     // No fake Pause before the SDK confirms actual audio progress.
     discPanelFor(albumId)?.querySelector(`.track-row[data-track-index="${trackIndex}"]`)?.classList.add("is-pending");
@@ -6699,10 +6699,19 @@ function createParticleField(){
       activeId,
       ...Object.keys(state.albumReferences).filter(id=>id!==activeId)
     ];
-    const queue=[
-      ...albumIds.map(id=>({type:"album",id})),
-      {type:"bio",id:"bio"}
-    ];
+    // Candle particles were last behind five full-resolution album maps.
+    // On phones prepare the currently displayed album, then the REAL candle
+    // field, then offscreen albums. No bitmap background is substituted.
+    const queue=state.width<=720
+      ?[
+        {type:"album",id:activeId},
+        {type:"bio",id:"bio"},
+        ...albumIds.filter(id=>id!==activeId).map(id=>({type:"album",id}))
+      ]
+      :[
+        ...albumIds.map(id=>({type:"album",id})),
+        {type:"bio",id:"bio"}
+      ];
 
     const next=()=>{
       if(state.destroyed||!queue.length)return;
