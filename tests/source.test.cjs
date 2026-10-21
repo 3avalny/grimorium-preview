@@ -249,7 +249,9 @@ test("mobile snap leaves long tracklists, links, albums and natural reading usab
   assert.match(site,/button,a,input,textarea,select,summary,\.track-col,\.album-tabs,\.platforms,\.album-credits,\.spotify-preload-pool/);
   assert.match(site,/Math\.abs\(dy\)<Math\.abs\(dx\)\*1\.3/);
   assert.match(site,/function mobileSnapForGesture\(direction,startY\)/);
-  assert.match(site,/if\(!mobileTouchCapturing\|\|!event\.changedTouches\.length\)return/);
+  assert.match(site,/if\(!event\.changedTouches\.length\)return/);
+  assert.match(site,/const target=mobileTouchSwipeTarget\|\|/);
+  assert.match(site,/function mobileSnapForGesture\(direction,startY\)/);
   assert.match(site,/mobileRecord\.addEventListener\("touchend"/);
   assert.match(site,/cancelMobileSnap\(\)/);
   assert.match(site,/window\.innerWidth<=720/);
@@ -275,6 +277,18 @@ test("mobile snap gesture routing respects content boundaries",()=>{
   assert.equal(route(1,3900),"biography");
   assert.equal(route(-1,4320),"discography");
   assert.equal(route(-1,5250),null); // Native biography reading
+});
+
+test("Safari captures hero swipes and recover touchcancel without moving album controls",()=>{
+  assert.match(site,/\.hero\{height:195svh;min-height:0;background:transparent;touch-action:none\}/);
+  assert.match(site,/height:100svh;padding:0 18px;touch-action:none/);
+  assert.match(site,/const inHero=startY<rec\.y-10/);
+  assert.match(site,/if\(mobileTouchCapturing\)\{\s*if\(event\.cancelable\)event\.preventDefault\(\)/);
+  assert.match(site,/mobileTouchOriginScroll<mobileSceneSnapTargets\(\)\.find\(t=>t\.key==="discography"\)\.y-10/);
+  assert.match(site,/Math\.abs\(mobileTouchLastDy\)>=44/);
+  assert.match(site,/if\(target\)animateMobileSceneSnap\(target\)/);
+  assert.match(site,/mobileRecord\.addEventListener\("touchend"/);
+  assert.doesNotMatch(site,/prefers-reduced-motion/);
 });
 
 test("JavaScript-off page is standalone, linked, and contains every album",()=>{
