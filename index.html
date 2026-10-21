@@ -4055,7 +4055,7 @@ function createParticleField(){
     console.error("Particle WebGL init failed",error);
     introBrandImg.style.opacity="1";
     grimoriumBootLoader?.mark("particleEngine");
-    grimoriumBootLoader?.forceComplete?.();
+    grimoriumBootLoader?.forceComplete?.({fallback:true});
     return;
   }
 
@@ -4314,9 +4314,11 @@ function createParticleField(){
     const bootLight=
       document.body.classList.contains("boot-loading")&&
       !fullQualityBuildRequested;
-    const bootScale=bootLight
-      ?Math.min(1,900/Math.max(1,nativeW,nativeH))
-      :1;
+    // The logo and book use their ORIGINAL native pixels from the first
+    // rendered particle frame, not a 900px approximation then a replacement.
+    const bootScale=(sceneId==="logo"||sceneId==="book")
+      ?1
+      :(bootLight?Math.min(1,900/Math.max(1,nativeW,nativeH)):1);
     const sampleW=Math.max(1,Math.round(nativeW*bootScale));
     const sampleH=Math.max(1,Math.round(nativeH*bootScale));
     const off=document.createElement("canvas");
@@ -6641,6 +6643,8 @@ function createParticleField(){
 
   source.addEventListener("load",boot,{once:true});
   particleBookReference.addEventListener("load",boot,{once:true});
+  source.addEventListener("error",()=>grimoriumBootLoader?.forceComplete?.({fallback:true}),{once:true});
+  particleBookReference.addEventListener("error",()=>grimoriumBootLoader?.forceComplete?.({fallback:true}),{once:true});
 
   const deferredReferences=[
     particleAlbumReference,
@@ -6670,11 +6674,6 @@ function createParticleField(){
   ){
     boot();
   }
-
-  grimoriumBootLoader?.onHandoffReady?.(()=>{
-    fullHandoffRequested=true;
-    grimoriumBootLoader?.markFullFieldReady?.();
-  });
 
   grimoriumBootLoader?.onComplete?.(()=>{
     if(started)prepareDeferredScenesAfterBoot();
@@ -6864,7 +6863,7 @@ function createParticleField(){
     state.active=false;
     if(state.raf)cancelAnimationFrame(state.raf);
     introBrandImg.style.opacity="1";
-    grimoriumBootLoader?.forceComplete?.();
+    grimoriumBootLoader?.forceComplete?.({fallback:true});
   });
 
   particleCanvas.addEventListener("webglcontextrestored",()=>{
@@ -6876,12 +6875,12 @@ if(particleGL){
   try{createParticleField()}catch(error){
     console.error("Particle initialization failed",error);
     if(introBrandImg)introBrandImg.style.opacity="1";
-    grimoriumBootLoader?.forceComplete?.();
+    grimoriumBootLoader?.forceComplete?.({fallback:true});
   }
 }else{
   if(introBrandImg)introBrandImg.style.opacity="1";
   grimoriumBootLoader?.mark("particleEngine");
-  grimoriumBootLoader?.forceComplete?.();
+  grimoriumBootLoader?.forceComplete?.({fallback:true});
 }
 
 /* ---------- /WEBGL PARTICLE / BOOK FIELD ---------- */
