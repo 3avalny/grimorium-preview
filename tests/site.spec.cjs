@@ -216,3 +216,74 @@ test("mobile first tap reveals native Spotify player instead of premature Pause"
   await expect(row).toHaveClass(/is-playing/);
   await expect(page.locator(".spotify-track-engine")).not.toHaveClass(/needs-interaction/);
 });
+
+test("mobile vertical swipes snap logo to Renaissance to discography and back",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await disableWebGL(page);
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await expect(page.locator("body")).not.toHaveClass(/boot-loading/);
+  const swipe=async(selector,start,end)=>{
+    await page.evaluate(({selector,start,end})=>{
+      const target=document.querySelector(selector);
+      const emit=(type,x,y)=>{
+        const event=new Event(type,{bubbles:true,cancelable:true});
+        Object.defineProperty(event,"touches",{value:type==="touchend"?[]:[{clientX:x,clientY:y}]});
+        Object.defineProperty(event,"changedTouches",{value:[{clientX:x,clientY:y}]});
+        target.dispatchEvent(event);
+      };
+      emit("touchstart",190,start);
+      emit("touchmove",190,end);
+      emit("touchend",190,end);
+    },{selector,start,end});
+  };
+
+  await swipe(".hero-inner",680,420);
+  await expect.poll(()=>page.evaluate(()=>Math.abs(window.scrollY-Math.round(introRange*.54)))).toBeLessThan(3);
+  await expect(page.locator("html")).not.toHaveClass(/mobile-snapping/);
+
+  await swipe(".hero-inner",670,390);
+  await expect.poll(()=>page.evaluate(()=>
+    Math.abs(window.scrollY-Math.round(document.querySelector(".record").getBoundingClientRect().top+window.scrollY))
+  )).toBeLessThan(3);
+
+  await swipe(".record-head",260,505);
+  await expect.poll(()=>page.evaluate(()=>Math.abs(window.scrollY-Math.round(introRange*.54)))).toBeLessThan(3);
+});
+
+test("mobile page gestures ignore track controls and preserve horizontal album swipes",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await disableWebGL(page);
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await page.evaluate(()=>window.scrollTo(0,document.querySelector(".record").offsetTop+360));
+  const start=await page.evaluate(()=>window.scrollY);
+  await page.evaluate(()=>{
+    const track=document.querySelector('.disc-content-panel[data-album-id="reall"] .track');
+    const emit=(type,x,y)=>{
+      const event=new Event(type,{bubbles:true,cancelable:true});
+      Object.defineProperty(event,"touches",{value:type==="touchend"?[]:[{clientX:x,clientY:y}]});
+      Object.defineProperty(event,"changedTouches",{value:[{clientX:x,clientY:y}]});
+      track.dispatchEvent(event);
+    };
+    emit("touchstart",175,530);
+    emit("touchmove",175,310);
+    emit("touchend",175,310);
+  });
+  await page.waitForTimeout(80);
+  expect(await page.evaluate(()=>window.scrollY)).toBe(start);
+  await expect(page.locator("html")).not.toHaveClass(/mobile-snapping/);
+
+  await page.evaluate(()=>{
+    const cover=document.querySelector('.disc-content-panel[data-album-id="reall"] .cover');
+    const emit=(type,x,y)=>{
+      const event=new Event(type,{bubbles:true,cancelable:true});
+      Object.defineProperty(event,"touches",{value:type==="touchend"?[]:[{clientX:x,clientY:y}]});
+      Object.defineProperty(event,"changedTouches",{value:[{clientX:x,clientY:y}]});
+      cover.dispatchEvent(event);
+    };
+    emit("touchstart",310,400);
+    emit("touchmove",95,405);
+    emit("touchend",95,405);
+  });
+  await expect(page.locator('.album-tab[data-id="revenant"]')).toHaveClass(/active/);
+  await expect(page.locator("html")).not.toHaveClass(/mobile-snapping/);
+});
