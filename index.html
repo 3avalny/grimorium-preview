@@ -1887,6 +1887,157 @@ html.home-returning main{
   }
 }
 
+
+/* === Mobile parity: full catalogue, touch-friendly controls, and scene continuity === */
+.mobile-track-toggle{height:100%}
+.mobile-track-heading{display:none}
+@media(max-width:720px){
+  .disc-content-window{overflow:visible}
+  .disc-content-panel{align-items:stretch;gap:0}
+  .disc-content-panel.current{pointer-events:auto}
+  .cover-col{
+    order:1;
+    width:min(100%,430px);
+    max-width:100%;
+    align-self:center;
+    aspect-ratio:1
+  }
+  .cover-wrap,.cover{width:100%;height:100%}
+  .album-year-wrap{order:2;margin:10px 0 6px;height:auto}
+  .track-col{
+    display:block!important;
+    order:3;
+    width:100%;max-width:100%;
+    height:auto;
+    margin:18px 0 4px;
+    padding:0;
+    min-width:0;
+    opacity:1
+  }
+  .mobile-track-toggle{
+    height:auto;
+    min-width:0;
+    border-top:1px solid rgba(221,220,213,.20);
+    border-bottom:1px solid rgba(221,220,213,.16)
+  }
+  .mobile-track-heading{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    min-height:56px;
+    padding:12px 4px;
+    cursor:pointer;
+    list-style:none;
+    color:#dcdad3;
+    font:500 12px/1.25 var(--sans);
+    text-transform:uppercase;
+    letter-spacing:.15em
+  }
+  .mobile-track-heading::-webkit-details-marker{display:none}
+  .mobile-track-heading::after{
+    content:"−";
+    font:20px/1 var(--sans);
+    margin-left:12px;
+    color:#aaa9a4
+  }
+  .mobile-track-toggle:not([open]) .mobile-track-heading::after{content:"+"}
+  .mobile-track-heading:focus-visible{outline:1px solid #dddcd5;outline-offset:3px}
+  .mobile-track-count{
+    margin-left:auto;
+    color:#848782;
+    font-size:10px;
+    letter-spacing:.075em;
+    text-transform:none
+  }
+  .panel-tracklist{
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    gap:0;
+    width:100%;
+    height:auto;
+    min-width:0;
+    overflow:visible;
+    padding:0 0 12px
+  }
+  .track-row{
+    display:grid;
+    grid-template-columns:38px minmax(0,1fr);
+    align-items:center;
+    column-gap:10px;
+    min-height:49px;
+    border-top:1px solid rgba(221,220,213,.06)
+  }
+  .track-index-control{
+    display:grid;
+    place-items:center;
+    width:38px;
+    min-width:38px;
+    height:44px;
+    font-size:11px;
+    transform:none!important
+  }
+  .track-row .track{
+    display:flex!important;
+    align-items:center;
+    min-height:44px;
+    height:auto!important;
+    padding:8px 0;
+    text-align:left
+  }
+  .track-row .track-title{
+    font-size:clamp(16px,4.35vw,19px)!important;
+    line-height:1.18!important;
+    letter-spacing:.006em;
+    white-space:normal;
+    overflow-wrap:break-word
+  }
+  .track-pause-icon{width:10px;height:12px}
+  .disc-content-panel.incoming.go .stage-track{transition-delay:125ms}
+  .platforms{
+    order:4!important;
+    margin:16px 0 10px;
+    gap:16px
+  }
+  .platform{width:46px;height:46px}
+  .platform img{width:25px;height:25px}
+  .album-credits{
+    width:100%;
+    margin-top:25px;
+    padding-top:18px;
+    padding-bottom:10px;
+    min-width:0
+  }
+  .credits-text-window{min-height:0}
+  .spotify-track-engine.needs-interaction{
+    left:12px;right:12px;
+    bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    width:auto;max-width:400px;
+    margin-inline:auto
+  }
+  .spotify-track-engine.needs-interaction iframe{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%
+  }
+  .mobile-bio-copy{
+    font-size:clamp(17px,4.25vw,20px);
+    line-height:1.54;
+    padding-inline:clamp(18px,5vw,26px)
+  }
+  .mobile-bio-andrey .mobile-bio-copy,
+  .mobile-bio-diamond .mobile-bio-copy{
+    padding-left:clamp(18px,5vw,26px);
+    padding-right:clamp(18px,5vw,26px)
+  }
+  .mobile-bio-diamond .mobile-bio-copy{padding-bottom:120px}
+}
+@media(max-width:380px){
+  .track-row .track-title{font-size:16px!important}
+  .album-tabs{gap:6px}
+  .album-tab{width:43px;height:43px;flex:0 0 43px}
+  .record-head,.album-tabs{width:min(100%,315px)}
+}
 </style>
 <noscript>
 <style>
@@ -2046,14 +2197,12 @@ html.home-returning main{
         <div class="bio-eyebrow">SINCE 1996 · SYKTYVKAR, KOMI REPUBLIC</div>
         <div class="rule"></div>
         <p>Formed in Syktyvkar at the end of 1996, the band quickly stood apart on the local scene through drum machine, sharp guitars and growled vocals. After an active run of shows from 1997 to 1999, the first period came to an end in 2001.</p>
-        <p>Renewed work with Andrey Zavalny helped bring the project back in 2006. Samples and orchestral layers became increasingly important to the sound, while <em>Retaliation</em> and <em>Reborn</em> established the direction of the later catalogue.</p>
+        <p>In 2005, Roma Diamond’s solo material included songs connected to the band, and renewed work with Andrey Zavalny helped bring the project back in 2006. Samples and orchestral layers became increasingly important to the sound, while <em>Retaliation</em> (2008) and <em>Reborn</em> (2011) established the direction of the later catalogue.</p>
       </div>
     </article>
-
     <article class="mobile-bio-scene mobile-bio-diamond">
       <div class="mobile-bio-copy">
-        <p>Roma Diamond’s 2005 solo material included songs connected to the band and helped set the return in motion. Across the later catalogue, Diamond has carried the vocals and lyrics, while Zavalny has driven the music, guitars, keyboards, arrangements and production.</p>
-        <p><em>Relict</em>, <em>Revenant</em> and <em>REALL</em> continued that evolution. <em>Renaissance</em> follows in 2026.</p>
+        <p><em>Relict</em> (2015), <em>Revenant</em> (2018) and <em>REALL</em> (2022) continued that evolution. Across these releases, Diamond has carried the vocals and lyrics, while Zavalny has driven the music, guitars, keyboards, arrangements and production. <em>Renaissance</em> follows in 2026.</p>
       </div>
     </article>
   </div>
@@ -2343,9 +2492,12 @@ function makeDiscPanel(a){
 
   panel.innerHTML=`
     <div class="track-col cascade-stage stage-track">
-      <div class="panel-tracklist">
+      <details class="mobile-track-toggle" open>
+        <summary class="mobile-track-heading"><span>Tracklist</span><span class="mobile-track-count">${a.tracks.length} tracks</span></summary>
+        <div class="panel-tracklist">
         ${a.tracks.map((t,i)=>`<div class="track-row" data-track-index="${i}" data-track-uri="${a.spotifyTracks?.[i]||""}"><button class="track-index-control" type="button" aria-label="Play track ${i+1}"><span class="track-number">${String(i+1).padStart(2,"0")}</span><span class="track-pause-icon" aria-hidden="true"></span></button><button class="track" type="button" aria-label="Play ${t}"><span class="track-title">${t}</span></button></div>`).join("")}
-      </div>
+        </div>
+      </details>
     </div>
 
     <div class="cover-col cascade-stage stage-cover">
@@ -2895,6 +3047,12 @@ let swipeTracking=false;
 if(mobileRecord){
   mobileRecord.addEventListener("touchstart",e=>{
     if(window.innerWidth>720 || e.touches.length!==1)return;
+    // Album swipe belongs to the artwork and thumbnails, not to song
+    // controls, links, native disclosure toggles or Spotify playback.
+    if(e.target.closest(".track-col,.album-credits,.platforms,summary,a,.track-index-control")) {
+      swipeTracking=false;
+      return;
+    }
     const t=e.touches[0];
     swipeStartX=t.clientX;
     swipeStartY=t.clientY;
@@ -4235,16 +4393,18 @@ function createParticleField(){
     const w=state.width;
     let base;
 
-    // Continuous quality ramp: no 13x geometry cliff between 1100 and 1101px.
-    // This is the visual-density reference even when runtime count is capped.
+    // The real mobile GPU field used only 1,800 points versus 240,000 on
+    // desktop. Preserve physical-pixel coverage with a continuous density
+    // ramp: native sources, same smoke shader, no alternate low-res logo.
+    // Keep 240k on wide desktops, while avoiding a geometry cliff at 720px.
     if(w<=720){
-      base=1800;
+      base=particleMix(36000,52000,particleClamp((w-320)/400));
     }else if(w<=900){
-      base=particleMix(1800,18000,particleClamp((w-720)/180));
+      base=particleMix(52000,58000,particleClamp((w-720)/180));
     }else if(w<=1100){
-      base=particleMix(18000,40000,particleClamp((w-900)/200));
+      base=particleMix(58000,64000,particleClamp((w-900)/200));
     }else if(w<=1440){
-      base=particleMix(40000,160000,particleClamp((w-1100)/340));
+      base=particleMix(64000,160000,particleClamp((w-1100)/340));
     }else if(w<=1920){
       base=particleMix(160000,240000,particleClamp((w-1440)/480));
     }else{
@@ -6859,6 +7019,7 @@ if(particleGL){
 // simply ignores zoom gestures instead of cancelling the browser behaviour.
 
 let sceneFrame=0;
+let mobileBiographyActive=null;
 let introRange=1;
 let introViewportHeight=window.innerHeight;
 let parallaxStart=0;
@@ -6895,10 +7056,10 @@ function renderScenes(){
       : rawReveal;
     const revealIn=rawReveal*morphReveal;
 
-    // Keep the DOM scene ticking while the WebGL book is still assembling.
-    // This lets Renaissance appear late in the morph without requiring
-    // another wheel event to refresh the text opacity.
-    if(!isMobile&&rawReveal>.01&&morphReveal<.995){
+    // Keep the Renaissance copy synchronized with the actual WebGL morph
+    // on BOTH touch and desktop screens. Mobile scroll can stop while the
+    // smoky particles are still flying; this must not freeze the title.
+    if(rawReveal>.01&&morphReveal<.995&&particleField?.morphInitialized){
       requestScenes();
     }
     const bgReveal=smoothstep((raw-.46)/.24);
@@ -6953,7 +7114,20 @@ function renderScenes(){
     }
   }
 
-  // Biography visuals are WebGL particles only. Legacy bitmap light/rocks layers stay disabled.
+  // Mobile uses the same living WebGL candle/biography scene as desktop.
+  // Desktop snap events do not run on touch devices, so explicitly synchronize
+  // the scene with normal touch scrolling without restarting the animation.
+  if(isMobile&&parallaxBio){
+    const rect=parallaxBio.getBoundingClientRect();
+    const vh=Math.max(1,window.innerHeight);
+    const visible=rect.top<vh*.72 && rect.bottom>vh*.20;
+    if(mobileBiographyActive!==visible&&particleField?.setBiographyActive){
+      mobileBiographyActive=visible;
+      particleField.setBiographyActive(visible);
+    }
+  }else if(mobileBiographyActive!==null){
+    mobileBiographyActive=null;
+  }
 
 }
 
@@ -6992,6 +7166,9 @@ if(introBrandImg && !introBrandImg.complete){
 }
 measureScenes();
 renderScenes();
+// Re-check the current viewport after the full GPU scene has been created;
+// the initial render may happen before setBiographyActive exists.
+grimoriumBootLoader?.onComplete?.(requestScenes);
 
 let desktopSnapAnimating=false;
 let desktopSnapKey="logo";
