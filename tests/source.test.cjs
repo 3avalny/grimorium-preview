@@ -17,11 +17,34 @@ test("full-resolution particle budget and DPR are preserved",()=>{
   assert.match(site,/state\.dpr=Math\.min\(window\.devicePixelRatio\|\|1,2\)/);
 });
 
-test("loader has a real independent unlock fallback",()=>{
-  assert.match(site,/const forceComplete=\(\)=>/);
+test("the only visible logo is actual permanent WebGL particles",()=>{
+  assert.equal((site.match(/<canvas id="particle-field"/g)||[]).length,1);
+  assert.doesNotMatch(site,/boot-particle-loader|bootLoaderCanvas|buildBootstrapParticles/);
+  assert.doesNotMatch(site,/<img class="hero-light"|<img class="hero-rocks"/);
+  assert.doesNotMatch(site,/id="particleAlbumDebug"/);
+  assert.match(site,/const source=introBrandImg/);
+  assert.match(site,/\.brand img\{opacity:0\}/);
+  assert.match(site,/html\.particle-static-fallback \.brand img\{opacity:1!important\}/);
+  assert.match(site,/"uniform float u_assembly;"/);
+  assert.match(site,/gl\.uniform1f\(pLoc\.assembly,state\.assemblyProgress\)/);
+  assert.match(site,/float arrival=smoother\(\(u_assembly-/);
+  assert.match(site,/float passAlpha=u_alpha\*arrival/);
+});
+
+test("loader unlocks only after actual assembly or a safe timeout",()=>{
+  assert.match(site,/completeWhenAssembled\(progress\)\{if\(ready&&progress>=1\)finish\(\)\}/);
+  assert.match(site,/completeWhenAssembled\?\.\(state\.assemblyProgress\)/);
+  assert.match(site,/window\.setTimeout\(\(\)=>finish\(\),12000\)/);
   assert.match(site,/document\.body\.classList\.remove\("boot-loading"\)/);
-  assert.match(site,/if\(!finished\)forceComplete\(\)/);
-  assert.match(site,/grimoriumBootLoader\?\.forceComplete\?\.\(\)/);
+  assert.match(site,/source\.addEventListener\("error"/);
+});
+
+test("native source and book are not replaced with a low resolution layer",()=>{
+  assert.match(site,/sceneId==="logo"\|\|sceneId==="book"/);
+  assert.match(site,/\?1\s*:\(bootLight/);
+  assert.match(site,/Math\.min\(dt\|\|16,42\)\/3400/);
+  assert.doesNotMatch(site,/fullHandoffRequested|fullHandoffStarted|onHandoffReady/);
+  assert.match(site,/Math\.abs\(window\.innerHeight-state\.height\)<96/);
 });
 
 test("Spotify controller is one-per-page, prewarmed, and Safari-safe",()=>{
@@ -59,7 +82,7 @@ test("original zoom and text-selection restrictions stay unchanged",()=>{
 test("site always uses the animated scene and does not branch on Reduce Motion",()=>{
   assert.doesNotMatch(site,/prefers-reduced-motion|reducedMotionQuery|reducedMotion/i);
   assert.match(site,/createParticleField\(\)/);
-  assert.match(site,/const birthWindow=Math\.min\(14,dt\*\.9\)/);
+  assert.match(site,/"uniform float u_assembly;"/);
 });
 
 test("JavaScript-off page is standalone, linked, and contains every album",()=>{
