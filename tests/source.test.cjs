@@ -286,6 +286,10 @@ test("Safari captures hero swipes and recover touchcancel without moving album c
   assert.match(site,/if\(mobileTouchCapturing\)\{\s*if\(event\.cancelable\)event\.preventDefault\(\)/);
   assert.match(site,/mobileTouchOriginScroll<mobileSceneSnapTargets\(\)\.find\(t=>t\.key==="discography"\)\.y-10/);
   assert.match(site,/Math\.abs\(mobileTouchLastDy\)>=44/);
+  assert.match(site,/function scheduleMobileIntroSettle\(\)/);
+  assert.match(site,/window\.setTimeout\(\(\)=>\{/);
+  assert.match(site,/const best=targets\.reduce/);
+  assert.match(site,/if\(best&&Math\.abs\(current-best\.y\)>12\)animateMobileSceneSnap\(best\.key\)/);
   assert.match(site,/if\(target\)animateMobileSceneSnap\(target\)/);
   assert.match(site,/mobileRecord\.addEventListener\("touchend"/);
   assert.doesNotMatch(site,/prefers-reduced-motion/);
