@@ -122,7 +122,9 @@ test("Spotify controller is one-per-page, prewarmed, and Safari-safe",()=>{
 
 test("Spotify buffering never flashes track index between play events",()=>{
   assert.match(site,/spotifyPlaybackConfirmed=false/);
-  assert.match(site,/setSpotifyButtonState\(false\);\s*spotifyAnnounce\("Loading Spotify playback"\)/);
+  assert.match(site,/spotifyMobilePending=window\.innerWidth<=720&&!autoAdvance/);
+  assert.match(site,/if\(spotifyMobilePending\)\{[\s\S]*?setSpotifyButtonState\(true\)/);
+  assert.match(site,/if\(spotifyPlaybackConfirmed&&spotifyMobilePending\)clearMobileSpotifyPending\(\)/);
   assert.match(site,/else if\(spotifyPlaybackConfirmed\)\{/);
   assert.match(site,/spotifyPauseRecheckTimer=window\.setTimeout/);
   assert.match(site,/clearSpotifyPauseRecheck\(\)/);
@@ -176,6 +178,50 @@ test("mobile gets exactly the desktop biography copy and the candle scene",()=>{
   assert.match(site,/particleField\.setBiographyActive\(visible\)/);
   assert.match(site,/grimoriumBootLoader\?\.onComplete\?\.\(requestScenes\)/);
   assert.match(site,/\.spotify-track-engine\.needs-interaction iframe\{/);
+});
+
+
+test("mobile first-screen logo, book and Renaissance no longer sit behind raster covers",()=>{
+  assert.doesNotMatch(site,/background:url\("assets\/bio-background2\.webp/);
+  assert.doesNotMatch(site,/class="site-parallax-bg"/);
+  assert.doesNotMatch(site,/\.hero\{background:#000\}/);
+  assert.match(site,/\.hero\{background:transparent\}/);
+  assert.match(site,/\.record\{[\s\S]*?margin-top:0;[\s\S]*?background:transparent/);
+  assert.match(site,/\.hero\{height:195svh;min-height:0;background:transparent\}/);
+  assert.match(site,/class="hero-copy"/);
+  assert.match(site,/<h1>Renaissance<\/h1>/);
+  assert.match(site,/id="particle-field"/);
+  assert.match(site,/sceneId==="logo"\|\|sceneId==="book"/);
+});
+
+test("mobile album swipe remains active outside playable song and link controls",()=>{
+  assert.match(site,/mobileRecord\.addEventListener\("touchstart"/);
+  assert.match(site,/mobileRecord\.addEventListener\("touchmove"/);
+  assert.match(site,/\},\{passive:false\}\);/);
+  assert.match(site,/mobileRecord\.addEventListener\("touchend"/);
+  assert.match(site,/horizontal<46 \|\| horizontal<vertical\*1\.25/);
+  assert.match(site,/selectAlbum\(ALBUMS\[nextIndex\]\.id\)/);
+  assert.match(site,/e\.target\.closest\("\.track-col,\.album-credits,\.platforms,summary,a,\.track-index-control"\)/);
+  assert.match(site,/\.album-tabs,\.cover-col,\.record-head\{touch-action:pan-y\}/);
+});
+
+test("mobile first tap opens Spotify control and no fake Pause before audio is confirmed",()=>{
+  assert.match(site,/let spotifyMobilePending=false/);
+  assert.match(site,/spotifyMobilePending=window\.innerWidth<=720&&!autoAdvance/);
+  assert.match(site,/if\(spotifyMobilePending\)\{[\s\S]*?classList\.add\("is-pending"\)/);
+  assert.match(site,/if\(spotifyMobilePending\)\{[\s\S]*?showSpotifyFallback\(\)/);
+  assert.match(site,/if\(spotifyPlaybackConfirmed&&spotifyMobilePending\)clearMobileSpotifyPending\(\)/);
+  assert.match(site,/if\(row\.classList\.contains\("is-pending"\)\)\{\s*showSpotifyFallback\(\)/);
+  assert.match(site,/\.track-row\.is-pending \.track-index-control::after/);
+});
+
+test("mobile candles are real WebGL particles and are prepared before unseen albums",()=>{
+  assert.match(site,/const queue=state\.width<=720/);
+  assert.match(site,/\{type:"bio",id:"bio"\}/);
+  assert.match(site,/prepareDiscSceneCandidates\(ref,false,"bio"\)/);
+  assert.match(site,/buildDeferredBioScene\(ref,candidates,scene=>/);
+  assert.match(site,/particleField\.setBiographyActive\(visible\)/);
+  assert.doesNotMatch(site,/background:url\("assets\/bio-background2\.webp/);
 });
 
 test("JavaScript-off page is standalone, linked, and contains every album",()=>{

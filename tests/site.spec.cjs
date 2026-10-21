@@ -157,3 +157,62 @@ test("mobile and desktop biography have matching full historical copy",async({pa
   await expect(page.locator(".mobile-bio-figure")).toHaveCount(0);
 });
 
+
+test("mobile logo and Renaissance are not covered by raster or opaque section backgrounds",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await disableWebGL(page);
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  const styles=await page.evaluate(()=>({
+    hero:getComputedStyle(document.querySelector(".hero")).backgroundColor,
+    recordImage:getComputedStyle(document.querySelector(".record")).backgroundImage,
+    recordColor:getComputedStyle(document.querySelector(".record")).backgroundColor,
+    webglCanvas:!!document.querySelector("canvas#particle-field"),
+    heroHeight:document.querySelector(".hero").getBoundingClientRect().height
+  }));
+  expect(styles.hero).toBe("rgba(0, 0, 0, 0)");
+  expect(styles.recordImage).toBe("none");
+  expect(styles.recordColor).toBe("rgba(0, 0, 0, 0)");
+  expect(styles.webglCanvas).toBe(true);
+  expect(styles.heroHeight).toBeGreaterThan(844);
+  await expect(page.locator(".hero h1")).toHaveText("Renaissance");
+  await expect(page.locator(".site-parallax-bg")).toHaveCount(0);
+});
+
+test("horizontal swipe on mobile album artwork changes albums while preserving layout",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await disableWebGL(page);
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await expect(page.locator('.album-tab[data-id="reall"]')).toHaveClass(/active/);
+  await page.evaluate(()=>{
+    const cover=document.querySelector('.disc-content-panel[data-album-id="reall"] .cover');
+    const make=(type,x,y)=>{
+      const event=new Event(type,{bubbles:true,cancelable:true});
+      Object.defineProperty(event,type==="touchstart"?"touches":"changedTouches",{value:[{clientX:x,clientY:y}]});
+      cover.dispatchEvent(event);
+    };
+    make("touchstart",315,480);
+    make("touchend",95,486);
+  });
+  await expect(page.locator('.album-tab[data-id="revenant"]')).toHaveClass(/active/);
+  await expect(page.locator('.disc-content-panel[data-album-id="revenant"]')).toHaveClass(/current/);
+});
+
+test("mobile first tap reveals native Spotify player instead of premature Pause",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await disableWebGL(page);
+  await page.route("https://open.spotify.com/embed/iframe-api/v1",route=>route.fulfill({
+    contentType:"application/javascript",
+    body:"window.onSpotifyIframeApiReady({createController(target,options,callback){const iframe=document.createElement('iframe');target.appendChild(iframe);let uri=options.uri;const events={};window.__confirmSpotify=()=>events.playback_update?.({data:{playingURI:uri,isPaused:false,position:500,duration:90000}});callback({addListener(name,fn){events[name]=fn;if(name==='ready')setTimeout(fn,0)},loadEntity(next){uri=next},play(){events.playback_started?.({data:{playingURI:uri}})},resume(){},pause(){}})}});"
+  }));
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  const row=page.locator('.disc-content-panel[data-album-id="reall"] .track-row').first();
+  await row.locator(".track").click();
+  await expect(row).toHaveClass(/is-pending/);
+  await expect(row).not.toHaveClass(/is-playing/);
+  await expect(page.locator(".spotify-track-engine")).toHaveClass(/needs-interaction/);
+  await expect(page.locator(".spotify-track-engine iframe")).toHaveCount(1);
+  await page.evaluate(()=>window.__confirmSpotify());
+  await expect(row).not.toHaveClass(/is-pending/);
+  await expect(row).toHaveClass(/is-playing/);
+  await expect(page.locator(".spotify-track-engine")).not.toHaveClass(/needs-interaction/);
+});
