@@ -99,3 +99,19 @@ test("blocked Spotify autoplay gives a native iframe and track link",async({page
   await page.locator(".spotify-fallback-dismiss").click();
   await expect(page.locator(".spotify-track-engine")).not.toHaveClass(/needs-interaction/);
 });
+
+test("real logo assembles in one permanent WebGL layer without bitmap handoff",async({page})=>{
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await expect(page.locator("canvas#particle-field")).toHaveCount(1);
+  await expect(page.locator("canvas#boot-particle-loader")).toHaveCount(0);
+  await expect(page.locator(".hero-light,.hero-rocks")).toHaveCount(0);
+  const hasWebGL=await page.evaluate(()=>document.createElement("canvas").getContext("webgl")!==null);
+  if(!hasWebGL){test.skip(true,"WebGL unavailable in this browser");return}
+  await expect(page.locator("html")).toHaveClass(/particle-field-ready/,{timeout:20000});
+  await expect(page.locator("html")).toHaveClass(/particle-assembly-complete/,{timeout:25000});
+  await expect(page.locator("html")).not.toHaveClass(/particle-static-fallback/);
+  await expect(page.locator("body")).not.toHaveClass(/boot-loading/);
+  const opacity=await page.locator(".brand img").evaluate(el=>getComputedStyle(el).opacity);
+  expect(opacity).toBe("0");
+});
+

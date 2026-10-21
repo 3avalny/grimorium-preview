@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#000000">
 <meta name="description" content="Official site of Grimorium Verum.">
 <title>Grimorium Verum — Official</title>
+<link rel="preload" href="assets/GV_PNG_bez_fona.png?v=13836c25" as="image" fetchpriority="high">
+<link rel="preload" href="assets/book.webp?v=20260923-loader1" as="image" fetchpriority="high">
 <link rel="preconnect" href="https://open.spotify.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,25 +79,6 @@ body{
   backface-visibility:hidden;
   contain:paint
 }
-.site-light-layer,
-.site-rocks-layer{
-  display:none!important;position:fixed;left:50%;width:100vw;height:auto;max-width:none;
-  object-fit:contain;object-position:center bottom;
-  transform-origin:center bottom;
-  will-change:transform,opacity;
-  backface-visibility:hidden;
-  pointer-events:none;
-  opacity:0
-}
-.site-light-layer{
-  z-index:1;bottom:5vh;
-  transform:translate3d(-50%,140px,0)
-}
-.site-rocks-layer{
-  z-index:8;bottom:-5vh;
-  transform:translate3d(-50%,170px,0)
-}
-.hero-light,.hero-rocks{display:none!important}
 main,footer{position:relative;z-index:2}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;-webkit-user-select:none;user-select:none}
@@ -166,26 +149,6 @@ nav{display:none!important}
   position:fixed;z-index:3;inset:0;height:100vh;
   display:flex;align-items:center;justify-content:center;
   padding:0 var(--pad);overflow:hidden;
-  pointer-events:none
-}
-.hero-light{
-  position:absolute;z-index:0;left:50%;bottom:5vh;
-  width:100vw;height:auto;max-width:none;
-  transform:translate3d(-50%,0,0);
-  transform-origin:center bottom;
-  opacity:1;
-  object-fit:contain;object-position:center bottom;
-  will-change:transform,opacity;
-  pointer-events:none
-}
-.hero-rocks{
-  position:absolute;z-index:1;left:50%;bottom:0;
-  width:100vw;height:auto;max-width:none;
-  transform:translate3d(-50%,0,0);
-  transform-origin:center bottom;
-  opacity:1;
-  object-fit:contain;object-position:center bottom;
-  will-change:transform,opacity;
   pointer-events:none
 }
 .hero-copy{
@@ -275,9 +238,6 @@ nav{display:none!important}
   text-shadow:none;filter:none;
   will-change:opacity
 }
-/* Real Discography is active again. Keep the temporary particle-scene
-   switcher in the DOM for development, but never show it to visitors. */
-.particle-album-debug{display:none!important}
 @media(max-width:720px){
   .hero-sub{margin-top:44px}
 }
@@ -797,19 +757,6 @@ nav{display:none!important}
     transform:translateZ(0);
     backface-visibility:hidden
   }
-  .hero-light{
-    width:145vw;
-    bottom:5vh;
-    max-height:48vh;
-    object-fit:contain;
-    object-position:center bottom
-  }
-  .hero-rocks{
-    width:145vw;
-    max-height:42vh;
-    object-fit:contain;
-    object-position:center bottom
-  }
   .hero-copy{width:calc(100% - 36px)}
   .hero h1{font-size:clamp(38px,11.3vw,68px);letter-spacing:.038em;white-space:nowrap;transform:translateY(30px)}
   .hero-sub{font-size:14px;line-height:1.08;letter-spacing:.13em;gap:2px}
@@ -950,24 +897,15 @@ nav{display:none!important}
 }
 
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
-/* Boot particle loader: a lightweight independent canvas starts before WebGL. */
+/* The GPU particle field is the only visible logo during a normal load. */
 body.boot-loading{overflow:hidden}
-.boot-particle-loader{
-  position:fixed;
-  z-index:100000;
-  inset:0;
-  width:100%;
-  height:100%;
-  background:#050607;
-  opacity:1;
-  pointer-events:auto;
-  transition:opacity 1.02s cubic-bezier(.22,.72,.18,1);
-  transform:translateZ(0);
-}
-.boot-particle-loader.is-complete{
-  opacity:0;
-  pointer-events:none
-}
+body.boot-loading .hero-copy,
+body.boot-loading .record,
+body.boot-loading .bio,
+body.boot-loading footer,
+body.boot-loading .site-parallax-bg{visibility:hidden;pointer-events:none}
+.brand img{opacity:0}
+html.particle-static-fallback .brand img{opacity:1!important}
 
 /* Particle sigil field — the hero logo and the background share the same particles. */
 .particle-field{
@@ -2040,17 +1978,9 @@ html.home-returning main{
   </main>
 </div>
 </noscript>
-<canvas id="boot-particle-loader" class="boot-particle-loader" aria-hidden="true"></canvas>
 <div class="site-parallax-bg" aria-hidden="true"></div>
 <canvas id="particle-field" class="particle-field" aria-hidden="true"></canvas>
 <button id="particle-logo-hit" class="particle-logo-hit" type="button" aria-label="Return to Grimorium Verum logo"></button>
-<div class="particle-album-debug" id="particleAlbumDebug" role="navigation" aria-label="Temporary album particle switcher">
-  <button type="button" data-id="reall">REALL</button>
-  <button type="button" data-id="revenant">Revenant</button>
-  <button type="button" data-id="relict">Relict</button>
-  <button type="button" data-id="reborn">Reborn</button>
-  <button type="button" data-id="retaliation">Retaliation</button>
-</div>
 <div id="spotifyPreloadPool" class="spotify-preload-pool" aria-hidden="true"></div>
 <span class="sr-only" id="spotifyPlaybackStatus" role="status" aria-live="polite"></span>
 <header>
@@ -2060,8 +1990,6 @@ html.home-returning main{
 <main id="top">
 <section class="hero">
   <div class="hero-inner">
-    <img class="hero-light" src="assets/light.webp?v=0680db37" alt="" aria-hidden="true">
-    <img class="hero-rocks" src="assets/rocks.webp?v=8f46a97b" alt="" aria-hidden="true">
     <div class="hero-copy">
       <h1>Renaissance</h1>
       <div class="hero-sub">
@@ -2997,10 +2925,6 @@ const introHeader=document.querySelector("header");
 const introBrand=document.querySelector(".brand");
 const introBrandImg=introBrand?.querySelector("img");
 const introCopy=document.querySelector(".hero-copy");
-const introLight=document.querySelector(".hero-light");
-const introRocks=document.querySelector(".hero-rocks");
-const siteLight=document.querySelector(".site-light-layer");
-const siteRocks=document.querySelector(".site-rocks-layer");
 const parallaxRecord=document.querySelector(".record");
 const parallaxBio=document.querySelector(".bio");
 const recordSideLabel=parallaxRecord?.querySelector(".record-side-label");
@@ -3066,533 +2990,44 @@ function setSideLabelScene(key){
   setSideLabelActive(bioSideLabel,key==="biography");
 }
 
-/* ---------- PARTICLE BOOT LOADER ---------- */
-const bootLoaderCanvas=document.getElementById("boot-particle-loader");
-
+/* ---------- SINGLE PARTICLE ENGINE BOOT ---------- */
 function createBootParticleLoader(){
-  if(!bootLoaderCanvas||!introBrandImg)return null;
-
-  const ctx=bootLoaderCanvas.getContext("2d",{alpha:false});
-  if(!ctx){
+  let complete=false;
+  let ready=false;
+  const listeners=new Set();
+  const finish=({fallback=false}={})=>{
+    if(complete)return;
+    complete=true;
     document.body.classList.remove("boot-loading");
-    bootLoaderCanvas.remove();
-    return null;
-  }
-
-  const stages=new Map();
-  const addStage=(key,weight)=>stages.set(key,{weight,done:false});
-
-  // Preserve the original full-pixel GV assembly, but only critical
-  // first-screen dependencies are allowed to hold the visitor.
-  addStage("logo",.20);
-  addStage("book",.20);
-  addStage("dom",.10);
-  addStage("particleEngine",.50);
-
-  let targetProgress=0;
-  let displayProgress=0;
-  let loadDrive=0;
-  let particles=[];
-  let bootstrapParticles=[];
-  let activeFlights=[];
-  let revealedCount=0;
-  let settledCount=0;
-  let settledCanvas=null;
-  let settledCtx=null;
-  let revealPosition=0;
-  let revealVelocity=0;
-  let logoX=0;
-  let logoY=0;
-  let logoW=0;
-  let logoH=0;
-  let rasterScale=1;
-  let rasterW=1;
-  let rasterH=1;
-  let raf=0;
-  let lastAt=0;
-  let lastRevealAt=0;
-  let finished=false;
-  let finishing=false;
-  let finishStartedAt=0;
-  let handoffArmed=false;
-  let fullFieldReady=false;
-  let targetsReady=false;
-  let targetBuildToken=0;
-  let loaderStartedAt=performance.now();
-  let logoImage=null;
-  const handoffListeners=new Set();
-  const completeListeners=new Set();
-
-  const hash=n=>{
-    let x=(Math.floor(n)>>>0)+0x9e3779b9;
-    x=Math.imul(x^(x>>>16),0x21f0aaad);
-    x=Math.imul(x^(x>>>15),0x735a2d97);
-    x=x^(x>>>15);
-    return (x>>>0)/4294967296;
-  };
-
-  const buildBootstrapParticles=()=>{
-    const w=Math.max(1,window.innerWidth);
-    const h=Math.max(1,window.innerHeight);
-    const count=w<=720?520:960;
-    const spreadX=Math.min(w*.34,560);
-    const spreadY=Math.min(h*.25,300);
-    const travel=Math.min(Math.max(w,h)*.44,520);
-
-    bootstrapParticles=Array.from({length:count},(_,i)=>{
-      const a=hash(i*92821+17)*Math.PI*2;
-      const radius=travel*(.55+hash(i*31337+29)*.72);
-      const tx=w*.5+(hash(i*6151+43)-.5)*spreadX;
-      const ty=h*.5+(hash(i*7411+71)-.5)*spreadY;
-      const brightness=.48+hash(i*3571+101)*.42;
-      return {
-        sx:w*.5+Math.cos(a)*radius,
-        sy:h*.5+Math.sin(a)*radius,
-        tx,ty,
-        bend:(hash(i*4721+113)-.5)*58,
-        phase:hash(i*9901+149)*Math.PI*2,
-        speed:.70+hash(i*1741+191)*.75,
-        size:.42+hash(i*2689+211)*.48,
-        r:Math.round(204*brightness),
-        g:Math.round(194*brightness),
-        b:Math.round(173*brightness),
-        alpha:.22+hash(i*7919+227)*.46
-      };
-    });
-  };
-
-  const shuffled=array=>{
-    let state=0x761f93ab;
-    for(let i=array.length-1;i>0;i--){
-      state^=state<<13;state^=state>>>17;state^=state<<5;
-      const j=Math.floor(((state>>>0)/4294967296)*(i+1));
-      [array[i],array[j]]=[array[j],array[i]];
+    if(fallback){
+      document.documentElement.classList.add("particle-static-fallback");
+      introBrandImg.style.opacity="1";
     }
-    return array;
-  };
-
-  const progressFromStages=()=>{
-    let sum=0;
-    for(const stage of stages.values())if(stage.done)sum+=stage.weight;
-    return Math.min(1,sum);
-  };
-
-  const mark=key=>{
-    const stage=stages.get(key);
-    if(!stage||stage.done)return;
-    stage.done=true;
-    targetProgress=progressFromStages();
-  };
-
-  // Independent escape route for unsupported graphics, decode failures and
-  // slow devices. The max-resolution WebGL field can finish after unlock.
-  const forceComplete=()=>{
-    if(finished)return;
-    finished=true;
-    finishing=false;
-    targetBuildToken++; // Abort pending logo raster work as well.
-    if(raf)cancelAnimationFrame(raf);
-    document.body.classList.remove("boot-loading");
-    bootLoaderCanvas.classList.add("is-complete");
-    bootLoaderCanvas.style.pointerEvents="none";
-    // Avoid drawing the DOM logo over the already-complete WebGL logo.
-    introBrandImg.style.opacity=document.documentElement.classList.contains("particle-field-ready")?"0":"1";
-    window.setTimeout(()=>bootLoaderCanvas.remove(),1100);
-    completeListeners.forEach(listener=>{
+    for(const listener of listeners){
       try{listener()}catch(error){console.error(error)}
-    });
-    completeListeners.clear();
-  };
-
-  const resize=()=>{
-    const dpr=Math.min(window.devicePixelRatio||1,1.6);
-    const w=Math.max(1,window.innerWidth);
-    const h=Math.max(1,window.innerHeight);
-    bootLoaderCanvas.width=Math.round(w*dpr);
-    bootLoaderCanvas.height=Math.round(h*dpr);
-    bootLoaderCanvas.style.width=w+"px";
-    bootLoaderCanvas.style.height=h+"px";
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-
-    if(targetsReady&&logoImage)buildTargets(logoImage);
-    else buildBootstrapParticles();
-  };
-
-  const buildTargets=(image,onReady=null)=>{
-    const token=++targetBuildToken;
-    const w=Math.max(1,window.innerWidth);
-    const h=Math.max(1,window.innerHeight);
-
-    const nextLogoW=Math.min(w*.56,820);
-    const nextLogoH=nextLogoW*(image.naturalHeight/Math.max(1,image.naturalWidth));
-    const nextLogoX=w*.5-nextLogoW*.5;
-    const nextLogoY=h*.5-nextLogoH*.5;
-
-    // Keep the exact same full-pixel target set and particle styling as before,
-    // but scan the source in short slices so requestAnimationFrame keeps breathing.
-    const nextRasterScale=Math.min(window.devicePixelRatio||1,1.30);
-    const nextRasterW=Math.max(1,Math.round(nextLogoW*nextRasterScale));
-    const nextRasterH=Math.max(1,Math.round(nextLogoH*nextRasterScale));
-
-    const raster=document.createElement("canvas");
-    raster.width=nextRasterW;
-    raster.height=nextRasterH;
-    const rctx=raster.getContext("2d",{willReadFrequently:true});
-    rctx.clearRect(0,0,nextRasterW,nextRasterH);
-    rctx.imageSmoothingEnabled=true;
-    rctx.imageSmoothingQuality="high";
-    rctx.drawImage(image,0,0,nextRasterW,nextRasterH);
-
-    const sourcePixels=rctx.getImageData(0,0,nextRasterW,nextRasterH).data;
-    const exact=[];
-    let y=0;
-
-    const processSlice=()=>{
-      if(finished||token!==targetBuildToken)return;
-
-      const sliceStarted=performance.now();
-      while(y<nextRasterH){
-        for(let x=0;x<nextRasterW;x++){
-          const k=(y*nextRasterW+x)*4;
-          const a=sourcePixels[k+3];
-          if(a===0)continue;
-
-          const seedIndex=x+y*nextRasterW;
-          const angle=hash(seedIndex*3253+91)*Math.PI*2;
-          const travelRadius=
-            28+
-            hash(seedIndex*5741+211)*
-            Math.min(190,Math.max(70,nextLogoW*.24));
-          const tangent=(hash(seedIndex*1187+337)-.5)*26;
-          const tx=nextLogoX+(x+.5)/nextRasterScale;
-          const ty=nextLogoY+(y+.5)/nextRasterScale;
-
-          const toneSeed=hash(seedIndex*7919+53);
-          const sparkleSeed=hash(seedIndex*1741+191);
-          const hotMix=Math.max(0,(sparkleSeed-.78)/.22)*.18;
-          const brightness=.48+toneSeed*.46+(sparkleSeed>.965?.10:0);
-          const baseR=204,baseG=194,baseB=173;
-          const hotR=255,hotG=246,hotB=230;
-          const tone=(base,hot)=>Math.max(0,Math.min(255,Math.round(
-            (base+(hot-base)*hotMix)*brightness
-          )));
-
-          exact.push({
-            px:x,
-            py:y,
-            tx,
-            ty,
-            sx:tx+Math.cos(angle)*travelRadius+Math.sin(angle)*tangent,
-            sy:ty+Math.sin(angle)*travelRadius-Math.cos(angle)*tangent,
-            r:tone(baseR,hotR),
-            g:tone(baseG,hotG),
-            b:tone(baseB,hotB),
-            a,
-            opacity:.44+hash(seedIndex*3571+127)*.48,
-            settleKeep:hash(seedIndex*6151+389)<.57,
-            settleSize:.50+hash(seedIndex*4721+73)*.28,
-            phase:hash(seedIndex*9901+11)*Math.PI*2,
-            birth:0,
-            duration:260+hash(seedIndex*6421+27)*260
-          });
-        }
-
-        y++;
-        if(performance.now()-sliceStarted>=3.5){
-          requestAnimationFrame(processSlice);
-          return;
-        }
-      }
-
-      if(token!==targetBuildToken)return;
-
-      logoW=nextLogoW;
-      logoH=nextLogoH;
-      logoX=nextLogoX;
-      logoY=nextLogoY;
-      rasterScale=nextRasterScale;
-      rasterW=nextRasterW;
-      rasterH=nextRasterH;
-
-      particles=shuffled(exact);
-      activeFlights=[];
-      revealedCount=0;
-      settledCount=0;
-      revealPosition=0;
-      revealVelocity=0;
-
-      settledCanvas=document.createElement("canvas");
-      settledCanvas.width=rasterW;
-      settledCanvas.height=rasterH;
-      settledCtx=settledCanvas.getContext("2d",{alpha:true});
-      settledCtx.clearRect(0,0,rasterW,rasterH);
-
-      targetsReady=true;
-      if(onReady)onReady();
-    };
-
-    requestAnimationFrame(processSlice);
-  };
-
-  const draw=now=>{
-    if(finished)return;
-    const w=Math.max(1,window.innerWidth);
-    const h=Math.max(1,window.innerHeight);
-    const dt=lastAt?Math.min(50,now-lastAt):16;
-    lastAt=now;
-
-    // Readiness changes in large stage jumps, but the visible assembly must
-    // never inherit those jumps. Smooth readiness into a continuous drive that
-    // only controls speed: slow at the start, progressively faster near ready.
-    const driveResponse=1-Math.exp(-dt/720);
-    loadDrive+=(targetProgress-loadDrive)*driveResponse;
-    loadDrive=Math.max(0,Math.min(1,loadDrive));
-    const easedDrive=loadDrive*loadDrive*(3-2*loadDrive);
-    const flightSpeed=1+easedDrive*1.65;
-
-    ctx.fillStyle="#050607";
-    ctx.fillRect(0,0,w,h);
-
-    // Immediate first-frame motion. This cloud is generated synchronously, so a
-    // cold PNG decode can never leave the visitor staring at an empty black screen.
-    if(bootstrapParticles.length){
-      const realAssemblyFraction=targetsReady&&particles.length
-        ?Math.min(1,revealedCount/Math.max(1,particles.length*.055))
-        :0;
-      const bootstrapAlpha=1-realAssemblyFraction;
-
-      if(bootstrapAlpha>.001){
-        const bootstrapTime=Math.max(0,now-loaderStartedAt);
-        for(let i=0;i<bootstrapParticles.length;i++){
-          const p=bootstrapParticles[i];
-          const approach=1-Math.exp(
-            -bootstrapTime/(2200/p.speed)
-          );
-          const arc=Math.sin(Math.PI*Math.min(.999,approach));
-          const dx=p.tx-p.sx;
-          const dy=p.ty-p.sy;
-          const len=Math.max(1,Math.hypot(dx,dy));
-          const nx=-dy/len;
-          const ny=dx/len;
-          const drift=Math.sin(
-            bootstrapTime*.0011*p.speed+p.phase
-          )*3.2*(1-approach*.72);
-          const x=p.sx+dx*approach+nx*(p.bend*arc+drift);
-          const y=p.sy+dy*approach+ny*(p.bend*arc+drift);
-
-          ctx.fillStyle=`rgba(${p.r},${p.g},${p.b},${p.alpha*bootstrapAlpha})`;
-          ctx.beginPath();
-          ctx.arc(x,y,p.size,0,Math.PI*2);
-          ctx.fill();
-        }
-      }
     }
-
-    if(targetsReady&&particles.length){
-      // No temporary reveal target exists anymore. The stream always advances.
-      // At low readiness it would take roughly 12s to assemble by itself; as
-      // readiness rises, that rate continuously accelerates toward ~1.15s.
-      const slowDuration=12000;
-      const fastDuration=1150;
-      const effectiveDuration=
-        slowDuration+(fastDuration-slowDuration)*easedDrive;
-      const desiredVelocity=particles.length/effectiveDuration;
-      const minimumVelocity=Math.max(.085,particles.length/15000);
-      const velocityResponse=1-Math.exp(-dt/520);
-      revealVelocity+=(
-        Math.max(minimumVelocity,desiredVelocity)-revealVelocity
-      )*velocityResponse;
-      revealPosition=Math.min(
-        particles.length,
-        revealPosition+Math.max(minimumVelocity,revealVelocity)*dt
-      );
-
-      displayProgress=particles.length
-        ?Math.min(1,revealPosition/particles.length)
-        :0;
-
-      const emitTo=Math.floor(revealPosition);
-      const spawnCount=Math.max(0,emitTo-revealedCount);
-      const birthWindow=Math.min(14,dt*.9);
-
-      for(let n=0;n<spawnCount;n++){
-        const p=particles[revealedCount++];
-        const slot=spawnCount>1?n/(spawnCount-1):0;
-        p.birth=now+birthWindow*slot+hash(revealedCount*8123+101)*1.5;
-        activeFlights.push(p);
-        lastRevealAt=Math.max(lastRevealAt,p.birth);
-      }
-
-      if(settledCanvas){
-        ctx.drawImage(settledCanvas,logoX,logoY,logoW,logoH);
-      }
-
-      if(activeFlights.length){
-        const nextFlights=[];
-
-        for(let i=0;i<activeFlights.length;i++){
-          const p=activeFlights[i];
-          if(now<p.birth){
-            nextFlights.push(p);
-            continue;
-          }
-
-          const raw=Math.min(1,((now-p.birth)*flightSpeed)/p.duration);
-          if(raw>=1){
-            if(p.settleKeep){
-              const settleAlpha=(p.a/255)*p.opacity;
-              const size=p.settleSize;
-              settledCtx.fillStyle=`rgba(${p.r},${p.g},${p.b},${settleAlpha})`;
-              settledCtx.fillRect(
-                p.px+.5-size*.5,
-                p.py+.5-size*.5,
-                size,
-                size
-              );
-            }
-            settledCount+=1;
-            continue;
-          }
-
-          const t=raw*raw*(3-2*raw);
-          const arc=Math.sin(Math.PI*t);
-          const dx=p.tx-p.sx;
-          const dy=p.ty-p.sy;
-          const len=Math.max(1,Math.hypot(dx,dy));
-          const nx=-dy/len;
-          const ny=dx/len;
-          const bend=(hash((p.px+p.py*rasterW)*4999+7)-.5)*18*arc;
-          const x=p.sx+dx*t+nx*bend;
-          const y=p.sy+dy*t+ny*bend;
-          const alpha=(p.a/255)*p.opacity*Math.min(1,raw*3.2);
-          const particleSize=Math.max(.44,.68/rasterScale)*(.80+.20*(1-t));
-
-          ctx.fillStyle=`rgba(${p.r},${p.g},${p.b},${alpha})`;
-          ctx.beginPath();
-          ctx.arc(x,y,particleSize,0,Math.PI*2);
-          ctx.fill();
-
-          nextFlights.push(p);
-        }
-
-        activeFlights=nextFlights;
-      }
-
-      if(
-        !handoffArmed&&
-        targetProgress>=1&&
-        revealedCount>=particles.length*.80
-      ){
-        handoffArmed=true;
-        handoffListeners.forEach(listener=>{
-          try{listener()}catch(error){console.error(error)}
-        });
-        handoffListeners.clear();
-      }
-
-      if(
-        !finishing&&
-        handoffArmed&&
-        fullFieldReady&&
-        revealedCount>=particles.length*.94&&
-        settledCount>=particles.length*.84
-      ){
-        finishing=true;
-        finishStartedAt=now;
-        // The FINAL WebGL field is already complete underneath. Keep rendering
-        // this exact boot animation while its opaque canvas cross-fades away.
-        bootLoaderCanvas.classList.add("is-complete");
-        document.body.classList.remove("boot-loading");
-      }
-    }
-
-    if(finishing&&now-finishStartedAt>=1080){
-      finished=true;
-      if(raf)cancelAnimationFrame(raf);
-      bootLoaderCanvas.remove();
-      completeListeners.forEach(listener=>{
-        try{listener()}catch(error){console.error(error)}
-      });
-      completeListeners.clear();
-      return;
-    }
-
-    raf=requestAnimationFrame(draw);
+    listeners.clear();
   };
-
-  const preloadImageStage=(key,url,{logo=false}={})=>{
-    const img=new Image();
-    img.decoding="async";
-
-    const settle=()=>{
-      if(finished)return;
-      const decoded=typeof img.decode==="function"
-        ?img.decode().catch(()=>{})
-        :Promise.resolve();
-      decoded.finally(()=>{
-        if(finished)return;
-        if(logo){
-          logoImage=img;
-          buildTargets(img,()=>mark(key));
-          return;
-        }
-        mark(key);
-      });
-    };
-
-    img.addEventListener("load",settle,{once:true});
-    img.addEventListener("error",()=>mark(key),{once:true});
-    img.src=url;
-  };
-
-  resize();
-  window.addEventListener("resize",resize,{passive:true});
-
-  const logoUrl=introBrandImg.currentSrc||introBrandImg.src;
-  preloadImageStage("logo",logoUrl,{logo:true});
-
-  preloadImageStage("book",`assets/book.webp?v=${SITE_ASSET_VERSION}`);
-
-  // DOM parsing is sufficient for first paint. Never make the loader wait for
-  // album covers, optional scene maps, Spotify iframes or remote icons.
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",()=>mark("dom"),{once:true});
-  }else{
-    mark("dom");
-  }
-
-  // A deadline that actually dismisses the overlay, not just progress.
-  window.setTimeout(()=>{if(!finished)forceComplete()},10000);
-
-  raf=requestAnimationFrame(draw);
-
+  // Never leave the rest of the site inaccessible if the GPU stalls.
+  window.setTimeout(()=>finish(),12000);
   return {
-    mark,
-    forceComplete,
-    onHandoffReady(listener){
-      if(typeof listener!=="function")return;
-      if(handoffArmed){
-        window.setTimeout(listener,0);
-        return;
+    mark(){},
+    markFullFieldReady(){ready=true},
+    completeWhenAssembled(progress){
+      if(ready&&progress>=1){
+        document.documentElement.classList.add("particle-assembly-complete");
+        if(!complete)finish();
       }
-      handoffListeners.add(listener);
     },
-    markFullFieldReady(){
-      fullFieldReady=true;
-    },
+    forceComplete(opts){finish(opts||{fallback:true})},
     onComplete(listener){
       if(typeof listener!=="function")return;
-      if(finished){
-        window.setTimeout(listener,0);
-        return;
-      }
-      completeListeners.add(listener);
+      if(complete){window.setTimeout(listener,0);return}
+      listeners.add(listener);
     },
-    get progress(){return targetProgress},
-    get complete(){return finished}
+    get complete(){return complete}
   };
 }
-
 const grimoriumBootLoader=createBootParticleLoader();
 // Prefetch one Spotify iframe only once the opaque boot animation is gone.
 // It is never a dependency of the initial high-resolution particle render.
@@ -3608,7 +3043,7 @@ if(grimoriumBootLoader){
 }else{
   window.setTimeout(warmSpotifyWhenIdle,0);
 }
-/* ---------- /PARTICLE BOOT LOADER ---------- */
+/* ---------- /SINGLE PARTICLE ENGINE BOOT ---------- */
 
 
 /* ---------- BIOGRAPHY TEXT REVEAL ---------- */
@@ -3896,13 +3331,12 @@ function createParticleField(){
   if(!particleCanvas||!particleGL||!introBrandImg)return;
 
   const gl=particleGL;
-  const source=new Image();
-  source.decoding="async";
-  source.src=introBrandImg.currentSrc||introBrandImg.src;
+  // Decode the original logo only once; the hidden DOM image is used solely
+  // as WebGL pixel data and as a last-resort fallback if the GPU fails.
+  const source=introBrandImg;
 
   let started=false;
   let resizeTimer=0;
-  let fullQualityBuildRequested=false;
   let handoffCoreOnly=false;
 
   // Maximum-quality mode: never reduce particle geometry based on hardware.
@@ -3987,6 +3421,7 @@ function createParticleField(){
     "uniform float u_bloom;",
     "uniform float u_dpr;",
     "uniform float u_alpha;",
+    "uniform float u_assembly;",
     "uniform float u_pass;",
     "uniform float u_renderScale;",
     "uniform vec4 u_topLogoField;",
@@ -4282,6 +3717,14 @@ function createParticleField(){
     "    topLogoCore=1.0-smoother((coreD-.18)/.82);",
     "  }",
     "",
+    "  // The SAME WebGL points that form the permanent logo arrive from space.",
+    "  // No secondary image, painted overlay or handoff exists.",
+    "  float arrival=smoother((u_assembly-(a_seed.x*.52+a_seed.y*.12))/.36);",
+    "  if(u_assembly<1.0){",
+    "    float a=6.2831853*fract(a_seed.z*1.61803+a_seed.y*2.41421+a_seed.w*.75488);",
+    "    float r=mix(100.0,310.0,a_seed.w)*(1.0-arrival);",
+    "    pos+=vec2(cos(a),sin(a))*r;",
+    "  }",
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
     "  gl_Position=vec4(clip,0.0,1.0);",
     "",
@@ -4371,7 +3814,7 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.24,bioFlame);",
     "  bloomGain*=mix(1.0,.055,bioWeb);",
     "  bloomGain*=mix(1.0,.38,bioSpark);",
-    "  float passAlpha=u_alpha*bioBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
+    "  float passAlpha=u_alpha*arrival*bioBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
     "  passAlpha*=mix(1.0,.22,topLogoField*(1.0-isTop));",
     "  passAlpha*=mix(1.0,.08,topLogoCore*(1.0-isTop));",
 
@@ -4556,7 +3999,7 @@ function createParticleField(){
     console.error("Particle WebGL init failed",error);
     introBrandImg.style.opacity="1";
     grimoriumBootLoader?.mark("particleEngine");
-    grimoriumBootLoader?.forceComplete?.();
+    grimoriumBootLoader?.forceComplete?.({fallback:true});
     return;
   }
 
@@ -4586,6 +4029,7 @@ function createParticleField(){
     bloom:gl.getUniformLocation(particleProgram,"u_bloom"),
     dpr:gl.getUniformLocation(particleProgram,"u_dpr"),
     alpha:gl.getUniformLocation(particleProgram,"u_alpha"),
+    assembly:gl.getUniformLocation(particleProgram,"u_assembly"),
     pass:gl.getUniformLocation(particleProgram,"u_pass"),
     renderScale:gl.getUniformLocation(particleProgram,"u_renderScale"),
     topLogoField:gl.getUniformLocation(particleProgram,"u_topLogoField"),
@@ -4631,6 +4075,7 @@ function createParticleField(){
   ]),gl.STATIC_DRAW);
 
   const state={
+    assemblyProgress:0,
     source,
     bookReference:particleBookReference,
     albumReferences:{
@@ -4810,11 +4255,12 @@ function createParticleField(){
     const nativeW=ref.naturalWidth;
     const nativeH=ref.naturalHeight;
     const bootLight=
-      document.body.classList.contains("boot-loading")&&
-      !fullQualityBuildRequested;
-    const bootScale=bootLight
-      ?Math.min(1,900/Math.max(1,nativeW,nativeH))
-      :1;
+      document.body.classList.contains("boot-loading");
+    // The logo and book use their ORIGINAL native pixels from the first
+    // rendered particle frame, not a 900px approximation then a replacement.
+    const bootScale=(sceneId==="logo"||sceneId==="book")
+      ?1
+      :(bootLight?Math.min(1,900/Math.max(1,nativeW,nativeH)):1);
     const sampleW=Math.max(1,Math.round(nativeW*bootScale));
     const sampleH=Math.max(1,Math.round(nativeH*bootScale));
     const off=document.createElement("canvas");
@@ -4872,6 +4318,11 @@ function createParticleField(){
     for(let y=0;y<sampleH;y++){
       for(let x=0;x<sampleW;x++){
         const k=(y*sampleW+x)*4;
+        // Skip provably empty pixels before doing any circle, color or
+        // floating-point work. Full native resolution is still preserved.
+        if(data[k+3]===0||(
+          data[k]===0&&data[k+1]===0&&data[k+2]===0
+        ))continue;
         const a=data[k+3]/255;
         let r=data[k]/255*a;
         let g=data[k+1]/255*a;
@@ -5015,8 +4466,7 @@ function createParticleField(){
     const bootLight=
       handoffCoreOnly||
       (
-        document.body.classList.contains("boot-loading")&&
-        !fullQualityBuildRequested
+        document.body.classList.contains("boot-loading")
       );
     for(const [id,ref] of Object.entries(state.albumReferences)){
       // During boot, never parse optional album maps on the main thread.
@@ -5086,8 +4536,7 @@ function createParticleField(){
     const bootLight=
       handoffCoreOnly||
       (
-        document.body.classList.contains("boot-loading")&&
-        !fullQualityBuildRequested
+        document.body.classList.contains("boot-loading")
       );
     state.bioCandidates=!bootLight&&state.bioReference.naturalWidth
       ?prepareDiscSceneCandidates(state.bioReference,false,"bio")
@@ -6468,6 +5917,7 @@ function createParticleField(){
     gl.uniform1f(pLoc.bloom,bloom);
     gl.uniform1f(pLoc.dpr,state.dpr);
     gl.uniform1f(pLoc.alpha,alpha);
+    gl.uniform1f(pLoc.assembly,state.assemblyProgress);
     gl.uniform1f(pLoc.renderScale,renderScale);
     gl.uniform1f(pLoc.pass,pass);
     if(state.topLogoHit){
@@ -6554,6 +6004,13 @@ function createParticleField(){
 
     const dt=state.lastFrameAt?now-state.lastFrameAt:0;
     state.lastFrameAt=now;
+    if(state.ready&&state.assemblyProgress<1){
+      // Clamp per-frame advancement so a busy main thread cannot skip the
+      // on-screen build and show a completed logo in a single late frame.
+      state.assemblyProgress=Math.min(
+        1,state.assemblyProgress+Math.min(dt||16,42)/3400
+      );
+    }
     if(dt>0){
       state.shaderTime+=Math.min(dt,34);
     }
@@ -6717,6 +6174,7 @@ function createParticleField(){
       gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
     }
 
+    grimoriumBootLoader?.completeWhenAssembled?.(state.assemblyProgress);
     state.raf=requestAnimationFrame(render);
   }
 
@@ -6741,7 +6199,6 @@ function createParticleField(){
     }finally{
       handoffCoreOnly=false;
     }
-    fullHandoffStarted=true; // No redundant full-density rebuild.
     state.render=render;
     state.goHome=()=>{
       const now=performance.now();
@@ -7075,64 +6532,27 @@ function createParticleField(){
     next();
   }
 
-  let deferredReferenceTimer=0;
-  let deferredReferencesDirty=false;
-  let fullHandoffRequested=false;
-  let fullHandoffStarted=false;
-  let deferredSettledCount=0;
   const deferredSettled=new WeakSet();
-
+  let deferredSettledCount=0;
+  // Optional scenes become available without rebuilding or replacing the logo.
   const noteDeferredSettled=ref=>{
     if(deferredSettled.has(ref))return;
     deferredSettled.add(ref);
-    deferredSettledCount+=1;
-    deferredReferencesDirty=true;
+    deferredSettledCount++;
+    if(started&&grimoriumBootLoader?.complete&&
+       deferredSettledCount===deferredReferences.length){
+      prepareDeferredScenesAfterBoot();
+    }
   };
-
-  function runHiddenFullRebuild(){
-    if(fullHandoffStarted||state.destroyed)return;
-    fullHandoffStarted=true;
-    fullQualityBuildRequested=true;
-    handoffCoreOnly=true;
-    deferredReferencesDirty=false;
-    state.bioSceneReady=false;
-    state.bioMappedByAlbum={};
-    state.bioSceneMapped=null;
-
-    // Only GV + Book are rebuilt at full density for the handoff. Reuse the
-    // already-prepared candidate maps and skip all album/Bio geometry + matching.
-    rebuild();
-
-    handoffCoreOnly=false;
-    fullQualityBuildRequested=false;
-    grimoriumBootLoader?.markFullFieldReady?.();
-
-    // The particle count is now final for this load. Build optional album/Bio
-    // mappings only after this point so they cannot be overwritten by rebuild().
-    prepareDeferredScenesAfterBoot();
-  }
-
-  function maybeStartFullHandoff(){
-    if(!started||!fullHandoffRequested||fullHandoffStarted)return;
-    if(document.body.classList.contains("boot-loading"))return;
-    if(deferredSettledCount<deferredReferences.length)return;
-
-    if("requestIdleCallback" in window){
-      requestIdleCallback(runHiddenFullRebuild,{timeout:420});
-    }else{
-      window.setTimeout(runHiddenFullRebuild,32);
-    }
-  }
-
   function refreshDeferredReferences(ref){
-    if(!started){
-      boot();
-    }
+    if(!started)boot();
     noteDeferredSettled(ref);
   }
 
   source.addEventListener("load",boot,{once:true});
   particleBookReference.addEventListener("load",boot,{once:true});
+  source.addEventListener("error",()=>grimoriumBootLoader?.forceComplete?.({fallback:true}),{once:true});
+  particleBookReference.addEventListener("error",()=>grimoriumBootLoader?.forceComplete?.({fallback:true}),{once:true});
 
   const deferredReferences=[
     particleAlbumReference,
@@ -7163,24 +6583,23 @@ function createParticleField(){
     boot();
   }
 
-  grimoriumBootLoader?.onHandoffReady?.(()=>{
-    fullHandoffRequested=true;
-    grimoriumBootLoader?.markFullFieldReady?.();
-  });
-
   grimoriumBootLoader?.onComplete?.(()=>{
-    if(started)prepareDeferredScenesAfterBoot();
+    if(started&&deferredSettledCount===deferredReferences.length){
+      prepareDeferredScenesAfterBoot();
+    }
   });
 
   window.addEventListener("resize",()=>{
+    // Safari address bar expanding/collapsing is NOT a genuine layout resize.
+    // Never restart the same particle assembly for height-only toolbar changes.
+    if(window.innerWidth===state.width&&
+       Math.abs(window.innerHeight-state.height)<96)return;
     state.markSideFieldDirty(true);
     window.clearTimeout(resizeTimer);
     resizeTimer=window.setTimeout(()=>{
-      if(document.body.classList.contains("boot-loading")&&!fullQualityBuildRequested){
-        state.candidatesReady=false;
-      }
+      if(state.destroyed||!state.ready)return;
       rebuild();
-    },120);
+    },180);
   },{passive:true});
 
   function spawnSmokeNode(x,y,vx,vy,strength){
@@ -7356,7 +6775,7 @@ function createParticleField(){
     state.active=false;
     if(state.raf)cancelAnimationFrame(state.raf);
     introBrandImg.style.opacity="1";
-    grimoriumBootLoader?.forceComplete?.();
+    grimoriumBootLoader?.forceComplete?.({fallback:true});
   });
 
   particleCanvas.addEventListener("webglcontextrestored",()=>{
@@ -7368,12 +6787,12 @@ if(particleGL){
   try{createParticleField()}catch(error){
     console.error("Particle initialization failed",error);
     if(introBrandImg)introBrandImg.style.opacity="1";
-    grimoriumBootLoader?.forceComplete?.();
+    grimoriumBootLoader?.forceComplete?.({fallback:true});
   }
 }else{
   if(introBrandImg)introBrandImg.style.opacity="1";
   grimoriumBootLoader?.mark("particleEngine");
-  grimoriumBootLoader?.forceComplete?.();
+  grimoriumBootLoader?.forceComplete?.({fallback:true});
 }
 
 /* ---------- /WEBGL PARTICLE / BOOK FIELD ---------- */
