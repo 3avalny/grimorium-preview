@@ -224,6 +224,57 @@ test("mobile candles are real WebGL particles and are prepared before unseen alb
   assert.doesNotMatch(site,/background:url\("assets\/bio-background2\.webp/);
 });
 
+test("mobile has the same four scene snap destinations and the desktop easing",()=>{
+  assert.match(site,/function mobileSceneSnapTargets\(\)/);
+  assert.match(site,/key:"logo",y:0/);
+  assert.match(site,/key:"renaissance",y:clampY\(introRange\*\.54\)/);
+  assert.match(site,/key:"discography",y:clampY\(recordTop\)/);
+  assert.match(site,/key:"biography",y:clampY\(bioTop\)/);
+  assert.match(site,/function animateMobileSceneSnap\(key\)/);
+  assert.match(site,/html\.mobile-snapping\{scroll-behavior:auto!important\}/);
+  assert.match(site,/const eased=t\*t\*t\*\(t\*\(t\*6-15\)\+10\)/);
+  assert.match(site,/document\.documentElement\.classList\.add\("mobile-snapping"\)/);
+  assert.match(site,/window\.scrollTo\(0,start\+distance\*eased\)/);
+  assert.match(site,/mobileSnapAnimating&&mobileSnapTargetKey/);
+  assert.match(site,/mobileSnapTargetKey==="biography"/);
+});
+
+test("mobile snap leaves long tracklists, links, albums and natural reading usable",()=>{
+  assert.match(site,/document\.addEventListener\("touchstart"/);
+  assert.match(site,/document\.addEventListener\("touchmove"/);
+  assert.match(site,/document\.addEventListener\("touchend"/);
+  assert.match(site,/\{passive:false,capture:true\}/);
+  assert.match(site,/button,a,input,textarea,select,summary,\.track-col,\.album-tabs,\.platforms,\.album-credits,\.spotify-preload-pool/);
+  assert.match(site,/Math\.abs\(dy\)<Math\.abs\(dx\)\*1\.3/);
+  assert.match(site,/function mobileSnapForGesture\(direction,startY\)/);
+  assert.match(site,/if\(!mobileTouchCapturing\|\|!event\.changedTouches\.length\)return/);
+  assert.match(site,/mobileRecord\.addEventListener\("touchend"/);
+  assert.match(site,/cancelMobileSnap\(\)/);
+  assert.match(site,/window\.innerWidth<=720/);
+});
+
+test("mobile snap gesture routing respects content boundaries",()=>{
+  const start=site.indexOf("function mobileSnapForGesture(direction,startY){");
+  const end=site.indexOf("// The global handler watches only page-level vertical swipes.",start);
+  assert.ok(start>0&&end>start);
+  const getSnap=new Function("window","mobileSceneSnapTargets",site.slice(start,end)+";return mobileSnapForGesture;");
+  const route=getSnap({innerHeight:800},()=>[
+    {key:"logo",y:0},
+    {key:"renaissance",y:410},
+    {key:"discography",y:1560},
+    {key:"biography",y:4300}
+  ]);
+  assert.equal(route(1,0),"renaissance");
+  assert.equal(route(1,420),"discography");
+  assert.equal(route(-1,420),"logo");
+  assert.equal(route(-1,1590),"renaissance");
+  assert.equal(route(1,1600),null); // Native tracklist scroll
+  assert.equal(route(1,2500),null); // Long discography does not become one slide
+  assert.equal(route(1,3900),"biography");
+  assert.equal(route(-1,4320),"discography");
+  assert.equal(route(-1,5250),null); // Native biography reading
+});
+
 test("JavaScript-off page is standalone, linked, and contains every album",()=>{
   assert.match(site,/<noscript class="nojs-fallback">/);
   assert.match(site,/body\.boot-loading\{overflow:auto!important\}/);
