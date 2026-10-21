@@ -3738,21 +3738,21 @@ function createParticleField(){
     "  // at its permanent logo anchor. No radial cloud is ever displayed first.",
     "  if(u_assembly<1.0){",
     "    float a=6.2831853*fract(a_seed.z*1.6180339+a_seed.y*2.4142136+a_seed.w*.7548777);",
-    "    vec2 scatterDir=vec2(cos(a),sin(a));",
-    "    vec2 tangent=vec2(-scatterDir.y,scatterDir.x);",
-    "    float spiralSign=step(.5,a_seed.z)*2.0-1.0;",
+    "    vec2 assemblyDir=vec2(cos(a),sin(a));",
+    "    vec2 assemblyTangent=vec2(-assemblyDir.y,assemblyDir.x);",
+    "    float assemblySpiralSign=step(.5,a_seed.z)*2.0-1.0;",
     "    float settled=smoother(assemblyPhase);",
     "    float remaining=1.0-settled;",
-    "    float smokePulse=sin(PI*assemblyPhase)*remaining;",
-    "    vec2 localP=(pos/u_resolution-vec2(.5))*vec2(6.6,5.2);",
-    "    localP+=vec2(a_seed.x*3.8-a_seed.w*1.7,a_seed.y*4.4-a_seed.z*1.9);",
-    "    vec2 flowing=curlFlow(localP+scatterDir*assemblyPhase*3.0,u_time*.00075+a*.42+assemblyPhase*6.4);",
-    "    flowing/=max(.35,length(flowing));",
-    "    float spread=mix(115.0,min(430.0,u_resolution.x*.42),a_seed.w);",
-    "    vec2 smokeDisplacement=scatterDir*spread*remaining;",
-    "    smokeDisplacement+=flowing*mix(30.0,132.0,a_seed.y)*smokePulse;",
-    "    smokeDisplacement+=tangent*spiralSign*mix(22.0,116.0,a_seed.x)*smokePulse;",
-    "    smokeDisplacement.y-=mix(8.0,48.0,a_seed.z)*smokePulse;",
+    "    float assemblyPulse=sin(PI*assemblyPhase)*remaining;",
+    "    vec2 assemblyP=(pos/u_resolution-vec2(.5))*vec2(6.6,5.2);",
+    "    assemblyP+=vec2(a_seed.x*3.8-a_seed.w*1.7,a_seed.y*4.4-a_seed.z*1.9);",
+    "    vec2 assemblyFlow=curlFlow(assemblyP+assemblyDir*assemblyPhase*3.0,u_time*.00075+a*.42+assemblyPhase*6.4);",
+    "    assemblyFlow/=max(.35,length(assemblyFlow));",
+    "    float assemblySpread=mix(115.0,min(430.0,u_resolution.x*.42),a_seed.w);",
+    "    vec2 smokeDisplacement=assemblyDir*assemblySpread*remaining;",
+    "    smokeDisplacement+=assemblyFlow*mix(30.0,132.0,a_seed.y)*assemblyPulse;",
+    "    smokeDisplacement+=assemblyTangent*assemblySpiralSign*mix(22.0,116.0,a_seed.x)*assemblyPulse;",
+    "    smokeDisplacement.y-=mix(8.0,48.0,a_seed.z)*assemblyPulse;",
     "    pos+=smokeDisplacement;",
     "  }",
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
@@ -6173,10 +6173,14 @@ function createParticleField(){
       // GV is 100% particle reconstruction, on every viewport.
       introBrandImg.style.opacity="0";
 
-      gl.enable(gl.BLEND);
-      gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
-      setParticleUniforms(now,material,bloom,alpha,1,0);
-      gl.drawArrays(gl.POINTS,0,state.count);
+      // Pass 0 is completely transparent while the scene is pure GV logo.
+      // Skip this redundant 240k-point draw during smoke assembly.
+      if(material>.001){
+        gl.enable(gl.BLEND);
+        gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+        setParticleUniforms(now,material,bloom,alpha,1,0);
+        gl.drawArrays(gl.POINTS,0,state.count);
+      }
 
       if(material>.01&&softPassGain>.015){
         gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
