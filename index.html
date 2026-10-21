@@ -3014,9 +3014,9 @@ function createBootParticleLoader(){
     mark(){},
     markFullFieldReady(){ready=true},
     completeWhenAssembled(progress){
-      if(!complete&&ready&&progress>=1){
+      if(ready&&progress>=1){
         document.documentElement.classList.add("particle-assembly-complete");
-        finish();
+        if(!complete)finish();
       }
     },
     forceComplete(opts){finish(opts||{fallback:true})},
