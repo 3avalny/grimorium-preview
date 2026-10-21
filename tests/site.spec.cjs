@@ -115,3 +115,45 @@ test("real logo assembles in one permanent WebGL layer without bitmap handoff",a
   expect(opacity).toBe("0");
 });
 
+
+test("mobile discography exposes all songs, playable controls, and album switching",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await disableWebGL(page);
+  await page.route("https://open.spotify.com/embed/iframe-api/v1",route=>route.fulfill({
+    contentType:"application/javascript",
+    body:"window.onSpotifyIframeApiReady({createController(target,options,cb){const iframe=document.createElement('iframe');target.appendChild(iframe);let uri=options.uri;const events={};cb({addListener(name,fn){events[name]=fn;if(name==='ready')setTimeout(fn,0)},loadEntity(next){uri=next},play(){events.playback_started?.({data:{playingURI:uri}})},pause(){events.playback_update?.({data:{playingURI:uri,isPaused:true}})},resume(){events.playback_started?.({data:{playingURI:uri}})}})}});"
+  }));
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await expect(page.locator(".track-col").first()).toBeVisible();
+  const panel=page.locator('.disc-content-panel[data-album-id="reall"]');
+  await expect(panel.locator(".track-row")).toHaveCount(11);
+  await expect(panel.locator(".mobile-track-heading")).toBeVisible();
+  await panel.locator(".mobile-track-heading").click();
+  await expect(panel.locator(".mobile-track-toggle")).not.toHaveAttribute("open","");
+  await panel.locator(".mobile-track-heading").click();
+  await expect(panel.locator(".mobile-track-toggle")).toHaveAttribute("open","");
+  await panel.locator(".track-index-control").first().click();
+  await expect(panel.locator(".track-row").first()).toHaveClass(/is-playing/);
+  await expect(panel.locator(".track-index-control").first()).toHaveAttribute("aria-label","Pause");
+  await page.locator('.album-tab[data-id="retaliation"]').click();
+  const next=page.locator('.disc-content-panel[data-album-id="retaliation"]');
+  await expect(next).toHaveClass(/current/);
+  await expect(next.locator(".track-row")).toHaveCount(15);
+  await expect(next.locator(".track-col")).toBeVisible();
+  await expect(page.locator(".spotify-track-engine iframe")).toHaveCount(1);
+});
+
+test("mobile and desktop biography have matching full historical copy",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await disableWebGL(page);
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await expect(page.locator(".bio-mobile")).toBeVisible();
+  const paragraphs=await page.evaluate(()=>({
+    desktop:[...document.querySelectorAll(".bio-desktop p")].map(p=>p.textContent.trim()),
+    mobile:[...document.querySelectorAll(".bio-mobile p")].map(p=>p.textContent.trim())
+  }));
+  expect(paragraphs.desktop).toEqual(paragraphs.mobile);
+  expect(paragraphs.mobile).toHaveLength(3);
+  await expect(page.locator(".mobile-bio-figure")).toHaveCount(0);
+});
+
