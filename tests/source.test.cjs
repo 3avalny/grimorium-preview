@@ -32,11 +32,14 @@ test("the only visible logo is actual permanent WebGL particles",()=>{
 });
 
 test("loader unlocks only after actual assembly or a safe timeout",()=>{
-  assert.match(site,/completeWhenAssembled\(progress\)\{if\(ready&&progress>=1\)finish\(\)\}/);
+  assert.match(site,/completeWhenAssembled\(progress\)/);
+  assert.match(site,/ready&&progress>=1/);
+  assert.match(site,/classList\.add\("particle-assembly-complete"\)/);
   assert.match(site,/completeWhenAssembled\?\.\(state\.assemblyProgress\)/);
   assert.match(site,/window\.setTimeout\(\(\)=>finish\(\),12000\)/);
   assert.match(site,/document\.body\.classList\.remove\("boot-loading"\)/);
   assert.match(site,/source\.addEventListener\("error"/);
+  assert.match(site,/grimoriumBootLoader\?\.forceComplete\?\.\(\{fallback:true\}\)/);
 });
 
 test("native source and book are not replaced with a low resolution layer",()=>{
