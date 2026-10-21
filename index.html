@@ -3047,6 +3047,12 @@ let swipeTracking=false;
 if(mobileRecord){
   mobileRecord.addEventListener("touchstart",e=>{
     if(window.innerWidth>720 || e.touches.length!==1)return;
+    // Album swipe belongs to the artwork and thumbnails, not to song
+    // controls, links, native disclosure toggles or Spotify playback.
+    if(e.target.closest(".track-col,.album-credits,.platforms,summary,a,.track-index-control")) {
+      swipeTracking=false;
+      return;
+    }
     const t=e.touches[0];
     swipeStartX=t.clientX;
     swipeStartY=t.clientY;
@@ -4387,16 +4393,18 @@ function createParticleField(){
     const w=state.width;
     let base;
 
-    // Continuous quality ramp: no 13x geometry cliff between 1100 and 1101px.
-    // This is the visual-density reference even when runtime count is capped.
+    // The real mobile GPU field used only 1,800 points versus 240,000 on
+    // desktop. Preserve physical-pixel coverage with a continuous density
+    // ramp: native sources, same smoke shader, no alternate low-res logo.
+    // Keep 240k on wide desktops, while avoiding a geometry cliff at 720px.
     if(w<=720){
-      base=1800;
+      base=particleMix(36000,52000,particleClamp((w-320)/400));
     }else if(w<=900){
-      base=particleMix(1800,18000,particleClamp((w-720)/180));
+      base=particleMix(52000,58000,particleClamp((w-720)/180));
     }else if(w<=1100){
-      base=particleMix(18000,40000,particleClamp((w-900)/200));
+      base=particleMix(58000,64000,particleClamp((w-900)/200));
     }else if(w<=1440){
-      base=particleMix(40000,160000,particleClamp((w-1100)/340));
+      base=particleMix(64000,160000,particleClamp((w-1100)/340));
     }else if(w<=1920){
       base=particleMix(160000,240000,particleClamp((w-1440)/480));
     }else{
@@ -7011,6 +7019,7 @@ if(particleGL){
 // simply ignores zoom gestures instead of cancelling the browser behaviour.
 
 let sceneFrame=0;
+let mobileBiographyActive=null;
 let introRange=1;
 let introViewportHeight=window.innerHeight;
 let parallaxStart=0;
@@ -7105,7 +7114,20 @@ function renderScenes(){
     }
   }
 
-  // Biography visuals are WebGL particles only. Legacy bitmap light/rocks layers stay disabled.
+  // Mobile uses the same living WebGL candle/biography scene as desktop.
+  // Desktop snap events do not run on touch devices, so explicitly synchronize
+  // the scene with normal touch scrolling without restarting the animation.
+  if(isMobile&&parallaxBio){
+    const rect=parallaxBio.getBoundingClientRect();
+    const vh=Math.max(1,window.innerHeight);
+    const visible=rect.top<vh*.72 && rect.bottom>vh*.20;
+    if(mobileBiographyActive!==visible&&particleField?.setBiographyActive){
+      mobileBiographyActive=visible;
+      particleField.setBiographyActive(visible);
+    }
+  }else if(mobileBiographyActive!==null){
+    mobileBiographyActive=null;
+  }
 
 }
 
@@ -7144,6 +7166,9 @@ if(introBrandImg && !introBrandImg.complete){
 }
 measureScenes();
 renderScenes();
+// Re-check the current viewport after the full GPU scene has been created;
+// the initial render may happen before setBiographyActive exists.
+grimoriumBootLoader?.onComplete?.(requestScenes);
 
 let desktopSnapAnimating=false;
 let desktopSnapKey="logo";
