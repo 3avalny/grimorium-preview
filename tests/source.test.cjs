@@ -89,6 +89,23 @@ test("smoky paths re-use the interactive curl field without changing the final l
   }
 });
 
+test("regional assembly is uneven but finishes before 100%",()=>{
+  assert.match(site,/assemblyRegion=clamp/);
+  assert.match(site,/assemblyEarly=exp/);
+  assert.match(site,/assemblyLate=exp/);
+  assert.match(site,/assemblyTail=exp/);
+  assert.match(site,/assemblyWave=/);
+  assert.match(site,/assemblyEddyPhase=/);
+  const fastest=.028+.11*.5+.38*.10;
+  const slowest=.028+.11*.5+.38*.85;
+  assert.ok(slowest-fastest>.2);
+  assert.ok(.028+.11+.38+.19+.17+.09<1);
+});
+
+test("pause icon stays stationary when hovered",()=>{
+  assert.match(site,/\.track-row\.is-playing \.track-index-control:hover\{\s*transform:none/);
+});
+
 test("Spotify controller is one-per-page, prewarmed, and Safari-safe",()=>{
   assert.equal((site.match(/spotifyIframeAPI\.createController\(/g)||[]).length,1);
   assert.match(site,/grimoriumBootLoader\.onComplete\(warmSpotifyWhenIdle\)/);
