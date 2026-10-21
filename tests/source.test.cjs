@@ -144,6 +144,40 @@ test("site always uses the animated scene and does not branch on Reduce Motion",
   assert.match(site,/"uniform float u_assembly;"/);
 });
 
+test("mobile has an interactive tracklist for each album",()=>{
+  assert.match(site,/class="mobile-track-toggle" open/);
+  assert.match(site,/class="mobile-track-heading"/);
+  assert.match(site,/a\.tracks\.length\} tracks/);
+  assert.match(site,/\.track-col\{\s*display:block!important/);
+  assert.match(site,/\.track-row \.track-title\{\s*font-size:clamp/);
+  assert.match(site,/\.track-index-control\{[\s\S]*?transform:none!important/);
+  assert.match(site,/mobileRecord\.addEventListener\("touchstart"/);
+  assert.match(site,/e\.target\.closest\("\.track-col,\.album-credits,\.platforms,summary,a,\.track-index-control"\)/);
+});
+
+test("mobile logo retains dense native GPU rendering and asymmetric smoke",()=>{
+  assert.match(site,/base=particleMix\(36000,52000/);
+  assert.match(site,/base=particleMix\(52000,58000/);
+  assert.match(site,/base=particleMix\(58000,64000/);
+  assert.match(site,/base=240000/);
+  assert.match(site,/float assemblyRegion=clamp/);
+  assert.match(site,/vec2 assemblyFlow=curlFlow/);
+  assert.match(site,/const source=introBrandImg/);
+  assert.doesNotMatch(site,/prefers-reduced-motion/);
+});
+
+test("mobile gets exactly the desktop biography copy and the candle scene",()=>{
+  const desktop=site.slice(site.indexOf('<div class="bio-desktop">'),site.indexOf('<div class="bio-mobile">'));
+  const mobile=site.slice(site.indexOf('<div class="bio-mobile">'),site.indexOf('</section>',site.indexOf('<div class="bio-mobile">')));
+  const paras=block=>[...block.matchAll(/<p>([\s\S]*?)<\/p>/g)].map(match=>match[1]);
+  assert.equal(paras(desktop).length,3);
+  assert.deepEqual(paras(mobile),paras(desktop));
+  assert.match(site,/let mobileBiographyActive=null/);
+  assert.match(site,/particleField\.setBiographyActive\(visible\)/);
+  assert.match(site,/grimoriumBootLoader\?\.onComplete\?\.\(requestScenes\)/);
+  assert.match(site,/\.spotify-track-engine\.needs-interaction iframe\{/);
+});
+
 test("JavaScript-off page is standalone, linked, and contains every album",()=>{
   assert.match(site,/<noscript class="nojs-fallback">/);
   assert.match(site,/body\.boot-loading\{overflow:auto!important\}/);
