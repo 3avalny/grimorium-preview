@@ -3102,6 +3102,17 @@ if(mobileRecord){
     swipeTracking=true;
   },{passive:true});
 
+  mobileRecord.addEventListener("touchmove",e=>{
+    if(!swipeTracking||window.innerWidth>720||e.touches.length!==1)return;
+    const dx=e.touches[0].clientX-swipeStartX;
+    const dy=e.touches[0].clientY-swipeStartY;
+    // Horizontal artwork/title swipes belong to the album carousel;
+    // vertical movements remain the browser's normal document scroll.
+    if(Math.abs(dx)>24&&Math.abs(dx)>Math.abs(dy)*1.35&&e.cancelable){
+      e.preventDefault();
+    }
+  },{passive:false});
+
   mobileRecord.addEventListener("touchend",e=>{
     if(!swipeTracking || window.innerWidth>720 || !e.changedTouches.length)return;
     swipeTracking=false;
