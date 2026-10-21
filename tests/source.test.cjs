@@ -237,6 +237,8 @@ test("mobile has the same four scene snap destinations and the desktop easing",(
   assert.match(site,/window\.scrollTo\(0,start\+distance\*eased\)/);
   assert.match(site,/mobileSnapAnimating&&mobileSnapTargetKey/);
   assert.match(site,/mobileSnapTargetKey==="biography"/);
+  assert.match(site,/mobileSnapTargetKey==="discography"\|\|mobileSnapTargetKey==="biography"/);
+  assert.match(site,/const shouldShowBio=state\.width>720/);
 });
 
 test("mobile snap leaves long tracklists, links, albums and natural reading usable",()=>{
