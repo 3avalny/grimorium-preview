@@ -54,8 +54,8 @@ test("intro particles are truly invisible until independently born",()=>{
   // The original bug: the sharp reconstruction pass overwrote the alpha
   // applied only to the base pass, exposing a giant dusty halo on frame one.
   assert.match(site,/float assemblyOrder=fract\(a_seed\.x/);
-  assert.match(site,/float assemblyDelay=\.025\+\.53\*assemblyOrder/);
-  assert.match(site,/float assemblyDuration=\.27\+\.16\*a_seed\.w/);
+  assert.match(site,/float assemblyDelay=\.028\+\.11\*assemblyOrder\+\.38\*assemblyRegion/);
+  assert.match(site,/float assemblyDuration=\.19\+\.17\*a_seed\.w\+\.09\*assemblyRegion/);
   assert.match(site,/float assemblyOpacity=smoother\(\(assemblyPhase-\.31\)\/\.60\)/);
   assert.match(site,/if\(u_assembly<1\.0&&assemblyPhase<=\.31\)/);
   assert.match(site,/gl_Position=vec4\(2\.0,2\.0,0\.0,1\.0\)/);
@@ -67,25 +67,43 @@ test("intro particles are truly invisible until independently born",()=>{
 
 test("smoky paths re-use the interactive curl field without changing the final logo",()=>{
   assert.match(site,/vec2 assemblyFlow=curlFlow\(assemblyP/);
+  assert.match(site,/assemblyEddyPhase/);
   assert.match(site,/assemblySpiralSign/);
   assert.match(site,/smokeDisplacement\+=assemblyFlow/);
   assert.match(site,/pos\+=smokeDisplacement/);
   assert.match(site,/if\(u_assembly<1\.0\)\{/);
   assert.match(site,/if\(material>\.001\)\{\s*gl\.enable\(gl\.BLEND\)/);
   // Latest possible arrival finishes before progress reaches 1.
-  const maxDelay=.025+.53;
-  const maxDuration=.27+.16;
+  const maxDelay=.028+.11+.38;
+  const maxDuration=.19+.17+.09;
   assert.ok(maxDelay+maxDuration<1);
   // Each particle is transparent at progress zero regardless of its seed.
   for(let i=0;i<=100;i++){
     const order=i/100;
-    const delay=.025+.53*order;
-    const duration=.27+.16*(1-order);
+    const delay=.028+.11*order+.38*.5;
+    const duration=.19+.17*(1-order)+.09*.5;
     const start=Math.max(0,Math.min(1,(0-delay)/duration));
     const end=Math.max(0,Math.min(1,(1-delay)/duration));
     assert.equal(start,0);
     assert.equal(end,1);
   }
+});
+
+test("regional assembly is uneven but finishes before 100%",()=>{
+  assert.match(site,/assemblyRegion=clamp/);
+  assert.match(site,/assemblyEarly=exp/);
+  assert.match(site,/assemblyLate=exp/);
+  assert.match(site,/assemblyTail=exp/);
+  assert.match(site,/assemblyWave=/);
+  assert.match(site,/assemblyEddyPhase=/);
+  const fastest=.028+.11*.5+.38*.10;
+  const slowest=.028+.11*.5+.38*.85;
+  assert.ok(slowest-fastest>.2);
+  assert.ok(.028+.11+.38+.19+.17+.09<1);
+});
+
+test("pause icon stays stationary when hovered",()=>{
+  assert.match(site,/\.track-row\.is-playing \.track-index-control:hover\{\s*transform:none/);
 });
 
 test("Spotify controller is one-per-page, prewarmed, and Safari-safe",()=>{
