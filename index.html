@@ -7056,10 +7056,10 @@ function renderScenes(){
       : rawReveal;
     const revealIn=rawReveal*morphReveal;
 
-    // Keep the DOM scene ticking while the WebGL book is still assembling.
-    // This lets Renaissance appear late in the morph without requiring
-    // another wheel event to refresh the text opacity.
-    if(!isMobile&&rawReveal>.01&&morphReveal<.995){
+    // Keep the Renaissance copy synchronized with the actual WebGL morph
+    // on BOTH touch and desktop screens. Mobile scroll can stop while the
+    // smoky particles are still flying; this must not freeze the title.
+    if(rawReveal>.01&&morphReveal<.995&&particleField?.morphInitialized){
       requestScenes();
     }
     const bgReveal=smoothstep((raw-.46)/.24);
