@@ -3324,9 +3324,9 @@ function createParticleField(){
   if(!particleCanvas||!particleGL||!introBrandImg)return;
 
   const gl=particleGL;
-  const source=new Image();
-  source.decoding="async";
-  source.src=introBrandImg.currentSrc||introBrandImg.src;
+  // Decode the original logo only once; the hidden DOM image is used solely
+  // as WebGL pixel data and as a last-resort fallback if the GPU fails.
+  const source=introBrandImg;
 
   let started=false;
   let resizeTimer=0;
