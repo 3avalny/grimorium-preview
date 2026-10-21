@@ -950,24 +950,15 @@ nav{display:none!important}
 }
 
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
-/* Boot particle loader: a lightweight independent canvas starts before WebGL. */
+/* The GPU particle field is the only visible logo during a normal load. */
 body.boot-loading{overflow:hidden}
-.boot-particle-loader{
-  position:fixed;
-  z-index:100000;
-  inset:0;
-  width:100%;
-  height:100%;
-  background:#050607;
-  opacity:1;
-  pointer-events:auto;
-  transition:opacity 1.02s cubic-bezier(.22,.72,.18,1);
-  transform:translateZ(0);
-}
-.boot-particle-loader.is-complete{
-  opacity:0;
-  pointer-events:none
-}
+body.boot-loading .hero-copy,
+body.boot-loading .record,
+body.boot-loading .bio,
+body.boot-loading footer,
+body.boot-loading .site-parallax-bg{visibility:hidden;pointer-events:none}
+.brand img{opacity:0}
+html.particle-static-fallback .brand img{opacity:1!important}
 
 /* Particle sigil field — the hero logo and the background share the same particles. */
 .particle-field{
@@ -2040,7 +2031,6 @@ html.home-returning main{
   </main>
 </div>
 </noscript>
-<canvas id="boot-particle-loader" class="boot-particle-loader" aria-hidden="true"></canvas>
 <div class="site-parallax-bg" aria-hidden="true"></div>
 <canvas id="particle-field" class="particle-field" aria-hidden="true"></canvas>
 <button id="particle-logo-hit" class="particle-logo-hit" type="button" aria-label="Return to Grimorium Verum logo"></button>
@@ -2060,8 +2050,6 @@ html.home-returning main{
 <main id="top">
 <section class="hero">
   <div class="hero-inner">
-    <img class="hero-light" src="assets/light.webp?v=0680db37" alt="" aria-hidden="true">
-    <img class="hero-rocks" src="assets/rocks.webp?v=8f46a97b" alt="" aria-hidden="true">
     <div class="hero-copy">
       <h1>Renaissance</h1>
       <div class="hero-sub">
@@ -2997,10 +2985,6 @@ const introHeader=document.querySelector("header");
 const introBrand=document.querySelector(".brand");
 const introBrandImg=introBrand?.querySelector("img");
 const introCopy=document.querySelector(".hero-copy");
-const introLight=document.querySelector(".hero-light");
-const introRocks=document.querySelector(".hero-rocks");
-const siteLight=document.querySelector(".site-light-layer");
-const siteRocks=document.querySelector(".site-rocks-layer");
 const parallaxRecord=document.querySelector(".record");
 const parallaxBio=document.querySelector(".bio");
 const recordSideLabel=parallaxRecord?.querySelector(".record-side-label");
