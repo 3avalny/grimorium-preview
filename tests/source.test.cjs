@@ -196,6 +196,8 @@ test("mobile first-screen logo, book and Renaissance no longer sit behind raster
 
 test("mobile album swipe remains active outside playable song and link controls",()=>{
   assert.match(site,/mobileRecord\.addEventListener\("touchstart"/);
+  assert.match(site,/mobileRecord\.addEventListener\("touchmove"/);
+  assert.match(site,/\},\{passive:false\}\);/);
   assert.match(site,/mobileRecord\.addEventListener\("touchend"/);
   assert.match(site,/horizontal<46 \|\| horizontal<vertical\*1\.25/);
   assert.match(site,/selectAlbum\(ALBUMS\[nextIndex\]\.id\)/);
