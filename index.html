@@ -62,7 +62,7 @@ html::-webkit-scrollbar-thumb{
   border:2px solid #000
 }
 html::-webkit-scrollbar-thumb:hover{background:#1b1b1b}
-html.desktop-snapping{scroll-behavior:auto!important}
+html.desktop-snapping,html.mobile-snapping{scroll-behavior:auto!important}
 html.spotify-scroll-lock{overflow-y:hidden!important}
 body{
   touch-action:pan-x pan-y;
@@ -6354,7 +6354,9 @@ function createParticleField(){
           desktopSnapKey==="biography";
         const shouldShowDisc=state.width>720
           ? (desktopDiscTarget||(!desktopSnapAnimating&&scrollSuggestsDisc))
-          : scrollSuggestsDisc;
+          : (mobileSnapAnimating&&mobileSnapTargetKey
+            ? (mobileSnapTargetKey==="discography"||mobileSnapTargetKey==="biography")
+            : scrollSuggestsDisc);
         updateDiscMorph(now,shouldShowDisc);
 
         const bioEnterThreshold=bioTop-state.height*.78;
@@ -6364,7 +6366,9 @@ function createParticleField(){
           : scrollY>bioEnterThreshold;
         const shouldShowBio=state.width>720
           ? desktopSnapKey==="biography"
-          : scrollSuggestsBio;
+          : (mobileSnapAnimating&&mobileSnapTargetKey
+            ? mobileSnapTargetKey==="biography"
+            : scrollSuggestsBio);
         updateBioMorph(now,shouldShowBio);
       }
 
@@ -7082,6 +7086,19 @@ if(particleGL){
 
 let sceneFrame=0;
 let mobileBiographyActive=null;
+// Keep mobile gesture snapping separate from the desktop wheel state.
+// Album carousels, long track lists and the biography keep native scrolling.
+let mobileSnapKey="logo";
+let mobileSnapFrame=0;
+let mobileSnapAnimating=false;
+let mobileSnapTargetKey=null;
+let mobileTouchStartX=0;
+let mobileTouchStartY=0;
+let mobileTouchOriginScroll=0;
+let mobileTouchEligible=false;
+let mobileTouchCapturing=false;
+let mobileTouchDirection=0;
+let mobileTouchSwipeTarget=null;
 let introRange=1;
 let introViewportHeight=window.innerHeight;
 let parallaxStart=0;
@@ -7178,7 +7195,11 @@ function renderScenes(){
   if(isMobile&&parallaxBio){
     const rect=parallaxBio.getBoundingClientRect();
     const vh=Math.max(1,window.innerHeight);
-    const visible=rect.top<vh*.72 && rect.bottom>vh*.20;
+    // Keep candle particles targeting the destination throughout a snap.
+    // Geometry thresholds alone would briefly switch them off mid-flight.
+    const visible=mobileSnapAnimating&&mobileSnapTargetKey
+      ?mobileSnapTargetKey==="biography"
+      :(rect.top<vh*.72&&rect.bottom>vh*.20);
     if(mobileBiographyActive!==visible&&particleField?.setBiographyActive){
       mobileBiographyActive=visible;
       particleField.setBiographyActive(visible);
@@ -7202,7 +7223,11 @@ function refreshScenes(){
 window.addEventListener("scroll",()=>{
   particleField?.markSideFieldDirty?.();
   requestScenes();
-  if(!desktopSnapAnimating)syncDesktopSnapKey();
+  if(window.innerWidth<=720){
+    if(!mobileSnapAnimating)syncMobileSnapKey();
+  }else if(!desktopSnapAnimating){
+    syncDesktopSnapKey();
+  }
 },{passive:true});
 let lastSceneWidth=window.innerWidth;
 window.addEventListener("resize",()=>{
@@ -7215,8 +7240,12 @@ window.addEventListener("resize",()=>{
   refreshScenes();
 },{passive:true});
 window.addEventListener("orientationchange",()=>{
+  cancelMobileSnap();
   lastSceneWidth=window.innerWidth;
-  window.setTimeout(refreshScenes,80);
+  window.setTimeout(()=>{
+    refreshScenes();
+    syncMobileSnapKey();
+  },80);
 },{passive:true});
 window.addEventListener("load",refreshScenes,{once:true});
 if(introBrandImg && !introBrandImg.complete){
@@ -7227,6 +7256,180 @@ renderScenes();
 // Re-check the current viewport after the full GPU scene has been created;
 // the initial render may happen before setBiographyActive exists.
 grimoriumBootLoader?.onComplete?.(requestScenes);
+
+// Mobile scene snapping uses the same four named destinations as desktop.
+// Longer album and biography content is NOT a fixed-height slide: visitors
+// can still scroll it normally and swipe album artwork left/right.
+function mobileSceneSnapTargets(){
+  const vh=Math.max(1,window.innerHeight);
+  const maxScroll=Math.max(0,document.documentElement.scrollHeight-vh);
+  const clampY=y=>Math.max(0,Math.min(maxScroll,Math.round(y)));
+  const recordTop=parallaxRecord
+    ?parallaxRecord.getBoundingClientRect().top+window.scrollY
+    :introRange+vh;
+  const bioTop=parallaxBio
+    ?parallaxBio.getBoundingClientRect().top+window.scrollY
+    :recordTop+vh;
+  return [
+    {key:"logo",y:0},
+    {key:"renaissance",y:clampY(introRange*.54)},
+    {key:"discography",y:clampY(recordTop)},
+    {key:"biography",y:clampY(bioTop)}
+  ].filter((target,i,arr)=>i===0||target.y>arr[i-1].y+10);
+}
+
+function syncMobileSnapKey(){
+  if(window.innerWidth>720||mobileSnapAnimating)return;
+  const targets=mobileSceneSnapTargets();
+  if(!targets.length)return;
+  const y=window.scrollY;
+  const vh=Math.max(1,window.innerHeight);
+  const renaissance=targets.find(t=>t.key==="renaissance");
+  const record=targets.find(t=>t.key==="discography");
+  const bio=targets.find(t=>t.key==="biography");
+  // Keep the section label stable during natural reading in tall content.
+  if(bio&&y>=bio.y-vh*.26)mobileSnapKey="biography";
+  else if(record&&y>=record.y-vh*.32)mobileSnapKey="discography";
+  else if(renaissance&&y>=renaissance.y*.52)mobileSnapKey="renaissance";
+  else mobileSnapKey="logo";
+}
+
+function cancelMobileSnap(){
+  if(mobileSnapFrame){
+    cancelAnimationFrame(mobileSnapFrame);
+    mobileSnapFrame=0;
+  }
+  mobileSnapAnimating=false;
+  mobileSnapTargetKey=null;
+  document.documentElement.classList.remove("mobile-snapping");
+}
+
+function animateMobileSceneSnap(key){
+  const dest=mobileSceneSnapTargets().find(t=>t.key===key);
+  if(!dest)return;
+  cancelMobileSnap();
+  const start=window.scrollY;
+  const distance=dest.y-start;
+  mobileSnapKey=key;
+  mobileSnapTargetKey=key;
+  if(key==="biography")particleField?.setBiographyActive?.(true);
+  else particleField?.setBiographyActive?.(false);
+  if(Math.abs(distance)<2){
+    window.scrollTo(0,dest.y);
+    requestScenes();
+    return;
+  }
+
+  mobileSnapAnimating=true;
+  document.documentElement.classList.add("mobile-snapping");
+  // Match the desktop easing curve, but allow a shorter phone travel.
+  const duration=Math.min(950,Math.max(560,Math.abs(distance)*.62));
+  const started=performance.now();
+  const tick=now=>{
+    if(!mobileSnapAnimating)return;
+    const t=clamp01((now-started)/duration);
+    const eased=t*t*t*(t*(t*6-15)+10);
+    window.scrollTo(0,start+distance*eased);
+    requestScenes();
+    if(t<1){
+      mobileSnapFrame=requestAnimationFrame(tick);
+    }else{
+      mobileSnapFrame=0;
+      window.scrollTo(0,dest.y);
+      mobileSnapAnimating=false;
+      mobileSnapTargetKey=null;
+      document.documentElement.classList.remove("mobile-snapping");
+      requestScenes();
+    }
+  };
+  mobileSnapFrame=requestAnimationFrame(tick);
+}
+
+function mobileSnapForGesture(direction,startY){
+  const targets=mobileSceneSnapTargets();
+  const vh=Math.max(1,window.innerHeight);
+  const rec=targets.find(t=>t.key==="discography");
+  const bio=targets.find(t=>t.key==="biography");
+  if(!rec)return null;
+  const inHero=startY<rec.y-vh*.32;
+  if(inHero){
+    const renaissance=targets.find(t=>t.key==="renaissance");
+    if(!renaissance)return null;
+    const onLogo=startY<renaissance.y*.52;
+    if(direction>0)return onLogo?"renaissance":"discography";
+    return onLogo?null:"logo";
+  }
+
+  // Keep full-height tracklists and credits independently scrollable.
+  if(startY<=rec.y+vh*.35&&direction<0)return "renaissance";
+  if(bio&&startY>=bio.y-vh*.72&&
+     startY<bio.y+vh*.15&&direction>0)return "biography";
+  // Swipe upward only at the *top* of the biography; never steal text scroll.
+  if(bio&&startY>=bio.y-vh*.20&&
+     startY<bio.y+vh*.38&&direction<0)return "discography";
+  return null;
+}
+
+// The global handler watches only page-level vertical swipes. Horizontal
+// gestures remain owned by the existing album cover carousel.
+document.addEventListener("touchstart",event=>{
+  if(window.innerWidth>720||event.touches.length!==1||
+     document.body.classList.contains("boot-loading")||
+     mobileSnapAnimating){
+    mobileTouchEligible=false;
+    return;
+  }
+  const target=event.target;
+  if(target instanceof Element && target.closest(
+    "button,a,input,textarea,select,summary,.track-col,.album-tabs,.platforms,.album-credits,.spotify-preload-pool"
+  )){
+    mobileTouchEligible=false;
+    return;
+  }
+  mobileTouchStartX=event.touches[0].clientX;
+  mobileTouchStartY=event.touches[0].clientY;
+  mobileTouchOriginScroll=window.scrollY;
+  mobileTouchEligible=true;
+  mobileTouchCapturing=false;
+  mobileTouchDirection=0;
+  mobileTouchSwipeTarget=null;
+},{passive:true,capture:true});
+
+document.addEventListener("touchmove",event=>{
+  if(!mobileTouchEligible||event.touches.length!==1||
+     window.innerWidth>720)return;
+  const dx=event.touches[0].clientX-mobileTouchStartX;
+  const dy=event.touches[0].clientY-mobileTouchStartY;
+  if(mobileTouchCapturing){
+    if(event.cancelable)event.preventDefault();
+    return;
+  }
+  if(Math.abs(dy)<12||Math.abs(dy)<Math.abs(dx)*1.3)return;
+  const direction=dy<0?1:-1;
+  const target=mobileSnapForGesture(direction,mobileTouchOriginScroll);
+  if(!target)return;
+  mobileTouchCapturing=true;
+  mobileTouchDirection=direction;
+  mobileTouchSwipeTarget=target;
+  if(event.cancelable)event.preventDefault();
+},{passive:false,capture:true});
+
+document.addEventListener("touchend",event=>{
+  if(!mobileTouchEligible)return;
+  mobileTouchEligible=false;
+  if(!mobileTouchCapturing||!event.changedTouches.length)return;
+  const dx=event.changedTouches[0].clientX-mobileTouchStartX;
+  const dy=event.changedTouches[0].clientY-mobileTouchStartY;
+  mobileTouchCapturing=false;
+  if(Math.abs(dy)<44||Math.abs(dy)<Math.abs(dx)*1.25)return;
+  const target=mobileTouchSwipeTarget;
+  if(target)animateMobileSceneSnap(target);
+},{passive:true,capture:true});
+document.addEventListener("touchcancel",()=>{
+  mobileTouchEligible=false;
+  mobileTouchCapturing=false;
+  mobileTouchSwipeTarget=null;
+},{passive:true,capture:true});
 
 let desktopSnapAnimating=false;
 let desktopSnapKey="logo";
@@ -7302,6 +7505,8 @@ function syncDesktopSnapKey(options={}){
 }
 
 function jumpHomeImmediately(){
+  cancelMobileSnap();
+  mobileSnapKey="logo";
   if(desktopSnapFrame){
     cancelAnimationFrame(desktopSnapFrame);
     desktopSnapFrame=0;
@@ -7550,7 +7755,8 @@ function resetDesktopIntroSnap(){
 
 window.addEventListener("load",()=>{
   window.setTimeout(()=>{
-    syncDesktopSnapKey({force:true,biographyImmediate:true});
+    if(window.innerWidth<=720)syncMobileSnapKey();
+    else syncDesktopSnapKey({force:true,biographyImmediate:true});
   },60);
 },{once:true});
 
