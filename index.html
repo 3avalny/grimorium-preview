@@ -746,10 +746,10 @@ nav{display:none!important}
   header{padding-inline:18px;height:72px;grid-template-columns:1fr auto 1fr}
   .brand{left:50%;top:50%}
   .brand img{width:min(76vw,390px);max-width:none;max-height:none}
-  .hero{height:195svh;min-height:0;background:transparent}
+  .hero{height:195svh;min-height:0;background:transparent;touch-action:none}
   .hero-inner{
     position:sticky;top:0;inset:auto;
-    height:100svh;padding:0 18px;
+    height:100svh;padding:0 18px;touch-action:none;
     transform:translateZ(0);
     backface-visibility:hidden
   }
@@ -7099,6 +7099,9 @@ let mobileTouchEligible=false;
 let mobileTouchCapturing=false;
 let mobileTouchDirection=0;
 let mobileTouchSwipeTarget=null;
+let mobileTouchLastDx=0;
+let mobileTouchLastDy=0;
+let mobileIntroSettleTimer=0;
 let introRange=1;
 let introViewportHeight=window.innerHeight;
 let parallaxStart=0;
@@ -7224,7 +7227,10 @@ window.addEventListener("scroll",()=>{
   particleField?.markSideFieldDirty?.();
   requestScenes();
   if(window.innerWidth<=720){
-    if(!mobileSnapAnimating)syncMobileSnapKey();
+    if(!mobileSnapAnimating){
+      syncMobileSnapKey();
+      scheduleMobileIntroSettle();
+    }
   }else if(!desktopSnapAnimating){
     syncDesktopSnapKey();
   }
@@ -7294,7 +7300,32 @@ function syncMobileSnapKey(){
   else mobileSnapKey="logo";
 }
 
+function scheduleMobileIntroSettle(){
+  window.clearTimeout(mobileIntroSettleTimer);
+  if(window.innerWidth>720||mobileSnapAnimating||
+     document.body.classList.contains("boot-loading"))return;
+  const destinations=mobileSceneSnapTargets();
+  const record=destinations.find(t=>t.key==="discography");
+  if(!record||window.scrollY<8||window.scrollY>record.y+20)return;
+  // If WebKit consumed the Touch Events as native scroll, snap after
+  // momentum settles. This only operates in the introductory journey;
+  // full-length album lists and biography retain normal scrolling.
+  mobileIntroSettleTimer=window.setTimeout(()=>{
+    mobileIntroSettleTimer=0;
+    if(mobileSnapAnimating||mobileTouchEligible||window.innerWidth>720)return;
+    const targets=mobileSceneSnapTargets()
+      .filter(t=>t.key==="logo"||t.key==="renaissance"||t.key==="discography");
+    const current=window.scrollY;
+    const best=targets.reduce((picked,item)=>
+      !picked||Math.abs(item.y-current)<Math.abs(picked.y-current)
+        ?item:picked,null);
+    if(best&&Math.abs(current-best.y)>12)animateMobileSceneSnap(best.key);
+  },190);
+}
+
 function cancelMobileSnap(){
+  window.clearTimeout(mobileIntroSettleTimer);
+  mobileIntroSettleTimer=0;
   if(mobileSnapFrame){
     cancelAnimationFrame(mobileSnapFrame);
     mobileSnapFrame=0;
@@ -7351,13 +7382,17 @@ function mobileSnapForGesture(direction,startY){
   const rec=targets.find(t=>t.key==="discography");
   const bio=targets.find(t=>t.key==="biography");
   if(!rec)return null;
-  const inHero=startY<rec.y-vh*.32;
+  // Hero is entirely touch-action:none: every vertical gesture must
+  // resolve to a scene, including the final space above Discography.
+  const inHero=startY<rec.y-10;
   if(inHero){
     const renaissance=targets.find(t=>t.key==="renaissance");
     if(!renaissance)return null;
-    const onLogo=startY<renaissance.y*.52;
-    if(direction>0)return onLogo?"renaissance":"discography";
-    return onLogo?null:"logo";
+    if(direction>0){
+      return startY<renaissance.y*.52?"renaissance":"discography";
+    }
+    if(startY>renaissance.y+vh*.26)return "renaissance";
+    return startY>20?"logo":null;
   }
 
   // Keep full-height tracklists and credits independently scrollable.
@@ -7393,6 +7428,8 @@ document.addEventListener("touchstart",event=>{
   mobileTouchCapturing=false;
   mobileTouchDirection=0;
   mobileTouchSwipeTarget=null;
+  mobileTouchLastDx=0;
+  mobileTouchLastDy=0;
 },{passive:true,capture:true});
 
 document.addEventListener("touchmove",event=>{
@@ -7400,6 +7437,8 @@ document.addEventListener("touchmove",event=>{
      window.innerWidth>720)return;
   const dx=event.touches[0].clientX-mobileTouchStartX;
   const dy=event.touches[0].clientY-mobileTouchStartY;
+  mobileTouchLastDx=dx;
+  mobileTouchLastDy=dy;
   if(mobileTouchCapturing){
     if(event.cancelable)event.preventDefault();
     return;
@@ -7411,24 +7450,40 @@ document.addEventListener("touchmove",event=>{
   mobileTouchCapturing=true;
   mobileTouchDirection=direction;
   mobileTouchSwipeTarget=target;
-  if(event.cancelable)event.preventDefault();
+  // The hero never enters native momentum scrolling. In the long record
+  // and biography sections, allow normal page scrolling until touchend.
+  if(mobileTouchOriginScroll<mobileSceneSnapTargets().find(t=>t.key==="discography").y-10
+     &&event.cancelable)event.preventDefault();
 },{passive:false,capture:true});
 
 document.addEventListener("touchend",event=>{
   if(!mobileTouchEligible)return;
   mobileTouchEligible=false;
-  if(!mobileTouchCapturing||!event.changedTouches.length)return;
+  if(!event.changedTouches.length)return;
   const dx=event.changedTouches[0].clientX-mobileTouchStartX;
   const dy=event.changedTouches[0].clientY-mobileTouchStartY;
   mobileTouchCapturing=false;
   if(Math.abs(dy)<44||Math.abs(dy)<Math.abs(dx)*1.25)return;
-  const target=mobileTouchSwipeTarget;
+  const direction=dy<0?1:-1;
+  // Safari may deliver touchend without a cancellable touchmove.
+  // Long-content navigation is chosen only at the intended boundaries.
+  const target=mobileTouchSwipeTarget||
+    mobileSnapForGesture(direction,mobileTouchOriginScroll);
   if(target)animateMobileSceneSnap(target);
 },{passive:true,capture:true});
 document.addEventListener("touchcancel",()=>{
+  // WebKit can send touchcancel after taking over a vertical gesture.
+  // If a deliberate intro swipe was already identified, complete the
+  // scene transition rather than silently dropping it.
+  const target=mobileTouchEligible&&mobileTouchCapturing&&
+    Math.abs(mobileTouchLastDy)>=44&&
+    Math.abs(mobileTouchLastDy)>Math.abs(mobileTouchLastDx)*1.25
+      ?mobileTouchSwipeTarget
+      :null;
   mobileTouchEligible=false;
   mobileTouchCapturing=false;
   mobileTouchSwipeTarget=null;
+  if(target)animateMobileSceneSnap(target);
 },{passive:true,capture:true});
 
 let desktopSnapAnimating=false;

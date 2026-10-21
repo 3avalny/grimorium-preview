@@ -287,3 +287,44 @@ test("mobile page gestures ignore track controls and preserve horizontal album s
   await expect(page.locator('.album-tab[data-id="revenant"]')).toHaveClass(/active/);
   await expect(page.locator("html")).not.toHaveClass(/mobile-snapping/);
 });
+
+test("mobile Safari touchcancel still completes the captured logo-to-Renaissance snap",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await disableWebGL(page);
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await expect(page.locator("body")).not.toHaveClass(/boot-loading/);
+  await page.evaluate(()=>{
+    const hero=document.querySelector(".hero-inner");
+    const emit=(type,x,y)=>{
+      const event=new Event(type,{bubbles:true,cancelable:true});
+      Object.defineProperty(event,"touches",{value:type==="touchcancel"?[]:[{clientX:x,clientY:y}]});
+      Object.defineProperty(event,"changedTouches",{value:[{clientX:x,clientY:y}]});
+      hero.dispatchEvent(event);
+    };
+    emit("touchstart",180,680);
+    emit("touchmove",180,480);
+    emit("touchcancel",180,480);
+  });
+  await expect.poll(()=>page.evaluate(()=>Math.abs(window.scrollY-Math.round(introRange*.54)))).toBeLessThan(3);
+  await expect(page.locator("html")).not.toHaveClass(/mobile-snapping/);
+});
+
+test("mobile intro swipe also works when Safari sends touchend without touchmove",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await disableWebGL(page);
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  await expect(page.locator("body")).not.toHaveClass(/boot-loading/);
+  await page.evaluate(()=>{
+    const hero=document.querySelector(".hero-inner");
+    const emit=(type,y)=>{
+      const event=new Event(type,{bubbles:true,cancelable:true});
+      Object.defineProperty(event,"touches",{value:type==="touchend"?[]:[{clientX:180,clientY:y}]});
+      Object.defineProperty(event,"changedTouches",{value:[{clientX:180,clientY:y}]});
+      hero.dispatchEvent(event);
+    };
+    emit("touchstart",680);
+    emit("touchend",430);
+  });
+  await expect.poll(()=>page.evaluate(()=>Math.abs(window.scrollY-Math.round(introRange*.54)))).toBeLessThan(3);
+  await expect(page.locator("html")).not.toHaveClass(/mobile-snapping/);
+});
