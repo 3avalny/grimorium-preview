@@ -7101,6 +7101,7 @@ let mobileTouchDirection=0;
 let mobileTouchSwipeTarget=null;
 let mobileTouchLastDx=0;
 let mobileTouchLastDy=0;
+let mobileIntroSettleTimer=0;
 let introRange=1;
 let introViewportHeight=window.innerHeight;
 let parallaxStart=0;
@@ -7226,7 +7227,10 @@ window.addEventListener("scroll",()=>{
   particleField?.markSideFieldDirty?.();
   requestScenes();
   if(window.innerWidth<=720){
-    if(!mobileSnapAnimating)syncMobileSnapKey();
+    if(!mobileSnapAnimating){
+      syncMobileSnapKey();
+      scheduleMobileIntroSettle();
+    }
   }else if(!desktopSnapAnimating){
     syncDesktopSnapKey();
   }
@@ -7296,7 +7300,32 @@ function syncMobileSnapKey(){
   else mobileSnapKey="logo";
 }
 
+function scheduleMobileIntroSettle(){
+  window.clearTimeout(mobileIntroSettleTimer);
+  if(window.innerWidth>720||mobileSnapAnimating||
+     document.body.classList.contains("boot-loading"))return;
+  const destinations=mobileSceneSnapTargets();
+  const record=destinations.find(t=>t.key==="discography");
+  if(!record||window.scrollY<8||window.scrollY>record.y+20)return;
+  // If WebKit consumed the Touch Events as native scroll, snap after
+  // momentum settles. This only operates in the introductory journey;
+  // full-length album lists and biography retain normal scrolling.
+  mobileIntroSettleTimer=window.setTimeout(()=>{
+    mobileIntroSettleTimer=0;
+    if(mobileSnapAnimating||mobileTouchEligible||window.innerWidth>720)return;
+    const targets=mobileSceneSnapTargets()
+      .filter(t=>t.key==="logo"||t.key==="renaissance"||t.key==="discography");
+    const current=window.scrollY;
+    const best=targets.reduce((picked,item)=>
+      !picked||Math.abs(item.y-current)<Math.abs(picked.y-current)
+        ?item:picked,null);
+    if(best&&Math.abs(current-best.y)>12)animateMobileSceneSnap(best.key);
+  },190);
+}
+
 function cancelMobileSnap(){
+  window.clearTimeout(mobileIntroSettleTimer);
+  mobileIntroSettleTimer=0;
   if(mobileSnapFrame){
     cancelAnimationFrame(mobileSnapFrame);
     mobileSnapFrame=0;
