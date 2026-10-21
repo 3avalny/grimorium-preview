@@ -1988,6 +1988,23 @@ html.home-returning main{
     overflow-wrap:break-word
   }
   .track-pause-icon{width:10px;height:12px}
+  .track-row.is-pending .track-index-control{
+    position:relative;
+  }
+  .track-row.is-pending .track-number{opacity:0}
+  .track-row.is-pending .track-index-control::after{
+    content:"";
+    position:absolute;
+    width:13px;height:13px;
+    border:1.5px solid rgba(221,220,213,.25);
+    border-top-color:#dddcd5;
+    border-radius:50%;
+    animation:spotify-mobile-buffer 1s linear infinite;
+    pointer-events:none
+  }
+  @keyframes spotify-mobile-buffer{
+    to{transform:rotate(360deg)}
+  }
   .disc-content-panel.incoming.go .stage-track{transition-delay:125ms}
   .platforms{
     order:4!important;
@@ -2552,6 +2569,14 @@ let spotifyIsPaused=true;
 let spotifyPlaybackConfirmed=false;
 let spotifyVisualKey="";
 let spotifyPauseRecheckTimer=0;
+let spotifyMobilePending=false;
+
+function clearMobileSpotifyPending(){
+  spotifyMobilePending=false;
+  discContentWindow.querySelectorAll(".track-row.is-pending").forEach(row=>row.classList.remove("is-pending"));
+  spotifyVisualKey="";
+}
+
 
 function clearSpotifyPauseRecheck(){
   if(spotifyPauseRecheckTimer)window.clearTimeout(spotifyPauseRecheckTimer);
@@ -2610,7 +2635,7 @@ function showSpotifyFallback(){
   if(spotifyPlaybackConfirmed&&spotifyControllerReady)return;
   const shell=ensureSpotifyShell();
   if(!shell)return;
-  const uri=spotifyCurrent?.uri||spotifyRequested?.uri||activeTrackState?.uri;
+  const uri=spotifyRequested?.uri||activeTrackState?.uri||spotifyCurrent?.uri;
   if(spotifyFallbackLink)spotifyFallbackLink.href=spotifyTrackLink(uri);
   shell.classList.add("needs-interaction");
   shell.setAttribute("aria-hidden","false");
@@ -2780,8 +2805,12 @@ function ensureSpotifyController(){
         trackIndex:spotifyCurrent.trackIndex,
         uri:spotifyCurrent.uri
       };
-      setSpotifyButtonState(false);
-      hideSpotifyFallback();
+      // On mobile Safari playback_started is not proof that the user can
+      // hear audio. Keep the native player available until real progress.
+      if(!spotifyMobilePending){
+        setSpotifyButtonState(false);
+        hideSpotifyFallback();
+      }
     });
     controller.addListener("playback_update",event=>{
       const data=event?.data||{};
@@ -2819,7 +2848,8 @@ function ensureSpotifyController(){
       clearSpotifyPauseRecheck();
       // A confirmed unpaused progress tick ends the buffering phase.
       if(spotifyCurrent.position>40)spotifyPlaybackConfirmed=true;
-      setSpotifyButtonState(false);
+      if(spotifyPlaybackConfirmed&&spotifyMobilePending)clearMobileSpotifyPending();
+      if(!spotifyMobilePending)setSpotifyButtonState(false);
       if(spotifyPlaybackConfirmed){
         hideSpotifyFallback();
         scheduleSpotifyAutoNext();
@@ -2832,6 +2862,7 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
   const album=ALBUMS.find(item=>item.id===albumId);
   const uri=album?.spotifyTracks?.[trackIndex];
   if(!uri)return;
+  clearMobileSpotifyPending();
   activeTrackState={albumId,trackIndex,uri};
   markTrackSelection(albumId,trackIndex);
   if(!autoplay)return;
@@ -2841,16 +2872,28 @@ function playTrack(albumId,trackIndex,{autoplay=true}={}){
   clearSpotifyPauseRecheck();
   clearSpotifyAdvanceTimer();
   hideSpotifyFallback();
-  // Show Pause from the user's click through Spotify's buffering phase.
-  setSpotifyButtonState(false);
+  spotifyMobilePending=window.innerWidth<=720;
+  if(spotifyMobilePending){
+    // No fake Pause before the SDK confirms actual audio progress.
+    discPanelFor(albumId)?.querySelector(`.track-row[data-track-index="${trackIndex}"]`)?.classList.add("is-pending");
+    setSpotifyButtonState(true);
+  }else{
+    setSpotifyButtonState(false);
+  }
   spotifyAnnounce("Loading Spotify playback");
   scheduleSpotifyFallback();
   ensureSpotifyController();
+  if(spotifyMobilePending){
+    // iOS cannot guarantee autoplay from an asynchronously created iframe.
+    // Reveal Spotify's native controls on the FIRST tap, not the second.
+    showSpotifyFallback();
+  }
 }
 
 function pauseSpotify(){
   spotifyRequested=null;
   spotifyPlaySequence++;
+  clearMobileSpotifyPending();
   spotifyPlaybackConfirmed=false;
   clearSpotifyPauseRecheck();
   clearSpotifyAdvanceTimer();
@@ -2875,12 +2918,18 @@ function bindPlayerControls(panel){
     if(!Number.isFinite(index))return;
 
     track?.addEventListener("click",()=>{
-      playTrack(panel.dataset.albumId,index,{autoplay:true});
+      if(row.classList.contains("is-pending")){
+        showSpotifyFallback();
+      }else{
+        playTrack(panel.dataset.albumId,index,{autoplay:true});
+      }
     });
 
     indexControl?.addEventListener("click",event=>{
       event.stopPropagation();
-      if(row.classList.contains("is-playing")){
+      if(row.classList.contains("is-pending")){
+        showSpotifyFallback();
+      }else if(row.classList.contains("is-playing")){
         pauseSpotify();
       }else{
         playTrack(panel.dataset.albumId,index,{autoplay:true});
