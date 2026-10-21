@@ -122,7 +122,9 @@ test("Spotify controller is one-per-page, prewarmed, and Safari-safe",()=>{
 
 test("Spotify buffering never flashes track index between play events",()=>{
   assert.match(site,/spotifyPlaybackConfirmed=false/);
-  assert.match(site,/setSpotifyButtonState\(false\);\s*spotifyAnnounce\("Loading Spotify playback"\)/);
+  assert.match(site,/spotifyMobilePending=window\.innerWidth<=720&&!autoAdvance/);
+  assert.match(site,/if\(spotifyMobilePending\)\{[\s\S]*?setSpotifyButtonState\(true\)/);
+  assert.match(site,/if\(spotifyPlaybackConfirmed&&spotifyMobilePending\)clearMobileSpotifyPending\(\)/);
   assert.match(site,/else if\(spotifyPlaybackConfirmed\)\{/);
   assert.match(site,/spotifyPauseRecheckTimer=window\.setTimeout/);
   assert.match(site,/clearSpotifyPauseRecheck\(\)/);
