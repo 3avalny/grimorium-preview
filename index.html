@@ -7462,21 +7462,14 @@ document.addEventListener("touchend",event=>{
   if(!event.changedTouches.length)return;
   const dx=event.changedTouches[0].clientX-mobileTouchStartX;
   const dy=event.changedTouches[0].clientY-mobileTouchStartY;
-  const wasCaptured=mobileTouchCapturing;
   mobileTouchCapturing=false;
   if(Math.abs(dy)<44||Math.abs(dy)<Math.abs(dx)*1.25)return;
   const direction=dy<0?1:-1;
   // Safari may deliver touchend without a cancellable touchmove.
+  // Long-content navigation is chosen only at the intended boundaries.
   const target=mobileTouchSwipeTarget||
     mobileSnapForGesture(direction,mobileTouchOriginScroll);
-  if(target&&(wasCaptured||
-     mobileTouchOriginScroll<mobileSceneSnapTargets().find(t=>t.key==="discography").y-10)){
-    animateMobileSceneSnap(target);
-  }else if(target){
-    // Content-boundary swipes must remain usable even when Safari treated
-    // their touchmove as native pan-y. The page is not trapped inside a slide.
-    animateMobileSceneSnap(target);
-  }
+  if(target)animateMobileSceneSnap(target);
 },{passive:true,capture:true});
 document.addEventListener("touchcancel",()=>{
   // WebKit can send touchcancel after taking over a vertical gesture.
