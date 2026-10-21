@@ -6354,7 +6354,9 @@ function createParticleField(){
           desktopSnapKey==="biography";
         const shouldShowDisc=state.width>720
           ? (desktopDiscTarget||(!desktopSnapAnimating&&scrollSuggestsDisc))
-          : scrollSuggestsDisc;
+          : (mobileSnapAnimating&&mobileSnapTargetKey
+            ? (mobileSnapTargetKey==="discography"||mobileSnapTargetKey==="biography")
+            : scrollSuggestsDisc);
         updateDiscMorph(now,shouldShowDisc);
 
         const bioEnterThreshold=bioTop-state.height*.78;
@@ -6364,7 +6366,9 @@ function createParticleField(){
           : scrollY>bioEnterThreshold;
         const shouldShowBio=state.width>720
           ? desktopSnapKey==="biography"
-          : scrollSuggestsBio;
+          : (mobileSnapAnimating&&mobileSnapTargetKey
+            ? mobileSnapTargetKey==="biography"
+            : scrollSuggestsBio);
         updateBioMorph(now,shouldShowBio);
       }
 
