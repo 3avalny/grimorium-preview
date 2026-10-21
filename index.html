@@ -3477,6 +3477,7 @@ function createParticleField(){
     "uniform float u_bloom;",
     "uniform float u_dpr;",
     "uniform float u_alpha;",
+    "uniform float u_assembly;",
     "uniform float u_pass;",
     "uniform float u_renderScale;",
     "uniform vec4 u_topLogoField;",
@@ -3772,6 +3773,14 @@ function createParticleField(){
     "    topLogoCore=1.0-smoother((coreD-.18)/.82);",
     "  }",
     "",
+    "  // The SAME WebGL points that form the permanent logo arrive from space.",
+    "  // No secondary image, painted overlay or handoff exists.",
+    "  float arrival=smoother((u_assembly-(a_seed.x*.52+a_seed.y*.12))/.36);",
+    "  if(u_assembly<1.0){",
+    "    float a=6.2831853*fract(a_seed.z*1.61803+a_seed.y*2.41421+a_seed.w*.75488);",
+    "    float r=mix(100.0,310.0,a_seed.w)*(1.0-arrival);",
+    "    pos+=vec2(cos(a),sin(a))*r;",
+    "  }",
     "  vec2 clip=vec2(pos.x/u_resolution.x*2.0-1.0,1.0-pos.y/u_resolution.y*2.0);",
     "  gl_Position=vec4(clip,0.0,1.0);",
     "",
@@ -3861,7 +3870,7 @@ function createParticleField(){
     "  bloomGain*=mix(1.0,.24,bioFlame);",
     "  bloomGain*=mix(1.0,.055,bioWeb);",
     "  bloomGain*=mix(1.0,.38,bioSpark);",
-    "  float passAlpha=u_alpha*bioBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
+    "  float passAlpha=u_alpha*arrival*bioBaseGain*bookBaseGain*zoneAlpha*structuralAlpha*mix(1.0,mix(.56,1.0,glow),u_material);",
     "  passAlpha*=mix(1.0,.22,topLogoField*(1.0-isTop));",
     "  passAlpha*=mix(1.0,.08,topLogoCore*(1.0-isTop));",
 
@@ -4076,6 +4085,7 @@ function createParticleField(){
     bloom:gl.getUniformLocation(particleProgram,"u_bloom"),
     dpr:gl.getUniformLocation(particleProgram,"u_dpr"),
     alpha:gl.getUniformLocation(particleProgram,"u_alpha"),
+    assembly:gl.getUniformLocation(particleProgram,"u_assembly"),
     pass:gl.getUniformLocation(particleProgram,"u_pass"),
     renderScale:gl.getUniformLocation(particleProgram,"u_renderScale"),
     topLogoField:gl.getUniformLocation(particleProgram,"u_topLogoField"),
@@ -4121,6 +4131,8 @@ function createParticleField(){
   ]),gl.STATIC_DRAW);
 
   const state={
+    assemblyStartedAt:0,
+    assemblyProgress:0,
     source,
     bookReference:particleBookReference,
     albumReferences:{
@@ -5958,6 +5970,7 @@ function createParticleField(){
     gl.uniform1f(pLoc.bloom,bloom);
     gl.uniform1f(pLoc.dpr,state.dpr);
     gl.uniform1f(pLoc.alpha,alpha);
+    gl.uniform1f(pLoc.assembly,state.assemblyProgress);
     gl.uniform1f(pLoc.renderScale,renderScale);
     gl.uniform1f(pLoc.pass,pass);
     if(state.topLogoHit){
@@ -6044,6 +6057,10 @@ function createParticleField(){
 
     const dt=state.lastFrameAt?now-state.lastFrameAt:0;
     state.lastFrameAt=now;
+    if(state.ready&&state.assemblyStartedAt===0)state.assemblyStartedAt=now;
+    if(state.assemblyStartedAt){
+      state.assemblyProgress=Math.min(1,Math.max(0,(now-state.assemblyStartedAt)/3400));
+    }
     if(dt>0){
       state.shaderTime+=Math.min(dt,34);
     }
@@ -6207,6 +6224,7 @@ function createParticleField(){
       gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
     }
 
+    grimoriumBootLoader?.completeWhenAssembled?.(state.assemblyProgress);
     state.raf=requestAnimationFrame(render);
   }
 
