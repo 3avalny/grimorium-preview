@@ -27,8 +27,8 @@ test("the only visible logo is actual permanent WebGL particles",()=>{
   assert.match(site,/html\.particle-static-fallback \.brand img\{opacity:1!important\}/);
   assert.match(site,/"uniform float u_assembly;"/);
   assert.match(site,/gl\.uniform1f\(pLoc\.assembly,state\.assemblyProgress\)/);
-  assert.match(site,/float arrival=smoother\(\(u_assembly-/);
-  assert.match(site,/float passAlpha=u_alpha\*arrival/);
+  assert.match(site,/float assemblyOpacity=smoother\(\(assemblyPhase-/);
+  assert.match(site,/v_alpha=passAlpha\*visible\*assemblyOpacity/);
 });
 
 test("loader unlocks only after actual assembly or a safe timeout",()=>{
