@@ -3392,7 +3392,6 @@ function createParticleField(){
 
   let started=false;
   let resizeTimer=0;
-  let fullQualityBuildRequested=false;
   let handoffCoreOnly=false;
 
   // Maximum-quality mode: never reduce particle geometry based on hardware.
@@ -4131,7 +4130,6 @@ function createParticleField(){
   ]),gl.STATIC_DRAW);
 
   const state={
-    assemblyStartedAt:0,
     assemblyProgress:0,
     source,
     bookReference:particleBookReference,
@@ -4312,8 +4310,7 @@ function createParticleField(){
     const nativeW=ref.naturalWidth;
     const nativeH=ref.naturalHeight;
     const bootLight=
-      document.body.classList.contains("boot-loading")&&
-      !fullQualityBuildRequested;
+      document.body.classList.contains("boot-loading");
     // The logo and book use their ORIGINAL native pixels from the first
     // rendered particle frame, not a 900px approximation then a replacement.
     const bootScale=(sceneId==="logo"||sceneId==="book")
@@ -4519,8 +4516,7 @@ function createParticleField(){
     const bootLight=
       handoffCoreOnly||
       (
-        document.body.classList.contains("boot-loading")&&
-        !fullQualityBuildRequested
+        document.body.classList.contains("boot-loading")
       );
     for(const [id,ref] of Object.entries(state.albumReferences)){
       // During boot, never parse optional album maps on the main thread.
@@ -4590,8 +4586,7 @@ function createParticleField(){
     const bootLight=
       handoffCoreOnly||
       (
-        document.body.classList.contains("boot-loading")&&
-        !fullQualityBuildRequested
+        document.body.classList.contains("boot-loading")
       );
     state.bioCandidates=!bootLight&&state.bioReference.naturalWidth
       ?prepareDiscSceneCandidates(state.bioReference,false,"bio")
@@ -6059,9 +6054,12 @@ function createParticleField(){
 
     const dt=state.lastFrameAt?now-state.lastFrameAt:0;
     state.lastFrameAt=now;
-    if(state.ready&&state.assemblyStartedAt===0)state.assemblyStartedAt=now;
-    if(state.assemblyStartedAt){
-      state.assemblyProgress=Math.min(1,Math.max(0,(now-state.assemblyStartedAt)/3400));
+    if(state.ready&&state.assemblyProgress<1){
+      // Clamp per-frame advancement so a busy main thread cannot skip the
+      // on-screen build and show a completed logo in a single late frame.
+      state.assemblyProgress=Math.min(
+        1,state.assemblyProgress+Math.min(dt||16,42)/3400
+      );
     }
     if(dt>0){
       state.shaderTime+=Math.min(dt,34);
@@ -6251,7 +6249,6 @@ function createParticleField(){
     }finally{
       handoffCoreOnly=false;
     }
-    fullHandoffStarted=true; // No redundant full-density rebuild.
     state.render=render;
     state.goHome=()=>{
       const now=performance.now();
@@ -6585,59 +6582,20 @@ function createParticleField(){
     next();
   }
 
-  let deferredReferenceTimer=0;
-  let deferredReferencesDirty=false;
-  let fullHandoffRequested=false;
-  let fullHandoffStarted=false;
-  let deferredSettledCount=0;
   const deferredSettled=new WeakSet();
-
+  let deferredSettledCount=0;
+  // Optional scenes become available without rebuilding or replacing the logo.
   const noteDeferredSettled=ref=>{
     if(deferredSettled.has(ref))return;
     deferredSettled.add(ref);
-    deferredSettledCount+=1;
-    deferredReferencesDirty=true;
+    deferredSettledCount++;
+    if(started&&grimoriumBootLoader?.complete&&
+       deferredSettledCount===deferredReferences.length){
+      prepareDeferredScenesAfterBoot();
+    }
   };
-
-  function runHiddenFullRebuild(){
-    if(fullHandoffStarted||state.destroyed)return;
-    fullHandoffStarted=true;
-    fullQualityBuildRequested=true;
-    handoffCoreOnly=true;
-    deferredReferencesDirty=false;
-    state.bioSceneReady=false;
-    state.bioMappedByAlbum={};
-    state.bioSceneMapped=null;
-
-    // Only GV + Book are rebuilt at full density for the handoff. Reuse the
-    // already-prepared candidate maps and skip all album/Bio geometry + matching.
-    rebuild();
-
-    handoffCoreOnly=false;
-    fullQualityBuildRequested=false;
-    grimoriumBootLoader?.markFullFieldReady?.();
-
-    // The particle count is now final for this load. Build optional album/Bio
-    // mappings only after this point so they cannot be overwritten by rebuild().
-    prepareDeferredScenesAfterBoot();
-  }
-
-  function maybeStartFullHandoff(){
-    if(!started||!fullHandoffRequested||fullHandoffStarted)return;
-    if(document.body.classList.contains("boot-loading"))return;
-    if(deferredSettledCount<deferredReferences.length)return;
-
-    if("requestIdleCallback" in window){
-      requestIdleCallback(runHiddenFullRebuild,{timeout:420});
-    }else{
-      window.setTimeout(runHiddenFullRebuild,32);
-    }
-  }
-
   function refreshDeferredReferences(ref){
-    if(!started){
-      boot();
-    }
+    if(!started)boot();
     noteDeferredSettled(ref);
   }
 
@@ -6676,18 +6634,22 @@ function createParticleField(){
   }
 
   grimoriumBootLoader?.onComplete?.(()=>{
-    if(started)prepareDeferredScenesAfterBoot();
+    if(started&&deferredSettledCount===deferredReferences.length){
+      prepareDeferredScenesAfterBoot();
+    }
   });
 
   window.addEventListener("resize",()=>{
+    // Safari address bar expanding/collapsing is NOT a genuine layout resize.
+    // Never restart the same particle assembly for height-only toolbar changes.
+    if(window.innerWidth===state.width&&
+       Math.abs(window.innerHeight-state.height)<96)return;
     state.markSideFieldDirty(true);
     window.clearTimeout(resizeTimer);
     resizeTimer=window.setTimeout(()=>{
-      if(document.body.classList.contains("boot-loading")&&!fullQualityBuildRequested){
-        state.candidatesReady=false;
-      }
+      if(state.destroyed||!state.ready)return;
       rebuild();
-    },120);
+    },180);
   },{passive:true});
 
   function spawnSmokeNode(x,y,vx,vy,strength){
