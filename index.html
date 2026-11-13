@@ -3456,22 +3456,25 @@ window.addEventListener("resize",scheduleBiographyLayout,{passive:true});
 /* ---------- WEBGL PARTICLE / BOOK FIELD ---------- */
 const particleCanvas=document.getElementById("particle-field");
 const particleLogoHit=document.getElementById("particle-logo-hit");
-const particleGL=particleCanvas?.getContext("webgl",{
-  alpha:true,
+// The page and every particle scene have a black background. Using an
+// opaque drawing buffer avoids browser-dependent premultiplied-alpha
+// compositing of our additive WebGL particles (Firefox/Zen vs Safari).
+// Keep alpha INSIDE the particle shader for real smoke/assembly fades.
+const particleContextOptions={
+  alpha:false,
   antialias:false,
   depth:false,
   stencil:false,
-  premultipliedAlpha:true,
+  premultipliedAlpha:false,
   preserveDrawingBuffer:false,
   powerPreference:"high-performance"
-})||particleCanvas?.getContext("experimental-webgl",{
-  alpha:true,
-  antialias:false,
-  depth:false,
-  stencil:false,
-  premultipliedAlpha:true,
-  preserveDrawingBuffer:false
-});
+};
+const particleGL=particleCanvas?.getContext("webgl",particleContextOptions)||
+  particleCanvas?.getContext("experimental-webgl",particleContextOptions);
+if(particleGL&&"drawingBufferColorSpace" in particleGL){
+  // Explicit sRGB rather than browser/device-wide Display P3 output.
+  particleGL.drawingBufferColorSpace="srgb";
+}
 
 function particleHash(n){
   let x=(Math.floor(n)>>>0)+0x9e3779b9;
@@ -4159,17 +4162,24 @@ function createParticleField(){
     "  // smaller points, but nothing on the site can render larger than this.",
     "  // Cap is expressed in CSS pixels, then converted to device pixels.",
     "  float pointDiameterCss=min(passRadius*2.0,2.5);",
-    "  gl_PointSize=max(1.0,pointDiameterCss*u_dpr*u_renderScale);",
+    "  float pointDiameterPx=max(0.0,pointDiameterCss*u_dpr*u_renderScale);",
+    "  gl_PointSize=max(1.0,pointDiameterPx);",
+    "  // WebGL point sprites cannot rasterize below 1 physical pixel.",
+    "  // Compensate the extra pixel AREA in alpha so 1x DPR Firefox/Zen",
+    "  // does not turn thin particles into solid white strokes vs 2x Safari.",
+    "  float pixelCoverage=min(1.0,pointDiameterPx);",
     "  v_color=color;",
-    "  // Apply the same transparency to ALL passes, including the sharp GV",
-    "  // pass that previously overwrote the base alpha and exposed a dust cloud.",
-    "  v_alpha=passAlpha*visible*assemblyOpacity;",
+    "  // Apply opacity after ALL passes including the sharp logo and bloom.",
+    "  v_alpha=passAlpha*visible*assemblyOpacity*pixelCoverage*pixelCoverage;",
     "  v_albumSharp=step(3.5,u_pass);",
     "}"
   ].join("\n");
 
+  const particleFragmentPrecision=gl.getShaderPrecisionFormat?.(
+    gl.FRAGMENT_SHADER,gl.HIGH_FLOAT
+  )?.precision>0?"highp":"mediump";
   const particleFS=[
-    "precision mediump float;",
+    `precision ${particleFragmentPrecision} float;`,
     "varying vec3 v_color;",
     "varying float v_alpha;",
     "varying float v_albumSharp;",
@@ -4182,7 +4192,7 @@ function createParticleField(){
     "  float softShape=aa*.76+core*.24;",
     "  float crispShape=1.0-smoothstep(.405,.5,d);",
     "  float shape=mix(softShape,crispShape,v_albumSharp);",
-    "  gl_FragColor=vec4(v_color,v_alpha*shape);",
+    "  gl_FragColor=vec4(clamp(v_color,0.0,1.0),clamp(v_alpha*shape,0.0,1.0));",
     "}"
   ].join("\n");
 
@@ -6309,7 +6319,9 @@ function createParticleField(){
 
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);
     gl.viewport(0,0,particleCanvas.width,particleCanvas.height);
-    gl.clearColor(0,0,0,0);
+    // This is the OPAQUE default framebuffer; offscreen bloom targets
+    // remain transparent and are still cleared separately.
+    gl.clearColor(0,0,0,1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     if(state.ready&&state.count){
@@ -6429,7 +6441,16 @@ function createParticleField(){
 
       // One sharp pass owns the full chain:
       // large GV <-> Book <-> Discography <-> Biography.
-      gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
+      // Alpha-over for the standalone logo prevents accumulated white
+      // saturating strokes. Retain the original additive character during
+      // book, album and candle morphs.
+      if(material<.0001){
+        gl.blendFuncSeparate(
+          gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA
+        );
+      }else{
+        gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
+      }
       setParticleUniforms(now,material,bloom,alpha,1,4);
       gl.drawArrays(gl.POINTS,0,state.count);
 
@@ -6462,7 +6483,7 @@ function createParticleField(){
     gl.disable(gl.CULL_FACE);
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
-    gl.clearColor(0,0,0,0);
+    gl.clearColor(0,0,0,1);
 
     // Preserve the full particle count; defer costly album/Bio scenes.
     handoffCoreOnly=true;

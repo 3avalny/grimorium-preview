@@ -132,6 +132,55 @@ test("Spotify buffering never flashes track index between play events",()=>{
   assert.match(site,/if\(spotifyCurrent\.position>40\)spotifyPlaybackConfirmed=true/);
 });
 
+test("WebGL default framebuffer is opaque black and color-managed",()=>{
+  assert.match(site,/const particleContextOptions=\{/);
+  assert.match(site,/alpha:false,[\s\S]*?premultipliedAlpha:false/);
+  assert.match(site,/getContext\("webgl",particleContextOptions\)/);
+  assert.match(site,/getContext\("experimental-webgl",particleContextOptions\)/);
+  assert.match(site,/drawingBufferColorSpace="srgb"/);
+  assert.match(site,/gl\.clearColor\(0,0,0,1\)/);
+  assert.match(site,/gl\.bindFramebuffer\(gl\.FRAMEBUFFER,null\);[\s\S]*?gl\.clearColor\(0,0,0,1\)/);
+  assert.doesNotMatch(site,/premultipliedAlpha:true/);
+  // Offscreen bloom still uses a transparent render target.
+  assert.match(site,/gl\.bindFramebuffer\(gl\.FRAMEBUFFER,state\.bloomA\.framebuffer\)/);
+  assert.match(site,/gl\.clearColor\(0,0,0,0\)/);
+});
+
+test("small points have DPR-normalized alpha rather than a white one-pixel floor",()=>{
+  assert.match(site,/float pointDiameterPx=max\(0\.0,pointDiameterCss\*u_dpr\*u_renderScale\)/);
+  assert.match(site,/gl_PointSize=max\(1\.0,pointDiameterPx\)/);
+  assert.match(site,/float pixelCoverage=min\(1\.0,pointDiameterPx\)/);
+  assert.match(site,/v_alpha=passAlpha\*visible\*assemblyOpacity\*pixelCoverage\*pixelCoverage/);
+  assert.match(site,/clamp\(v_color,0\.0,1\.0\),clamp\(v_alpha\*shape,0\.0,1\.0\)/);
+  assert.match(site,/particleFragmentPrecision=gl\.getShaderPrecisionFormat\?/);
+  // Pixel footprints grow with DPR^2 while alpha drops with the
+  // square of the subpixel diameter. A retina renderer must not be
+  // made dimmer by forcing its native pixels to a one-pixel sprite.
+  const coverage=(diameterCss,dpr)=>{
+    const physical=Math.max(0,diameterCss*dpr);
+    return Math.min(1,physical)**2;
+  };
+  assert.equal(coverage(.25,1),.0625);
+  assert.equal(coverage(.25,2),.25);
+  assert.equal(coverage(1.4,1),1);
+  assert.equal(coverage(1.4,2),1);
+});
+
+test("logo crossings use bounded alpha-over while book and candles keep original glow",()=>{
+  assert.match(site,/if\(material<\.0001\)\{/);
+  assert.match(site,/gl\.SRC_ALPHA,gl\.ONE_MINUS_SRC_ALPHA,gl\.ONE,gl\.ONE_MINUS_SRC_ALPHA/);
+  assert.match(site,/gl\.blendFuncSeparate\(gl\.SRC_ALPHA,gl\.ONE,gl\.ONE,gl\.ONE\)/);
+  assert.match(site,/setParticleUniforms\(now,material,bloom,alpha,1,4\)/);
+  // 8 overlapping 35%-opacity dots no longer additively saturate white.
+  const alpha=.35;
+  const additive=Math.min(1,8*alpha);
+  const bounded=1-(1-alpha)**8;
+  assert.ok(bounded<additive);
+  assert.ok(bounded>.9);
+  assert.match(site,/base=240000/);
+  assert.match(site,/vec2 assemblyFlow=curlFlow/);
+});
+
 test("original zoom and text-selection restrictions stay unchanged",()=>{
   assert.match(site,/maximum-scale=1,user-scalable=no/);
   assert.match(site,/user-select:none!important/);
