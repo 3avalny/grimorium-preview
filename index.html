@@ -6262,8 +6262,8 @@ function createParticleField(){
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);
     gl.viewport(0,0,particleCanvas.width,particleCanvas.height);
     gl.enable(gl.BLEND);
-    // Screen-like bloom lights the existing scene without unbounded",
-    "    // additive accumulation or washing the particle palette to white.",
+    // Screen-like bloom blends light without washing the particles white.
+    // All real particle shapes remain bounded alpha-over.
     gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_COLOR);
     bindQuad(compositeProgram,compositeLoc.position);
     gl.activeTexture(gl.TEXTURE0);
