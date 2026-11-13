@@ -4230,7 +4230,11 @@ function createParticleField(){
     "varying vec2 v_uv;",
     "void main(){",
     "  vec4 c=texture2D(u_texture,v_uv);",
-    "  gl_FragColor=vec4(c.rgb*u_strength,c.a*u_strength);",
+    "  // Prevent saturated RGB from a dense glow texture from turning",
+    "  // the warm book, album and candle particles into white haze.",
+    "  vec3 light=c.rgb*u_strength;",
+    "  vec3 shoulder=light/(vec3(1.0)+light*.55);",
+    "  gl_FragColor=vec4(shoulder,c.a*u_strength);",
     "}"
   ].join("\n");
 
@@ -6258,7 +6262,9 @@ function createParticleField(){
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);
     gl.viewport(0,0,particleCanvas.width,particleCanvas.height);
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE,gl.ONE);
+    // Screen-like bloom lights the existing scene without unbounded",
+    "    // additive accumulation or washing the particle palette to white.",
+    gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_COLOR);
     bindQuad(compositeProgram,compositeLoc.position);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D,state.bloomA.texture);
@@ -6431,7 +6437,11 @@ function createParticleField(){
       }
 
       if(material>.01&&softPassGain>.015){
-        gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
+        // Highlights use bounded alpha-over. Additive accumulation here
+        // previously whitened dense book/candle webs in Firefox/Zen.
+        gl.blendFuncSeparate(
+          gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA
+        );
         setParticleUniforms(now,material,transitionBloom,alpha*softPassGain,1,1);
         gl.drawArrays(gl.POINTS,0,state.count);
 
@@ -6441,16 +6451,12 @@ function createParticleField(){
 
       // One sharp pass owns the full chain:
       // large GV <-> Book <-> Discography <-> Biography.
-      // Alpha-over for the standalone logo prevents accumulated white
-      // saturating strokes. Retain the original additive character during
-      // book, album and candle morphs.
-      if(material<.0001){
-        gl.blendFuncSeparate(
-          gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA
-        );
-      }else{
-        gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE,gl.ONE,gl.ONE);
-      }
+      // Use the SAME bounded material blend for every scene so particle
+      // crossings preserve their original RGB instead of saturating white.
+      // Curl paths, 240k point budget, and the separate soft bloom stay.
+      gl.blendFuncSeparate(
+        gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ONE,gl.ONE_MINUS_SRC_ALPHA
+      );
       setParticleUniforms(now,material,bloom,alpha,1,4);
       gl.drawArrays(gl.POINTS,0,state.count);
 
