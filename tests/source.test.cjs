@@ -166,19 +166,41 @@ test("small points have DPR-normalized alpha rather than a white one-pixel floor
   assert.equal(coverage(1.4,2),1);
 });
 
-test("logo crossings use bounded alpha-over while book and candles keep original glow",()=>{
-  assert.match(site,/if\(material<\.0001\)\{/);
+test("all sharp particles use bounded alpha-over without washing colors to white",()=>{
+  assert.match(site,/One sharp pass owns the full chain:/);
+  assert.match(site,/Use the SAME bounded material blend for every scene/);
   assert.match(site,/gl\.SRC_ALPHA,gl\.ONE_MINUS_SRC_ALPHA,gl\.ONE,gl\.ONE_MINUS_SRC_ALPHA/);
-  assert.match(site,/gl\.blendFuncSeparate\(gl\.SRC_ALPHA,gl\.ONE,gl\.ONE,gl\.ONE\)/);
   assert.match(site,/setParticleUniforms\(now,material,bloom,alpha,1,4\)/);
-  // 8 overlapping 35%-opacity dots no longer additively saturate white.
-  const alpha=.35;
-  const additive=Math.min(1,8*alpha);
-  const bounded=1-(1-alpha)**8;
-  assert.ok(bounded<additive);
-  assert.ok(bounded>.9);
-  assert.match(site,/base=240000/);
+  assert.doesNotMatch(site,/if\(material<\.0001\)/);
+  const warm=[.80,.76,.68];
+  const samples=12, opacity=.3;
+  const oldAdditive=warm.map(channel=>Math.min(1,samples*channel*opacity));
+  const bounded=warm.map(channel=>channel*(1-(1-opacity)**samples));
+  assert.deepEqual(oldAdditive,[1,1,1]); // old white saturation
+  assert.ok(bounded[0]>bounded[1]&&bounded[1]>bounded[2]);
+  assert.ok(bounded[0]<.80&&bounded[2]<.68);
+});
+
+test("book, albums and candles keep a controlled warm highlight and bloom",()=>{
+  assert.match(site,/if\(material>\.01&&softPassGain>\.015\)\{/);
+  assert.match(site,/Highlights use bounded alpha-over/);
+  assert.match(site,/setParticleUniforms\(now,material,transitionBloom,alpha\*softPassGain,1,1\)/);
+  assert.match(site,/setParticleUniforms\(now,material,transitionBloom,alpha\*softPassGain,1,2\)/);
+  assert.match(site,/vec3 light=c\.rgb\*u_strength/);
+  assert.match(site,/vec3 shoulder=light\/\(vec3\(1\.0\)\+light\*\.55\)/);
+  assert.match(site,/gl\.blendFunc\(gl\.ONE,gl\.ONE_MINUS_SRC_COLOR\)/);
+  assert.doesNotMatch(site,/gl\.blendFunc\(gl\.ONE,gl\.ONE\)/);
+  // Offscreen glow is still produced, but its final contribution saturates gently.
+  assert.match(site,/gl\.blendFuncSeparate\(gl\.SRC_ALPHA,gl\.ONE,gl\.ONE,gl\.ONE\)/);
+  assert.equal((site.match(/gl\.blendFuncSeparate\(gl\.SRC_ALPHA,gl\.ONE,gl\.ONE,gl\.ONE\)/g)||[]).length,1);
+  assert.match(site,/gl\.bindFramebuffer\(gl\.FRAMEBUFFER,state\.bloomA\.framebuffer\)/);
   assert.match(site,/vec2 assemblyFlow=curlFlow/);
+  assert.match(site,/base=240000/);
+  const shoulder=v=>v/(1+.55*v);
+  const screen=(foreground,light)=>light+foreground*(1-light);
+  assert.ok(shoulder(.96)<.64);
+  assert.ok(screen(.35,shoulder(.96))<1);
+  assert.ok(screen(.35,shoulder(.96))>.35);
 });
 
 test("original zoom and text-selection restrictions stay unchanged",()=>{
