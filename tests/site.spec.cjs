@@ -328,3 +328,31 @@ test("mobile intro swipe also works when Safari sends touchend without touchmove
   await expect.poll(()=>page.evaluate(()=>Math.abs(window.scrollY-Math.round(introRange*.54)))).toBeLessThan(3);
   await expect(page.locator("html")).not.toHaveClass(/mobile-snapping/);
 });
+
+// Pixel output is intentionally not compared as a screenshot here: GPU drivers
+// and browser display scaling can vary. Verify the relevant presentation contract.
+test("WebGL uses opaque sRGB output on desktop and mobile without a bitmap logo",async({page})=>{
+  await page.setViewportSize({width:1280,height:800});
+  await page.goto("/",{waitUntil:"domcontentloaded"});
+  const desktop=await page.evaluate(()=>{
+    const canvas=document.querySelector("canvas#particle-field");
+    const gl=canvas?.getContext("webgl");
+    return gl?{
+      alpha:gl.getContextAttributes().alpha,
+      premultipliedAlpha:gl.getContextAttributes().premultipliedAlpha,
+      colorSpace:"drawingBufferColorSpace" in gl?gl.drawingBufferColorSpace:null
+    }:null;
+  });
+  if(!desktop){test.skip(true,"WebGL unavailable in browser runner");return}
+  expect(desktop.alpha).toBe(false);
+  if(desktop.colorSpace!==null)expect(desktop.colorSpace).toBe("srgb");
+  await expect(page.locator("canvas#particle-field")).toHaveCount(1);
+  await expect(page.locator("canvas#boot-particle-loader")).toHaveCount(0);
+  await page.setViewportSize({width:390,height:844});
+  const mobile=await page.evaluate(()=>{
+    const gl=document.querySelector("canvas#particle-field").getContext("webgl");
+    return gl.getContextAttributes();
+  });
+  expect(mobile.alpha).toBe(false);
+  await expect(page.locator("html")).not.toHaveClass(/particle-static-fallback/);
+});
