@@ -192,6 +192,7 @@ test("book, albums and candles keep a controlled warm highlight and bloom",()=>{
   assert.doesNotMatch(site,/gl\.blendFunc\(gl\.ONE,gl\.ONE\)/);
   // Offscreen glow is still produced, but its final contribution saturates gently.
   assert.match(site,/gl\.blendFuncSeparate\(gl\.SRC_ALPHA,gl\.ONE,gl\.ONE,gl\.ONE\)/);
+  assert.equal((site.match(/gl\.blendFuncSeparate\(gl\.SRC_ALPHA,gl\.ONE,gl\.ONE,gl\.ONE\)/g)||[]).length,1);
   assert.match(site,/gl\.bindFramebuffer\(gl\.FRAMEBUFFER,state\.bloomA\.framebuffer\)/);
   assert.match(site,/vec2 assemblyFlow=curlFlow/);
   assert.match(site,/base=240000/);
